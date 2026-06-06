@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useMousePosition } from './hooks/useMousePosition';
 import Navbar from './components/Navbar';
 import BackgroundScene from './components/BackgroundScene';
@@ -5,9 +6,16 @@ import FarmerCharacter from './components/FarmerCharacter';
 import HeroSection from './components/HeroSection';
 import PortalButtons from './components/PortalButtons';
 import ServicePills from './components/ServicePills';
+import FarmerDashboard from './pages/FarmerDashboardSimple';
 
 function App() {
+  const [activePage, setActivePage] = useState('home');
   const mousePosition = useMousePosition(0.08);
+
+  // If farmer dashboard is active, show only the dashboard
+  if (activePage === 'farmer-dashboard') {
+    return <FarmerDashboard />;
+  }
 
   return (
     <div className="relative bg-white text-primary font-sans selection:bg-surface-warm selection:text-primary antialiased overflow-x-hidden flex flex-col lg:block lg:min-h-screen">
@@ -31,7 +39,7 @@ function App() {
             <HeroSection />
 
             {/* Portal Navigation Buttons */}
-            <PortalButtons />
+            <PortalButtons onPortalSelect={setActivePage} />
 
             {/* Service Selection Pills */}
             <div className="mt-4">

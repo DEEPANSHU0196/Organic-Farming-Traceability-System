@@ -3,16 +3,29 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Sprout, LogIn, ShoppingCart, Truck, ShieldCheck } from 'lucide-react';
 
 const portals = [
-  { id: 'farmer', label: 'Farmer Portal', icon: Sprout, color: 'from-emerald-600 to-green-700' },
+  { id: 'farmer', label: 'Farmer Portal', icon: Sprout, color: 'from-emerald-600 to-green-700', path: 'farmer-dashboard' },
   { id: 'login', label: 'Login', icon: LogIn, color: 'from-amber-600 to-yellow-700' },
   { id: 'buyers', label: 'Buyers', icon: ShoppingCart, color: 'from-teal-600 to-cyan-700' },
   { id: 'transporter', label: 'Transporter', icon: Truck, color: 'from-orange-600 to-red-700' },
   { id: 'admin', label: 'Admin', icon: ShieldCheck, color: 'from-indigo-600 to-violet-700' },
 ];
 
-export default function PortalButtons() {
+export default function PortalButtons({ onPortalSelect }) {
   const [activePortal, setActivePortal] = useState(null);
   const [hoveredPortal, setHoveredPortal] = useState(null);
+  const [navigating, setNavigating] = useState(false);
+
+  const handlePortalClick = (portal) => {
+    if (portal.path) {
+      setNavigating(true);
+      setTimeout(() => {
+        setActivePortal(null);
+        onPortalSelect && onPortalSelect(portal.path);
+      }, 500);
+    } else {
+      setActivePortal(activePortal === portal.id ? null : portal.id);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -31,7 +44,7 @@ export default function PortalButtons() {
               transition={{ duration: 0.4, delay: 0.8 + index * 0.08, ease: 'easeOut' }}
               whileHover={{ scale: 1.04, y: -2 }}
               whileTap={{ scale: 0.97 }}
-              onClick={() => setActivePortal(isActive ? null : portal.id)}
+              onClick={() => handlePortalClick(portal)}
               onMouseEnter={() => setHoveredPortal(portal.id)}
               onMouseLeave={() => setHoveredPortal(null)}
               className={`
@@ -105,17 +118,26 @@ export default function PortalButtons() {
               <div className="flex items-center gap-3">
                 <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
                 <p className="text-sm text-primary/80">
-                  Navigating to <span className="font-semibold text-primary">{portals.find(p => p.id === activePortal)?.label}</span>
+                  {navigating ? 'Loading ' : 'Navigating to '}
+                  <span className="font-semibold text-primary">{portals.find(p => p.id === activePortal)?.label}</span>
                 </p>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-2 text-accent text-xs font-semibold uppercase tracking-wider hover:text-primary transition-colors cursor-pointer"
-              >
-                Coming Soon
-                <span className="text-lg leading-none">→</span>
-              </motion.button>
+              {!navigating && (
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const portal = portals.find(p => p.id === activePortal);
+                    if (portal?.path) {
+                      handlePortalClick(portal);
+                    }
+                  }}
+                  className="flex items-center gap-2 text-accent text-xs font-semibold uppercase tracking-wider hover:text-primary transition-colors cursor-pointer"
+                >
+                  {activePortal === 'farmer' ? 'Enter' : 'Coming Soon'}
+                  <span className="text-lg leading-none">→</span>
+                </motion.button>
+              )}
             </div>
           </motion.div>
         )}
