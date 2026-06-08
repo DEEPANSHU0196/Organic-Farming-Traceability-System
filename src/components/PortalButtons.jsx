@@ -1,16 +1,18 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sprout, LogIn, ShoppingCart, Truck, ShieldCheck } from 'lucide-react';
 
 const portals = [
-  { id: 'farmer', label: 'Farmer Portal', icon: Sprout, color: 'from-emerald-600 to-green-700', path: 'farmer-dashboard' },
+  { id: 'farmer', label: 'Farmer Portal', icon: Sprout, color: 'from-emerald-600 to-green-700', path: '/farmer-dashboard/overview' },
   { id: 'login', label: 'Login', icon: LogIn, color: 'from-amber-600 to-yellow-700' },
   { id: 'buyers', label: 'Buyers', icon: ShoppingCart, color: 'from-teal-600 to-cyan-700' },
   { id: 'transporter', label: 'Transporter', icon: Truck, color: 'from-orange-600 to-red-700' },
   { id: 'admin', label: 'Admin', icon: ShieldCheck, color: 'from-indigo-600 to-violet-700' },
 ];
 
-export default function PortalButtons({ onPortalSelect }) {
+export default function PortalButtons() {
+  const navigate = useNavigate();
   const [activePortal, setActivePortal] = useState(null);
   const [hoveredPortal, setHoveredPortal] = useState(null);
   const [navigating, setNavigating] = useState(false);
@@ -20,7 +22,7 @@ export default function PortalButtons({ onPortalSelect }) {
       setNavigating(true);
       setTimeout(() => {
         setActivePortal(null);
-        onPortalSelect && onPortalSelect(portal.path);
+        navigate(portal.path);
       }, 500);
     } else {
       setActivePortal(activePortal === portal.id ? null : portal.id);

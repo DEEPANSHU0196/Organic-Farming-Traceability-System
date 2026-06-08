@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import DashboardSidebar from '../components/FarmerDashboard/DashboardSidebar';
 import DashboardNavbar from '../components/FarmerDashboard/DashboardNavbar';
@@ -27,8 +28,25 @@ const dashboardSections = [
 ];
 
 export default function FarmerDashboard() {
-  const [activeSection, setActiveSection] = useState('overview');
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get section from URL pathname, default to 'overview'
+  const pathSegment = location.pathname.split('/').pop() || 'overview';
+  const activeSection = dashboardSections.find(s => s.id === pathSegment)?.id || 'overview';
+  
   const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  // Handle navigation when sidebar item is clicked
+  const handleSectionChange = (sectionId) => {
+    navigate(`/farmer-dashboard/${sectionId}`);
+    setSidebarOpen(false);
+  };
+
+  // Handle logout - redirect to home
+  const handleLogout = () => {
+    navigate('/');
+  };
 
   const renderSection = () => {
     switch (activeSection) {
@@ -63,8 +81,9 @@ export default function FarmerDashboard() {
       <DashboardSidebar
         sections={dashboardSections}
         activeSection={activeSection}
-        setActiveSection={setActiveSection}
+        setActiveSection={handleSectionChange}
         isOpen={sidebarOpen}
+        onLogout={handleLogout}
       />
 
       {/* Main Content */}
@@ -73,6 +92,7 @@ export default function FarmerDashboard() {
         <DashboardNavbar
           onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
           sidebarOpen={sidebarOpen}
+          onLogout={handleLogout}
         />
 
         {/* Content Area */}

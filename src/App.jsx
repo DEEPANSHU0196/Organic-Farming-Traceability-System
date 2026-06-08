@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { ProductProvider } from './contexts/ProductContext';
 import { useMousePosition } from './hooks/useMousePosition';
 import Navbar from './components/Navbar';
 import BackgroundScene from './components/BackgroundScene';
@@ -6,16 +7,11 @@ import FarmerCharacter from './components/FarmerCharacter';
 import HeroSection from './components/HeroSection';
 import PortalButtons from './components/PortalButtons';
 import ServicePills from './components/ServicePills';
-import FarmerDashboard from './pages/FarmerDashboardSimple';
+import FarmerDashboard from './pages/FarmerDashboard';
 
-function App() {
-  const [activePage, setActivePage] = useState('home');
+// Home page component
+function HomePage() {
   const mousePosition = useMousePosition(0.08);
-
-  // If farmer dashboard is active, show only the dashboard
-  if (activePage === 'farmer-dashboard') {
-    return <FarmerDashboard />;
-  }
 
   return (
     <div className="relative bg-white text-primary font-sans selection:bg-surface-warm selection:text-primary antialiased overflow-x-hidden flex flex-col lg:block lg:min-h-screen">
@@ -38,8 +34,8 @@ function App() {
             {/* Typewriter Headline + Subtitle + Stats */}
             <HeroSection />
 
-            {/* Portal Navigation Buttons */}
-            <PortalButtons onPortalSelect={setActivePage} />
+            {/* Portal Navigation Buttons - updated to use React Router */}
+            <PortalButtons />
 
             {/* Service Selection Pills */}
             <div className="mt-4">
@@ -57,6 +53,19 @@ function App() {
         </footer>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <ProductProvider>
+      <Router>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/farmer-dashboard/*" element={<FarmerDashboard />} />
+        </Routes>
+      </Router>
+    </ProductProvider>
   );
 }
 

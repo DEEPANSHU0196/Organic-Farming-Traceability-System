@@ -1,8 +1,13 @@
 import { motion } from 'motion/react';
-import { Upload, X, Plus } from 'lucide-react';
+import { Upload, X, Plus, Check } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useProducts } from '../../contexts/ProductContext';
 
 export default function AddProductForm() {
+  const navigate = useNavigate();
+  const { addProduct } = useProducts();
+  
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -15,6 +20,8 @@ export default function AddProductForm() {
   });
 
   const [imagePreview, setImagePreview] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = ['Wheat', 'Rice', 'Corn', 'Mustard', 'Cotton', 'Sugarcane', 'Vegetables'];
   const units = ['kg', 'quintal', 'ton', 'liter', 'bundle'];
@@ -31,7 +38,23 @@ export default function AddProductForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log('Product submitted:', formData);
+    setIsSubmitting(true);
+    
+    // Add product to context (this saves to localStorage)
+    addProduct({
+      name: formData.name,
+      category: formData.category,
+      quantity: parseInt(formData.quantity),
+      unit: formData.unit,
+      price: parseFloat(formData.price),
+      harvestDate: formData.harvestDate,
+      description: formData.description,
+      image: imagePreview, // Save the preview image as data URL
+    });
+
+    // Show success message
+    setShowSuccess(true);
+    
     // Reset form
     setFormData({
       name: '',
@@ -44,6 +67,12 @@ export default function AddProductForm() {
       image: null,
     });
     setImagePreview(null);
+    setIsSubmitting(false);
+
+    // Redirect to My Products after 2 seconds
+    setTimeout(() => {
+      navigate('/farmer-dashboard/my-products');
+    }, 2000);
   };
 
   return (
@@ -52,6 +81,21 @@ export default function AddProductForm() {
         <h1 className="text-3xl font-bold text-primary mb-2">Add New Product</h1>
         <p className="text-accent-muted">List your agricultural products for buyers to discover</p>
       </div>
+
+      {/* Success Message */}
+      {showSuccess && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg text-green-700"
+        >
+          <Check size={20} className="text-green-600" />
+          <div>
+            <p className="font-medium">Product added successfully!</p>
+            <p className="text-sm">Redirecting to My Products...</p>
+          </div>
+        </motion.div>
+      )}
 
       <motion.form
         initial={{ opacity: 0, y: 20 }}

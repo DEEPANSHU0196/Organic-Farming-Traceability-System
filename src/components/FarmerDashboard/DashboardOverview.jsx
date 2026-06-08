@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
-import { TrendingUp, Package, CheckCircle, DollarSign, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { TrendingUp, Package, CheckCircle, DollarSign, ArrowUpRight, ArrowDownLeft, Plus, ShoppingCart } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Line, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -55,12 +56,38 @@ const productPerformanceData = {
 };
 
 export default function DashboardOverview() {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-8">
-      {/* Welcome Section */}
+      {/* Welcome Section with Action Buttons */}
       <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-        <h1 className="text-3xl font-bold mb-2">Welcome back, Jatin! 👋</h1>
-        <p className="text-white/90">Here's your farm's performance summary for this month</p>
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Welcome back, Jatin! 👋</h1>
+            <p className="text-white/90">Here's your farm's performance summary for this month</p>
+          </div>
+          <div className="flex gap-3 flex-wrap md:flex-nowrap">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/farmer-dashboard/add-product')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white text-emerald-600 rounded-lg font-medium hover:bg-emerald-50 transition-colors"
+            >
+              <Plus size={18} />
+              Add Product
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/farmer-dashboard/orders')}
+              className="flex items-center gap-2 px-4 py-2.5 bg-white/20 text-white rounded-lg font-medium hover:bg-white/30 transition-colors"
+            >
+              <ShoppingCart size={18} />
+              View Orders
+            </motion.button>
+          </div>
+        </div>
       </div>
 
       {/* Analytics Cards */}

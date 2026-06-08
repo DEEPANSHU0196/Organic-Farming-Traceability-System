@@ -14,7 +14,7 @@ const sidebarItems = [
   { id: 'blockchain', icon: '🔗', label: 'Blockchain' },
 ];
 
-export default function DashboardSidebar({ sections, activeSection, setActiveSection, isOpen }) {
+export default function DashboardSidebar({ sections, activeSection, setActiveSection, isOpen, onLogout }) {
   return (
     <>
       {/* Overlay for mobile */}
@@ -82,6 +82,7 @@ export default function DashboardSidebar({ sections, activeSection, setActiveSec
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
+            onClick={onLogout}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-red-600/20 hover:bg-red-600/30 text-red-300 hover:text-red-200 transition-all"
           >
             <LogOut size={18} />

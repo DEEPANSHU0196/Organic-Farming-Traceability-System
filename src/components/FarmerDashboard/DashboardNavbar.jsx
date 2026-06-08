@@ -2,7 +2,7 @@ import { motion } from 'motion/react';
 import { Menu, Bell, Search, User, Settings, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
-export default function DashboardNavbar({ onToggleSidebar, sidebarOpen }) {
+export default function DashboardNavbar({ onToggleSidebar, sidebarOpen, onLogout }) {
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
@@ -108,7 +108,10 @@ export default function DashboardNavbar({ onToggleSidebar, sidebarOpen }) {
                   Settings
                 </button>
                 <hr className="my-2 border-surface-alt" />
-                <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors">
+                <button 
+                  onClick={onLogout}
+                  className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded transition-colors"
+                >
                   <LogOut size={16} />
                   Logout
                 </button>

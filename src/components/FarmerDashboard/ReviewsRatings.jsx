@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
-import { Star, ThumbsUp, MessageCircle } from 'lucide-react';
+import { Star, ThumbsUp, MessageCircle, Send, X } from 'lucide-react';
+import { useState } from 'react';
 
 const reviews = [
   {
@@ -45,7 +46,9 @@ const reviews = [
 ];
 
 export default function ReviewsRatings() {
-  const averageRating = (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1);
+  const [replyingTo, setReplyingTo] = useState(null);
+  const [replyText, setReplyText] = useState('');
+  const [helpfulReviews, setHelpfulReviews] = useState({});
   const ratingCounts = [5, 4, 3, 2, 1].map(
     (rating) => reviews.filter((r) => r.rating === rating).length
   );
@@ -143,22 +146,64 @@ export default function ReviewsRatings() {
             <p className="text-accent-muted mb-4">{review.review}</p>
 
             {/* Review Actions */}
-            <div className="flex items-center gap-4 text-sm">
+            <div className="flex items-center gap-4 text-sm flex-wrap">
               <motion.button
                 whileHover={{ scale: 1.05 }}
-                className="flex items-center gap-2 text-accent-muted hover:text-emerald-600 transition-colors"
+                onClick={() => handleHelpful(review.id)}
+                className={`flex items-center gap-2 transition-colors ${
+                  helpfulReviews[review.id]
+                    ? 'text-emerald-600'
+                    : 'text-accent-muted hover:text-emerald-600'
+                }`}
               >
                 <ThumbsUp size={16} />
-                <span>Helpful ({review.helpful})</span>
+                <span>Helpful ({review.helpful + (helpfulReviews[review.id] ? 1 : 0)})</span>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
+                onClick={() => setReplyingTo(review.id)}
                 className="flex items-center gap-2 text-accent-muted hover:text-emerald-600 transition-colors"
               >
                 <MessageCircle size={16} />
                 <span>Reply</span>
               </motion.button>
             </div>
+
+            {/* Reply Box */}
+            {replyingTo === review.id && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="mt-4 p-4 bg-surface-alt rounded-lg"
+              >
+                <div className="flex items-start gap-3">
+                  <textarea
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Write your reply..."
+                    className="flex-1 p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500 resize-none"
+                    rows="2"
+                  />
+                </div>
+                <div className="flex gap-2 mt-3">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    onClick={() => handleReply(review.id)}
+                    className="flex items-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors"
+                  >
+                    <Send size={14} />
+                    Post Reply
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    onClick={() => setReplyingTo(null)}
+                    className="px-3 py-1.5 border border-surface-alt rounded-lg text-sm font-medium hover:bg-surface-alt transition-colors"
+                  >
+                    Cancel
+                  </motion.button>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         ))}
       </div>

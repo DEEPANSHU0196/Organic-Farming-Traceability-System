@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
-import { TrendingUp, Wallet, Clock, CheckCircle } from 'lucide-react';
+import { TrendingUp, Wallet, Clock, CheckCircle, Download, CreditCard, X } from 'lucide-react';
 import { Line } from 'react-chartjs-2';
+import { useState } from 'react';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -29,8 +30,77 @@ const transactions = [
 ];
 
 export default function PaymentsSection() {
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [showNotification, setShowNotification] = useState(null);
+  const [exportFormat, setExportFormat] = useState('pdf');
+
+  const handleWithdraw = () => {
+    if (!withdrawAmount || parseInt(withdrawAmount) <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    if (parseInt(withdrawAmount) > 150000) {
+      alert('Insufficient balance');
+      return;
+    }
+    setShowNotification({ type: 'success', message: `Withdrawal of ₹${withdrawAmount} initiated!` });
+    setWithdrawAmount('');
+    setShowWithdrawModal(false);
+    setTimeout(() => setShowNotification(null), 3000);
+  };
+
+  const handleExport = () => {
+    const content = `Payment Report
+Generated: ${new Date().toLocaleDateString()}
+
+=== SUMMARY ===
+Total Earnings: ₹11,10,000
+Paid Payments: ₹7,90,000
+Pending Payments: ₹3,20,000
+Wallet Balance: ₹1,50,000
+
+=== TRANSACTIONS ===
+${transactions.map(tx => `${tx.order} | ₹${tx.amount} | ${tx.status} | ${tx.date}`).join('\n')}
+`;
+
+    if (exportFormat === 'csv') {
+      const csvContent = 'Order ID,Amount,Status,Date\n' + 
+        transactions.map(tx => `${tx.order},${tx.amount},${tx.status},${tx.date}`).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'payment_report.csv';
+      a.click();
+    } else {
+      const blob = new Blob([content], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'payment_report.txt';
+      a.click();
+    }
+
+    setShowNotification({ type: 'success', message: 'Report exported successfully!' });
+    setShowExportModal(false);
+    setTimeout(() => setShowNotification(null), 3000);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Notification */}
+      {showNotification && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-4 rounded-lg text-white ${showNotification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}
+        >
+          ✓ {showNotification.message}
+        </motion.div>
+      )}
+
       <div>
         <h1 className="text-3xl font-bold text-primary mb-2">Payments & Revenue</h1>
         <p className="text-accent-muted">Manage your earnings and payment history</p>
@@ -197,13 +267,155 @@ export default function PaymentsSection() {
             </div>
           </div>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          className="w-full px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors"
-        >
-          Update Bank Account
-        </motion.button>
+        <div className="flex gap-3 flex-wrap">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            onClick={() => setShowWithdrawModal(true)}
+            className="flex-1 min-w-[140px] px-6 py-3 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+          >
+            <CreditCard size={18} />
+            Withdraw
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            onClick={() => setShowExportModal(true)}
+            className="flex-1 min-w-[140px] px-6 py-3 border border-emerald-500 text-emerald-600 rounded-lg font-medium hover:bg-emerald-50 transition-colors flex items-center justify-center gap-2"
+          >
+            <Download size={18} />
+            Export
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            className="flex-1 min-w-[140px] px-6 py-3 border border-surface-alt text-primary rounded-lg font-medium hover:bg-surface-alt transition-colors"
+          >
+            Update Account
+          </motion.button>
+        </div>
       </motion.div>
+
+      {/* Withdraw Modal */}
+      {showWithdrawModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-lg shadow-xl max-w-md w-full"
+          >
+            <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-6 text-white flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Withdraw Funds</h2>
+              <button
+                onClick={() => setShowWithdrawModal(false)}
+                className="p-1 hover:bg-white/20 rounded-lg"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                <p className="text-sm text-accent-muted">Available Balance</p>
+                <p className="text-3xl font-bold text-emerald-600">₹1,50,000</p>
+              </div>
+              <div>
+                <label className="text-sm text-accent-muted mb-2 block">Withdrawal Amount</label>
+                <input
+                  type="number"
+                  value={withdrawAmount}
+                  onChange={(e) => setWithdrawAmount(e.target.value)}
+                  className="w-full p-3 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500 text-lg font-semibold"
+                  placeholder="Enter amount"
+                />
+              </div>
+              <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                <p className="text-sm text-blue-800">
+                  💡 Amount will be transferred to your account within 2-3 business days.
+                </p>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={handleWithdraw}
+                  className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium"
+                >
+                  Confirm Withdrawal
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setShowWithdrawModal(false)}
+                  className="flex-1 px-4 py-3 border border-surface-alt rounded-lg hover:bg-surface-alt transition-colors font-medium"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Export Modal */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-lg shadow-xl max-w-md w-full"
+          >
+            <div className="bg-gradient-to-r from-emerald-500 to-green-600 p-6 text-white flex items-center justify-between">
+              <h2 className="text-2xl font-bold">Export Report</h2>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="p-1 hover:bg-white/20 rounded-lg"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-sm text-accent-muted mb-3 block font-medium">Select Format</label>
+                <div className="space-y-2">
+                  {[
+                    { value: 'csv', label: 'CSV (Excel)', icon: '📊' },
+                    { value: 'txt', label: 'Text File', icon: '📄' },
+                  ].map(format => (
+                    <motion.label
+                      key={format.value}
+                      whileHover={{ backgroundColor: '#f1f3f1' }}
+                      className="flex items-center gap-3 p-3 border border-surface-alt rounded-lg cursor-pointer hover:border-emerald-500 transition-colors"
+                    >
+                      <input
+                        type="radio"
+                        name="format"
+                        value={format.value}
+                        checked={exportFormat === format.value}
+                        onChange={(e) => setExportFormat(e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <span className="text-xl">{format.icon}</span>
+                      <span className="font-medium text-primary">{format.label}</span>
+                    </motion.label>
+                  ))}
+                </div>
+              </div>
+              <div className="flex gap-3 pt-4">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={handleExport}
+                  className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <Download size={18} />
+                  Export
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => setShowExportModal(false)}
+                  className="flex-1 px-4 py-3 border border-surface-alt rounded-lg hover:bg-surface-alt transition-colors font-medium"
+                >
+                  Cancel
+                </motion.button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
