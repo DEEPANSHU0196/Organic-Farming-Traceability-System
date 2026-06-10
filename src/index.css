@@ -1,0 +1,122 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Outfit', 'Inter', system-ui, sans-serif;
+
+  --color-primary: #1C2E1E;
+  --color-primary-light: #2D4A30;
+  --color-primary-dark: #0F1A10;
+  --color-accent: #4D6D47;
+  --color-accent-light: #6B8F64;
+  --color-accent-muted: #738273;
+  --color-surface: #FAFBF9;
+  --color-surface-alt: #F1F3F1;
+  --color-surface-warm: #EAECE9;
+  --color-gold: #D4A843;
+  --color-gold-light: #F0D68A;
+  --color-sunset: #E8854A;
+  --color-sky: #87CEEB;
+  --color-earth: #8B6F47;
+}
+
+/* Typewriter cursor blink */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Floating animation for ambient elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-12px); }
+}
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Gentle sway for plants/crops */
+@keyframes sway {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1deg); }
+}
+.animate-sway {
+  animation: sway 4s ease-in-out infinite;
+}
+
+/* Clouds drifting */
+@keyframes drift {
+  0% { transform: translateX(-10%); }
+  100% { transform: translateX(110%); }
+}
+.animate-drift {
+  animation: drift 60s linear infinite;
+}
+
+@keyframes drift-slow {
+  0% { transform: translateX(-5%); }
+  100% { transform: translateX(105%); }
+}
+.animate-drift-slow {
+  animation: drift-slow 90s linear infinite;
+}
+
+/* Pulse glow for interactive elements */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(77, 109, 71, 0.2); }
+  50% { box-shadow: 0 0 20px rgba(77, 109, 71, 0.4); }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* Tractor movement */
+@keyframes tractor-move {
+  0% { transform: translateX(-100px); }
+  100% { transform: translateX(calc(100vw + 100px)); }
+}
+
+/* Birds flying */
+@keyframes fly {
+  0% { transform: translate(0, 0) scaleX(1); }
+  25% { transform: translate(25vw, -20px) scaleX(1); }
+  50% { transform: translate(50vw, 10px) scaleX(1); }
+  75% { transform: translate(75vw, -15px) scaleX(1); }
+  100% { transform: translate(100vw, 0) scaleX(1); }
+}
+
+/* Smooth scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f3f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #738273;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #4D6D47;
+}
+
+/* Selection color */
+::selection {
+  background-color: #EAECE9;
+  color: #1C2E1E;
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
