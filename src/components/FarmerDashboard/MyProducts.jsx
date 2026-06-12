@@ -3,75 +3,26 @@ import { Edit2, Trash2, Eye, MoreVertical, Plus, Search, X, Save } from 'lucide-
 import { useState, useEffect } from 'react';
 import { useProducts } from '../../contexts/ProductContext';
 
-const defaultProducts = [
-  {
-    id: 1,
-    name: 'Premium Wheat',
-    category: 'Wheat',
-    quantity: 500,
-    unit: 'kg',
-    price: 2500,
-    status: 'Active',
-    listed: '15 days ago',
-    orders: 12,
-    image: '🌾',
-    description: 'High-quality premium wheat grown with natural farming methods',
-    certification: 'Organic',
-  },
-  {
-    id: 2,
-    name: 'Basmati Rice',
-    category: 'Rice',
-    quantity: 300,
-    unit: 'kg',
-    price: 4500,
-    status: 'Active',
-    listed: '8 days ago',
-    orders: 8,
-    image: '🍚',
-    description: 'Long grain basmati rice with excellent aroma and taste',
-    certification: 'ISO 9001',
-  },
-  {
-    id: 3,
-    name: 'Yellow Mustard',
-    category: 'Mustard',
-    quantity: 150,
-    unit: 'kg',
-    price: 5500,
-    status: 'Low Stock',
-    listed: '22 days ago',
-    orders: 15,
-    image: '🌱',
-    description: 'Pure mustard seeds for oil extraction',
-    certification: 'Organic',
-  },
-  {
-    id: 4,
-    name: 'Organic Corn',
-    category: 'Corn',
-    quantity: 0,
-    unit: 'kg',
-    price: 1800,
-    status: 'Out of Stock',
-    listed: '45 days ago',
-    orders: 5,
-    image: '🌽',
-    description: 'Fresh organic corn without pesticides',
-    certification: 'NPOP',
-  },
-];
-
 export default function MyProducts() {
   const { products, updateProduct, deleteProduct } = useProducts();
   const [view, setView] = useState('grid');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [editFormData, setEditFormData] = useState(null);
+  const [newProductData, setNewProductData] = useState({
+    name: '',
+    category: 'Wheat',
+    quantity: '',
+    unit: 'kg',
+    price: '',
+    description: '',
+    certification: 'Organic',
+  });
 
   const getStatusColor = (status) => {
     switch (status) {

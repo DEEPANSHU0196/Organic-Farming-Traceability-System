@@ -14,17 +14,18 @@ const sidebarItems = [
   { id: 'blockchain', icon: '🔗', label: 'Blockchain' },
 ];
 
-export default function DashboardSidebar({ sections, activeSection, setActiveSection, isOpen, onLogout }) {
+export default function DashboardSidebar({ sections, activeSection, setActiveSection, isOpen, onLogout, onClose }) {
   return (
     <>
-      {/* Overlay for mobile */}
+      {/* Overlay */}
       {isOpen && (
         <motion.div
-          className="fixed inset-0 bg-black/30 md:hidden z-40"
+          className="fixed inset-0 bg-black/50 z-39"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          onClick={() => {}} // Close on overlay click if needed
+          transition={{ duration: 0.3 }}
+          onClick={onClose}
         />
       )}
 
@@ -33,10 +34,10 @@ export default function DashboardSidebar({ sections, activeSection, setActiveSec
         initial={{ x: -300 }}
         animate={{ x: isOpen ? 0 : -300 }}
         transition={{ duration: 0.3 }}
-        className="fixed md:relative md:translate-x-0 h-screen w-72 bg-primary text-white flex flex-col shadow-2xl z-40"
+        className="fixed left-0 top-0 h-screen w-72 bg-primary text-white flex flex-col shadow-2xl z-40"
       >
         {/* Logo */}
-        <div className="p-6 border-b border-white/10">
+        <div className="p-6 border-b border-white/10 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center">
               <Leaf className="w-6 h-6 text-white" />
@@ -46,6 +47,14 @@ export default function DashboardSidebar({ sections, activeSection, setActiveSec
               <div className="text-xs text-white/60">Farmer Portal</div>
             </div>
           </div>
+          <motion.button
+            onClick={onClose}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+          >
+            <X size={20} />
+          </motion.button>
         </div>
 
         {/* Navigation */}

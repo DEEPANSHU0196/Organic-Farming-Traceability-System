@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ProductProvider } from './contexts/ProductContext';
+import { DashboardProvider } from './contexts/DashboardContext';
+import { BuyerProvider } from './contexts/BuyerContext';
 import { useMousePosition } from './hooks/useMousePosition';
 import Navbar from './components/Navbar';
 import BackgroundScene from './components/BackgroundScene';
@@ -8,6 +10,7 @@ import HeroSection from './components/HeroSection';
 import PortalButtons from './components/PortalButtons';
 import ServicePills from './components/ServicePills';
 import FarmerDashboard from './pages/FarmerDashboard';
+import BuyerDashboard from './pages/BuyerDashboard';
 
 // Home page component
 function HomePage() {
@@ -58,14 +61,19 @@ function HomePage() {
 
 function App() {
   return (
-    <ProductProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/farmer-dashboard/*" element={<FarmerDashboard />} />
-        </Routes>
-      </Router>
-    </ProductProvider>
+    <DashboardProvider>
+      <ProductProvider>
+        <BuyerProvider>
+          <Router>
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/farmer-dashboard/*" element={<FarmerDashboard />} />
+              <Route path="/buyer-dashboard/*" element={<BuyerDashboard />} />
+            </Routes>
+          </Router>
+        </BuyerProvider>
+      </ProductProvider>
+    </DashboardProvider>
   );
 }
 

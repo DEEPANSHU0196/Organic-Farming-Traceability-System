@@ -2,6 +2,90 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const ProductContext = createContext();
 
+// Default sample products
+const defaultProducts = [
+  {
+    id: '1',
+    name: 'Premium Wheat',
+    category: 'Wheat',
+    quantity: 500,
+    unit: 'kg',
+    price: 2500,
+    description: 'High quality wheat from our farm',
+    certification: 'Organic',
+    orders: 12,
+    listed: '15 days ago',
+    image: '🌾',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '2',
+    name: 'Basmati Rice',
+    category: 'Rice',
+    quantity: 300,
+    unit: 'kg',
+    price: 4500,
+    description: 'Premium basmati rice',
+    certification: 'ISO 9001',
+    orders: 8,
+    listed: '8 days ago',
+    image: '🍚',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '3',
+    name: 'Yellow Mustard',
+    category: 'Mustard',
+    quantity: 150,
+    unit: 'kg',
+    price: 5500,
+    description: 'Pure mustard seeds for oil extraction',
+    certification: 'Organic',
+    orders: 15,
+    listed: '22 days ago',
+    image: '🌱',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: '4',
+    name: 'Organic Corn',
+    category: 'Corn',
+    quantity: 0,
+    unit: 'kg',
+    price: 1800,
+    description: 'Fresh organic corn without pesticides',
+    certification: 'NPOP',
+    orders: 5,
+    listed: '45 days ago',
+    image: '🌽',
+    createdAt: new Date().toISOString(),
+  },
+];
+
+// Default sample orders
+const defaultOrders = [
+  {
+    id: 'ORD-001',
+    customerName: 'Amit Kumar',
+    productName: 'Premium Wheat',
+    quantity: 50,
+    unit: 'kg',
+    price: 1250,
+    status: 'Pending',
+    date: new Date().toISOString(),
+  },
+  {
+    id: 'ORD-002',
+    customerName: 'Priya Singh',
+    productName: 'Basmati Rice',
+    quantity: 25,
+    unit: 'kg',
+    price: 1625,
+    status: 'Completed',
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+  },
+];
+
 export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -132,51 +216,3 @@ export const useProducts = () => {
   }
   return context;
 };
-
-// Default sample products
-const defaultProducts = [
-  {
-    id: '1',
-    name: 'Premium Wheat',
-    category: 'Wheat',
-    quantity: 500,
-    unit: 'kg',
-    price: 25,
-    description: 'High quality wheat from our farm',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Basmati Rice',
-    category: 'Rice',
-    quantity: 300,
-    unit: 'kg',
-    price: 65,
-    description: 'Premium basmati rice',
-    createdAt: new Date().toISOString(),
-  },
-];
-
-// Default sample orders
-const defaultOrders = [
-  {
-    id: 'ORD-001',
-    customerName: 'Amit Kumar',
-    productName: 'Premium Wheat',
-    quantity: 50,
-    unit: 'kg',
-    price: 1250,
-    status: 'Pending',
-    date: new Date().toISOString(),
-  },
-  {
-    id: 'ORD-002',
-    customerName: 'Priya Singh',
-    productName: 'Basmati Rice',
-    quantity: 25,
-    unit: 'kg',
-    price: 1625,
-    status: 'Completed',
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];

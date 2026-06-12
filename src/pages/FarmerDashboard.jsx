@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { useDashboard } from '../contexts/DashboardContext';
 import DashboardSidebar from '../components/FarmerDashboard/DashboardSidebar';
 import DashboardNavbar from '../components/FarmerDashboard/DashboardNavbar';
 import DashboardOverview from '../components/FarmerDashboard/DashboardOverview';
@@ -30,17 +30,16 @@ const dashboardSections = [
 export default function FarmerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { sidebarOpen, toggleSidebar, closeSidebar } = useDashboard();
   
   // Get section from URL pathname, default to 'overview'
   const pathSegment = location.pathname.split('/').pop() || 'overview';
   const activeSection = dashboardSections.find(s => s.id === pathSegment)?.id || 'overview';
-  
-  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Handle navigation when sidebar item is clicked
   const handleSectionChange = (sectionId) => {
     navigate(`/farmer-dashboard/${sectionId}`);
-    setSidebarOpen(false);
+    closeSidebar();
   };
 
   // Handle logout - redirect to home
@@ -77,20 +76,21 @@ export default function FarmerDashboard() {
 
   return (
     <div className="flex h-screen bg-surface">
-      {/* Sidebar */}
+      {/* Sidebar Drawer */}
       <DashboardSidebar
         sections={dashboardSections}
         activeSection={activeSection}
         setActiveSection={handleSectionChange}
         isOpen={sidebarOpen}
         onLogout={handleLogout}
+        onClose={closeSidebar}
       />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Navbar */}
         <DashboardNavbar
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+          onToggleSidebar={toggleSidebar}
           sidebarOpen={sidebarOpen}
           onLogout={handleLogout}
         />

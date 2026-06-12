@@ -13,20 +13,26 @@ export default function DashboardNavbar({ onToggleSidebar, sidebarOpen, onLogout
   ];
 
   return (
-    <nav className="bg-white border-b border-surface-alt px-6 py-4 flex items-center justify-between shadow-sm">
-      {/* Left: Menu + Search */}
-      <div className="flex items-center gap-4">
+    <nav className="bg-white border-b border-surface-alt px-4 md:px-6 py-4 flex items-center justify-between gap-4 shadow-sm">
+      {/* Left: Menu + Title + Search */}
+      <div className="flex items-center gap-3 md:gap-4 min-w-0">
+        {/* Toggle Sidebar Button */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={onToggleSidebar}
-          className="md:hidden p-2 hover:bg-surface-alt rounded-lg transition-colors"
+          className="flex-shrink-0 p-2 hover:bg-surface-alt rounded-lg transition-colors"
+          title="Toggle menu"
         >
           <Menu size={20} className="text-primary" />
         </motion.button>
 
-        <div className="hidden md:flex items-center gap-2 bg-surface-alt rounded-lg px-4 py-2 min-w-60">
-          <Search size={18} className="text-accent-muted" />
+        {/* Divider */}
+        <div className="hidden sm:block w-px h-6 bg-surface-alt" />
+
+        {/* Search Bar */}
+        <div className="hidden md:flex items-center gap-2 bg-surface-alt rounded-lg px-4 py-2 flex-1 min-w-48">
+          <Search size={18} className="text-accent-muted flex-shrink-0" />
           <input
             type="text"
             placeholder="Search products, orders..."
@@ -36,7 +42,7 @@ export default function DashboardNavbar({ onToggleSidebar, sidebarOpen, onLogout
       </div>
 
       {/* Right: Notifications + Profile */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3 md:gap-4 flex-shrink-0">
         {/* Notifications */}
         <div className="relative">
           <motion.button
