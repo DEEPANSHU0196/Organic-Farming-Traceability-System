@@ -11,6 +11,7 @@ import PortalButtons from './components/PortalButtons';
 import ServicePills from './components/ServicePills';
 import FarmerDashboard from './pages/FarmerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
+import TransporterDashboard from './pages/TransporterDashboard';
 
 // Home page component
 function HomePage() {
@@ -69,6 +70,7 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/farmer-dashboard/*" element={<FarmerDashboard />} />
               <Route path="/buyer-dashboard/*" element={<BuyerDashboard />} />
+              <Route path="/transporter-dashboard/*" element={<TransporterDashboard />} />
             </Routes>
           </Router>
         </BuyerProvider>

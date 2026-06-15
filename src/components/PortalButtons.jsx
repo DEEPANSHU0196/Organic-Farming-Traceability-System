@@ -7,7 +7,7 @@ const portals = [
   { id: 'farmer', label: 'Farmer Portal', icon: Sprout, color: 'from-emerald-600 to-green-700', path: '/farmer-dashboard/overview' },
   { id: 'login', label: 'Login', icon: LogIn, color: 'from-amber-600 to-yellow-700' },
   { id: 'buyers', label: 'Buyers', icon: ShoppingCart, color: 'from-teal-600 to-cyan-700', path: '/buyer-dashboard/browse' },
-  { id: 'transporter', label: 'Transporter', icon: Truck, color: 'from-orange-600 to-red-700' },
+  { id: 'transporter', label: 'Transporter', icon: Truck, color: 'from-orange-600 to-red-700', path: '/transporter-dashboard/overview' },
   { id: 'admin', label: 'Admin', icon: ShieldCheck, color: 'from-indigo-600 to-violet-700' },
 ];
 
