@@ -1,114 +1,59 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'motion/react';
-import { useDashboard } from '../contexts/DashboardContext';
-import DashboardSidebar from '../components/FarmerDashboard/DashboardSidebar';
-import DashboardNavbar from '../components/FarmerDashboard/DashboardNavbar';
+import {
+  LayoutDashboard, Package, PlusCircle, ShoppingBag,
+  CreditCard, Star, Settings, LogOut
+} from 'lucide-react';
+import DashboardLayout from '../shared/DashboardLayout';
 import DashboardOverview from '../components/FarmerDashboard/DashboardOverview';
-import FarmerProfile from '../components/FarmerDashboard/FarmerProfile';
 import AddProductForm from '../components/FarmerDashboard/AddProductForm';
 import MyProducts from '../components/FarmerDashboard/MyProducts';
 import OrdersManagement from '../components/FarmerDashboard/OrdersManagement';
-import ShipmentTracking from '../components/FarmerDashboard/ShipmentTracking';
 import PaymentsSection from '../components/FarmerDashboard/PaymentsSection';
 import ReviewsRatings from '../components/FarmerDashboard/ReviewsRatings';
-import AIFeatures from '../components/FarmerDashboard/AIFeatures';
-import BlockchainVerification from '../components/FarmerDashboard/BlockchainVerification';
+import FarmerSettings from '../components/FarmerDashboard/FarmerSettings';
 
-const dashboardSections = [
-  { id: 'overview', label: 'Dashboard' },
-  { id: 'profile', label: 'My Profile' },
-  { id: 'add-product', label: 'Add Product' },
-  { id: 'my-products', label: 'My Products' },
-  { id: 'orders', label: 'Orders' },
-  { id: 'shipment', label: 'Shipments' },
-  { id: 'payments', label: 'Payments' },
-  { id: 'reviews', label: 'Reviews' },
-  { id: 'ai-features', label: 'AI Features' },
-  { id: 'blockchain', label: 'Blockchain' },
+const NAV_ITEMS = [
+  { id: 'overview',     label: 'Dashboard',    icon: LayoutDashboard },
+  { id: 'my-products',  label: 'My Products',  icon: Package },
+  { id: 'add-product',  label: 'Add Product',  icon: PlusCircle },
+  { id: 'orders',       label: 'Orders',       icon: ShoppingBag },
+  { id: 'payments',     label: 'Payments',     icon: CreditCard },
+  { id: 'reviews',      label: 'Reviews',      icon: Star },
+  { id: 'settings',     label: 'Settings',     icon: Settings },
 ];
 
 export default function FarmerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { sidebarOpen, toggleSidebar, closeSidebar } = useDashboard();
-  
-  // Get section from URL pathname, default to 'overview'
+
   const pathSegment = location.pathname.split('/').pop() || 'overview';
-  const activeSection = dashboardSections.find(s => s.id === pathSegment)?.id || 'overview';
+  const activeSection = NAV_ITEMS.find(s => s.id === pathSegment)?.id || 'overview';
 
-  // Handle navigation when sidebar item is clicked
-  const handleSectionChange = (sectionId) => {
-    navigate(`/farmer-dashboard/${sectionId}`);
-    closeSidebar();
-  };
-
-  // Handle logout - redirect to home
-  const handleLogout = () => {
-    navigate('/');
-  };
+  const handleSectionChange = (id) => navigate(`/farmer-dashboard/${id}`);
+  const handleLogout = () => navigate('/');
 
   const renderSection = () => {
     switch (activeSection) {
-      case 'overview':
-        return <DashboardOverview />;
-      case 'profile':
-        return <FarmerProfile />;
-      case 'add-product':
-        return <AddProductForm />;
-      case 'my-products':
-        return <MyProducts />;
-      case 'orders':
-        return <OrdersManagement />;
-      case 'shipment':
-        return <ShipmentTracking />;
-      case 'payments':
-        return <PaymentsSection />;
-      case 'reviews':
-        return <ReviewsRatings />;
-      case 'ai-features':
-        return <AIFeatures />;
-      case 'blockchain':
-        return <BlockchainVerification />;
-      default:
-        return <DashboardOverview />;
+      case 'overview':    return <DashboardOverview />;
+      case 'my-products': return <MyProducts />;
+      case 'add-product': return <AddProductForm />;
+      case 'orders':      return <OrdersManagement />;
+      case 'payments':    return <PaymentsSection />;
+      case 'reviews':     return <ReviewsRatings />;
+      case 'settings':    return <FarmerSettings />;
+      default:            return <DashboardOverview />;
     }
   };
 
   return (
-    <div className="flex h-screen bg-surface">
-      {/* Sidebar Drawer */}
-      <DashboardSidebar
-        sections={dashboardSections}
-        activeSection={activeSection}
-        setActiveSection={handleSectionChange}
-        isOpen={sidebarOpen}
-        onLogout={handleLogout}
-        onClose={closeSidebar}
-      />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navbar */}
-        <DashboardNavbar
-          onToggleSidebar={toggleSidebar}
-          sidebarOpen={sidebarOpen}
-          onLogout={handleLogout}
-        />
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-auto">
-          <motion.div
-            key={activeSection}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.3 }}
-            className="p-6 md:p-8"
-          >
-            {renderSection()}
-          </motion.div>
-        </main>
-      </div>
-    </div>
+    <DashboardLayout
+      role="farmer"
+      navItems={NAV_ITEMS}
+      activeSection={activeSection}
+      setActiveSection={handleSectionChange}
+      onLogout={handleLogout}
+    >
+      {renderSection()}
+    </DashboardLayout>
   );
 }
