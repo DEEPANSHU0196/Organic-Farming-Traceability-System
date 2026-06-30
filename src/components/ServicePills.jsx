@@ -4,7 +4,7 @@ import { Check, ArrowRight } from 'lucide-react';
 
 const services = ['Crops', 'Dairy', 'Equipment', 'Transport', 'Seeds', 'Other'];
 
-export default function ServicePills() {
+export default function ServicePills({ heroMode = false }) {
   const [selected, setSelected] = useState([]);
 
   const toggleService = (service) => {
@@ -23,10 +23,10 @@ export default function ServicePills() {
       className="w-full max-w-lg"
     >
       {/* Title */}
-      <h3 className="text-xl md:text-2xl font-semibold tracking-tight text-primary mb-1 font-display">
+      <h3 className={`text-xl md:text-2xl font-semibold tracking-tight mb-1 font-display ${heroMode ? 'text-white' : 'text-primary'}`}>
         What are you looking for?
       </h3>
-      <p className="text-sm text-accent-muted mb-6 opacity-85">
+      <p className={`text-sm mb-6 opacity-85 ${heroMode ? 'text-white/60' : 'text-accent-muted'}`}>
         Select all that apply
       </p>
 
@@ -43,9 +43,13 @@ export default function ServicePills() {
               className={`
                 flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium
                 transition-all duration-300 cursor-pointer select-none
-                ${isActive
-                  ? 'bg-primary text-white shadow-md shadow-emerald-950/5'
-                  : 'bg-white text-primary border border-surface-alt hover:bg-surface-alt/55'
+                ${heroMode
+                  ? isActive
+                    ? 'bg-white text-primary shadow-md'
+                    : 'bg-white/15 text-white border border-white/25 hover:bg-white/25 backdrop-blur-sm'
+                  : isActive
+                    ? 'bg-primary text-white shadow-md shadow-emerald-950/5'
+                    : 'bg-white text-primary border border-surface-alt hover:bg-surface-alt/55'
                 }
               `}
             >
@@ -76,7 +80,7 @@ export default function ServicePills() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 0.5 }}
             exit={{ opacity: 0 }}
-            className="text-xs italic text-accent-muted"
+            className={`text-xs italic ${heroMode ? 'text-white/60' : 'text-accent-muted'}`}
           >
             Click above to select your interests
           </motion.p>
@@ -89,17 +93,17 @@ export default function ServicePills() {
             transition={{ type: 'spring', stiffness: 200, damping: 25 }}
             className="overflow-hidden"
           >
-            <div className="bg-surface border border-surface-alt rounded-2xl px-5 py-3.5 flex items-center justify-between gap-4">
-              <p className="text-sm text-primary/80">
+            <div className={`rounded-2xl px-5 py-3.5 flex items-center justify-between gap-4 ${heroMode ? 'bg-white/15 backdrop-blur-sm border border-white/20' : 'bg-surface border border-surface-alt'}`}>
+              <p className={`text-sm ${heroMode ? 'text-white/80' : 'text-primary/80'}`}>
                 Interested in:{' '}
-                <span className="font-semibold text-primary">
+                <span className={`font-semibold ${heroMode ? 'text-white' : 'text-primary'}`}>
                   {selected.join(', ')}
                 </span>
               </p>
               <motion.button
                 whileHover={{ scale: 1.05, x: 3 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-1.5 text-accent text-xs font-semibold uppercase tracking-wider whitespace-nowrap hover:text-primary transition-colors cursor-pointer"
+                className={`flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider whitespace-nowrap transition-colors cursor-pointer ${heroMode ? 'text-green-300 hover:text-white' : 'text-accent hover:text-primary'}`}
               >
                 Let's Go
                 <ArrowRight size={14} />
