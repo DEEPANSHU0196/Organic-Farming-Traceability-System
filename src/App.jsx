@@ -1,7 +1,4 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useState, useCallback } from 'react';
-import { AnimatePresence } from 'motion/react';
-import SplashScreen from './components/splash/SplashScreen';
 import { ProductProvider } from './contexts/ProductContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import { BuyerProvider } from './contexts/BuyerContext';
@@ -58,27 +55,11 @@ function HomePage() {
 }
 
 function App() {
-  // Show splash once per session
-  const [splashDone, setSplashDone] = useState(
-    () => sessionStorage.getItem('ag_splash_seen') === '1'
-  );
-
-  const handleSplashComplete = useCallback(() => {
-    sessionStorage.setItem('ag_splash_seen', '1');
-    setSplashDone(true);
-  }, []);
-
   return (
     <AuthProvider>
       <DashboardProvider>
         <ProductProvider>
           <BuyerProvider>
-            {/* Cinematic splash — shown once per session */}
-            <AnimatePresence mode="wait">
-              {!splashDone && (
-                <SplashScreen key="splash" onComplete={handleSplashComplete} />
-              )}
-            </AnimatePresence>
 
             <Router>
               <Routes>

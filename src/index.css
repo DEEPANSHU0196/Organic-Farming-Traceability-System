@@ -74,20 +74,7 @@
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
-/* Tractor movement */
-@keyframes tractor-move {
-  0% { transform: translateX(-100px); }
-  100% { transform: translateX(calc(100vw + 100px)); }
-}
 
-/* Birds flying */
-@keyframes fly {
-  0% { transform: translate(0, 0) scaleX(1); }
-  25% { transform: translate(25vw, -20px) scaleX(1); }
-  50% { transform: translate(50vw, 10px) scaleX(1); }
-  75% { transform: translate(75vw, -15px) scaleX(1); }
-  100% { transform: translate(100vw, 0) scaleX(1); }
-}
 
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
