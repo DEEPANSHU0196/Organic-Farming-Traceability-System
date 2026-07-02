@@ -3,13 +3,7 @@ import { ProductProvider } from './contexts/ProductContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import { BuyerProvider } from './contexts/BuyerContext';
 import { AuthProvider } from './contexts/AuthContext';
-import { useMousePosition } from './hooks/useMousePosition';
-import Navbar from './components/Navbar';
-import BackgroundScene from './components/BackgroundScene';
-import FarmerCharacter from './components/FarmerCharacter';
 import HeroSection from './components/HeroSection';
-import PortalButtons from './components/PortalButtons';
-import ServicePills from './components/ServicePills';
 import FeaturesSection from './components/FeaturesSection';
 import AboutSection from './components/AboutSection';
 import ContactSection from './components/ContactSection';
@@ -21,40 +15,10 @@ import LoginPage from './pages/LoginPage';
 
 // Home page component
 function HomePage() {
-  const mousePosition = useMousePosition(0.08);
-
   return (
-    <div className="relative bg-white text-primary font-sans selection:bg-surface-warm selection:text-primary antialiased overflow-x-hidden flex flex-col lg:block lg:min-h-screen">
-      {/* ── Hero viewport: background + farmer are scoped here ── */}
-      <div className="relative w-full min-h-screen flex flex-col">
-        {/* Background Scene — parallax agricultural landscape */}
-        <BackgroundScene mousePosition={mousePosition} />
-
-        {/* Farmer Character — absolute bottom-0 inside this hero viewport */}
-        <FarmerCharacter mousePosition={mousePosition} />
-
-        {/* Fixed Navbar */}
-        <Navbar />
-
-        {/* Hero content */}
-        <main
-          id="agro-hero"
-          className="relative z-10 w-full max-w-7xl mx-auto px-6 sm:px-8 pt-28 sm:pt-32 lg:pt-36 pb-12 flex-1 flex flex-col justify-center"
-        >
-          <div className="max-w-2xl flex flex-col gap-6">
-            {/* Typewriter Headline + Subtitle + Stats */}
-            <HeroSection />
-
-            {/* Portal Navigation Buttons - updated to use React Router */}
-            <PortalButtons />
-
-            {/* Service Selection Pills */}
-            <div className="mt-4">
-              <ServicePills />
-            </div>
-          </div>
-        </main>
-      </div>
+    <div className="relative bg-white text-primary font-sans selection:bg-surface-warm selection:text-primary antialiased overflow-x-hidden">
+      {/* ── Cinematic Hero — full-screen video section with embedded Navbar ── */}
+      <HeroSection />
 
       {/* ── Features Section ── */}
       <div className="relative z-10 bg-white">
@@ -96,6 +60,7 @@ function App() {
       <DashboardProvider>
         <ProductProvider>
           <BuyerProvider>
+
             <Router>
               <Routes>
                 <Route path="/" element={<HomePage />} />

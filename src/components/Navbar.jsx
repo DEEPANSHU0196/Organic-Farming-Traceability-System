@@ -50,10 +50,10 @@ function Navbar() {
     <>
       {/* ── Fixed Top Navbar ── */}
       <header
-        className={`fixed top-0 inset-x-0 z-50 px-5 sm:px-8 py-4 flex items-center justify-between transition-all duration-300 ${
+        className={`fixed top-0 inset-x-0 z-50 px-5 sm:px-8 py-4 flex items-center justify-between transition-all duration-500 ${
           scrolled
             ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-primary/5'
-            : 'bg-white/80 backdrop-blur-md border-b border-primary/5'
+            : 'bg-transparent'
         }`}
       >
         {/* Logo */}
@@ -65,9 +65,9 @@ function Navbar() {
           <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
             <Leaf className="text-white w-4 h-4" />
           </div>
-          <span className="text-[20px] sm:text-[22px] tracking-tight text-primary font-bold select-none font-display">
+          <span className={`text-[20px] sm:text-[22px] tracking-tight font-bold select-none font-display transition-colors duration-500 ${scrolled ? 'text-primary' : 'text-white'}`}>
             AgroVerse
-            <sup className="text-[9px] align-super ml-[1px] text-primary/35 font-normal">®</sup>
+            <sup className={`text-[9px] align-super ml-[1px] font-normal transition-colors duration-500 ${scrolled ? 'text-primary/35' : 'text-white/50'}`}>®</sup>
           </span>
         </a>
 
@@ -80,16 +80,20 @@ function Navbar() {
                 key={link.label}
                 onClick={() => scrollTo(link.href)}
                 className={`relative px-4 py-2 text-[15px] font-medium rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? 'text-primary'
-                    : 'text-primary/60 hover:text-primary hover:bg-surface-alt/60'
+                  scrolled
+                    ? isActive
+                      ? 'text-primary'
+                      : 'text-primary/60 hover:text-primary hover:bg-surface-alt/60'
+                    : isActive
+                      ? 'text-white'
+                      : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
               >
                 {link.label}
                 {isActive && (
                   <motion.div
                     layoutId="nav-indicator"
-                    className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-accent"
+                    className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${scrolled ? 'bg-accent' : 'bg-green-400'}`}
                     transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                   />
                 )}
@@ -104,7 +108,11 @@ function Navbar() {
           whileTap={{ scale: 0.97 }}
           onClick={() => navigate('/login')}
           id="nav-get-started"
-          className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full bg-primary text-white text-[14px] font-semibold shadow-md hover:shadow-lg transition-all duration-200"
+          className={`hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full text-[14px] font-semibold shadow-md hover:shadow-lg transition-all duration-300 ${
+            scrolled
+              ? 'bg-primary text-white'
+              : 'bg-white/15 text-white border border-white/30 backdrop-blur-sm hover:bg-white/25'
+          }`}
         >
           <LogIn size={14} />
           Get Started
@@ -114,13 +122,13 @@ function Navbar() {
         <button
           type="button"
           aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-          className="md:hidden relative z-50 p-2 rounded-xl hover:bg-surface-alt transition-colors"
+          className={`md:hidden relative z-50 p-2 rounded-xl transition-colors ${scrolled ? 'hover:bg-surface-alt' : 'hover:bg-white/10'}`}
           onClick={() => setMobileOpen((v) => !v)}
         >
           {mobileOpen ? (
-            <X size={22} className="text-primary" />
+            <X size={22} className={scrolled ? 'text-primary' : 'text-white'} />
           ) : (
-            <Menu size={22} className="text-primary" />
+            <Menu size={22} className={scrolled ? 'text-primary' : 'text-white'} />
           )}
         </button>
       </header>
