@@ -3,7 +3,6 @@ const jwt = require("jsonwebtoken");
 const protect = (req, res, next) => {
   let token;
 
-  // Check Authorization Header
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith("Bearer")
@@ -32,4 +31,6 @@ const protect = (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+module.exports = {
+  protect,
+};
