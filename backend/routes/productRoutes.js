@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const authorize = require("../middleware/roleMiddleware");
 
 const {
   addProduct,
@@ -26,10 +27,45 @@ router.get("/test", (req, res) => {
   res.send("Products route working");
 });
 
-router.post("/", protect, upload.single("image"), addProduct);
-router.get("/", protect, getMyProducts);
-router.get("/:id", protect, getProductById);
-router.put("/:id", protect, upload.single("image"), updateProduct);
-router.delete("/:id", protect, deleteProduct);
+// Only farmers can add products
+router.post(
+  "/",
+  protect,
+  authorize("farmer"),
+  upload.single("image"),
+  addProduct
+);
+
+// Only farmers can view their products
+router.get(
+  "/",
+  protect,
+  authorize("farmer"),
+  getMyProducts
+);
+
+// Anyone logged in can view one product
+router.get(
+  "/:id",
+  protect,
+  getProductById
+);
+
+// Only farmers can update
+router.put(
+  "/:id",
+  protect,
+  authorize("farmer"),
+  upload.single("image"),
+  updateProduct
+);
+
+// Only farmers can delete
+router.delete(
+  "/:id",
+  protect,
+  authorize("farmer"),
+  deleteProduct
+);
 
 module.exports = router;

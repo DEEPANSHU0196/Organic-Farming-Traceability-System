@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
-const protect = (req, res, next) => {
+const protect = async (req, res, next) => {
   let token;
 
   if (
@@ -12,7 +13,14 @@ const protect = (req, res, next) => {
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      req.user = decoded;
+      req.user = await User.findById(decoded.id).select("-password");
+
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: "User not found",
+        });
+      }
 
       next();
     } catch (error) {
@@ -21,9 +29,7 @@ const protect = (req, res, next) => {
         message: "Invalid Token",
       });
     }
-  }
-
-  if (!token) {
+  } else {
     return res.status(401).json({
       success: false,
       message: "No Token Provided",
