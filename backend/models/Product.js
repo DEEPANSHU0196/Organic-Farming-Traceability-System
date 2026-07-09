@@ -19,6 +19,11 @@ const productSchema = new mongoose.Schema(
       required: true,
     },
 
+    unit: {
+      type: String,
+      default: "kg",
+    },
+
     quantity: {
       type: Number,
       required: true,
@@ -35,6 +40,16 @@ const productSchema = new mongoose.Schema(
     },
 
     description: {
+      type: String,
+      default: "",
+    },
+
+    certification: {
+      type: String,
+      default: "Organic",
+    },
+
+    harvestDate: {
       type: String,
       default: "",
     },

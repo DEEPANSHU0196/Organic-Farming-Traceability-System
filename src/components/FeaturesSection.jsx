@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
+import { useAuth } from '../contexts/AuthContext';
 import {
   Package, TrendingUp, CreditCard,
   Search, ShoppingBag, Clock,
@@ -163,6 +164,12 @@ function PortalCard({ portal, index }) {
 }
 
 export default function FeaturesSection() {
+  const { user, isAuthenticated } = useAuth();
+  const normalizedRole = user?.role === 'consumer' || user?.role === 'buyer' ? 'buyer' : user?.role;
+  const visiblePortals = !isAuthenticated
+    ? PORTALS
+    : PORTALS.filter((portal) => portal.id === normalizedRole);
+
   return (
     <section id="features" className="relative py-24 px-6 sm:px-8 overflow-hidden">
       {/* Subtle background gradient */}
@@ -192,7 +199,7 @@ export default function FeaturesSection() {
 
         {/* Portal Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {PORTALS.map((portal, i) => (
+          {visiblePortals.map((portal, i) => (
             <PortalCard key={portal.id} portal={portal} index={i} />
           ))}
         </div>

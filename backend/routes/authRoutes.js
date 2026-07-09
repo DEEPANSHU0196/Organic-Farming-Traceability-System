@@ -7,7 +7,7 @@ const {
 } = require("../controllers/authController");
 
 // Register
-router.post("/register", registerUser);
+router.post("/register/:portal", registerUser);
 
 // Login
 router.post("/login", loginUser);

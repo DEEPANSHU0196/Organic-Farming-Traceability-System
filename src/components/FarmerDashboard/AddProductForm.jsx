@@ -7,7 +7,7 @@ import { useProducts } from '../../contexts/ProductContext';
 export default function AddProductForm() {
   const navigate = useNavigate();
   const { addProduct } = useProducts();
-  
+
   const [formData, setFormData] = useState({
     name: '',
     category: '',
@@ -22,6 +22,7 @@ export default function AddProductForm() {
   const [imagePreview, setImagePreview] = useState(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   const categories = ['Wheat', 'Rice', 'Corn', 'Mustard', 'Cotton', 'Sugarcane', 'Vegetables'];
   const units = ['kg', 'quintal', 'ton', 'liter', 'bundle'];
@@ -36,43 +37,44 @@ export default function AddProductForm() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Add product to context (this saves to localStorage)
-    addProduct({
-      name: formData.name,
-      category: formData.category,
-      quantity: parseInt(formData.quantity),
-      unit: formData.unit,
-      price: parseFloat(formData.price),
-      harvestDate: formData.harvestDate,
-      description: formData.description,
-      image: imagePreview, // Save the preview image as data URL
-    });
+    setSubmitError('');
 
-    // Show success message
-    setShowSuccess(true);
-    
-    // Reset form
-    setFormData({
-      name: '',
-      category: '',
-      quantity: '',
-      unit: 'kg',
-      price: '',
-      harvestDate: '',
-      description: '',
-      image: null,
-    });
-    setImagePreview(null);
-    setIsSubmitting(false);
+    try {
+      await addProduct({
+        name: formData.name,
+        category: formData.category,
+        quantity: parseInt(formData.quantity),
+        unit: formData.unit,
+        price: parseFloat(formData.price),
+        harvestDate: formData.harvestDate,
+        description: formData.description,
+        image: imagePreview || '',
+      });
 
-    // Redirect to My Products after 2 seconds
-    setTimeout(() => {
-      navigate('/farmer-dashboard/my-products');
-    }, 2000);
+      setShowSuccess(true);
+      setFormData({
+        name: '',
+        category: '',
+        quantity: '',
+        unit: 'kg',
+        price: '',
+        harvestDate: '',
+        description: '',
+        image: null,
+      });
+      setImagePreview(null);
+
+      setTimeout(() => {
+        navigate('/farmer-dashboard/my-products');
+      }, 2000);
+    } catch (error) {
+      setSubmitError(error?.response?.data?.message || 'Unable to add product right now.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -95,6 +97,12 @@ export default function AddProductForm() {
             <p className="text-sm">Redirecting to My Products...</p>
           </div>
         </motion.div>
+      )}
+
+      {submitError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          {submitError}
+        </div>
       )}
 
       <motion.form
@@ -250,7 +258,8 @@ export default function AddProductForm() {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           type="submit"
-          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transition-all"
+          disabled={isSubmitting}
+          className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-emerald-500 to-green-600 text-white rounded-lg font-medium hover:shadow-lg transition-all disabled:opacity-60"
         >
           <Plus size={20} />
           Add Product to Marketplace

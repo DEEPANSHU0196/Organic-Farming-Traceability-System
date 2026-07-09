@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Menu, Bell, Search, User, Settings, LogOut, X, ChevronDown, Leaf } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const ROLE_CONFIG = {
   farmer: {
@@ -62,6 +63,7 @@ const ROLE_CONFIG = {
 
 export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogout, pageTitle }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.farmer;
   const [notifOpen, setNotifOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -80,6 +82,14 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
   }, []);
 
   const unreadCount = config.notifications.filter((n) => n.unread).length;
+  const displayName = user?.fullName || user?.name || 'User';
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'U';
+  const displayEmail = user?.email || config.email;
 
   const handleLogout = () => {
     if (onLogout) onLogout();
@@ -210,9 +220,9 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
             <div
               className={`w-8 h-8 rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}
             >
-              {config.initials}
+              {initials}
             </div>
-            <span className="hidden md:block text-sm font-medium text-slate-700">{config.name.split(' ')[0]}</span>
+            <span className="hidden md:block text-sm font-medium text-slate-700">{displayName.split(' ')[0]}</span>
             <ChevronDown size={14} className="hidden md:block text-slate-400" />
           </motion.button>
 
@@ -231,8 +241,8 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
                   >
                     {config.initials}
                   </div>
-                  <p className="text-sm font-semibold text-slate-800">{config.name}</p>
-                  <p className="text-xs text-slate-500">{config.email}</p>
+                  <p className="text-sm font-semibold text-slate-800">{displayName}</p>
+                  <p className="text-xs text-slate-500">{displayEmail}</p>
                   <span
                     className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
                     style={{ background: config.accent + '22', color: config.accent }}

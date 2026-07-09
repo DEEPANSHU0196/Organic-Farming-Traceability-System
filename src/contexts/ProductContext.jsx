@@ -1,68 +1,40 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { fetchProducts, createProduct, updateProductById, deleteProductById } from '../api/product';
 
 const ProductContext = createContext();
 
-// Default sample products
-const defaultProducts = [
-  {
-    id: '1',
-    name: 'Premium Wheat',
-    category: 'Wheat',
-    quantity: 500,
-    unit: 'kg',
-    price: 2500,
-    description: 'High quality wheat from our farm',
-    certification: 'Organic',
-    orders: 12,
-    listed: '15 days ago',
-    image: '🌾',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '2',
-    name: 'Basmati Rice',
-    category: 'Rice',
-    quantity: 300,
-    unit: 'kg',
-    price: 4500,
-    description: 'Premium basmati rice',
-    certification: 'ISO 9001',
-    orders: 8,
-    listed: '8 days ago',
-    image: '🍚',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '3',
-    name: 'Yellow Mustard',
-    category: 'Mustard',
-    quantity: 150,
-    unit: 'kg',
-    price: 5500,
-    description: 'Pure mustard seeds for oil extraction',
-    certification: 'Organic',
-    orders: 15,
-    listed: '22 days ago',
-    image: '🌱',
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: '4',
-    name: 'Organic Corn',
-    category: 'Corn',
-    quantity: 0,
-    unit: 'kg',
-    price: 1800,
-    description: 'Fresh organic corn without pesticides',
-    certification: 'NPOP',
-    orders: 5,
-    listed: '45 days ago',
-    image: '🌽',
-    createdAt: new Date().toISOString(),
-  },
-];
+const normalizeProduct = (product) => {
+  const id = product._id || product.id;
+  return {
+    id,
+    _id: id,
+    name: product.productName || product.name || 'Unnamed Product',
+    category: product.category || 'Unknown',
+    quantity: Number(product.quantity || 0),
+    unit: product.unit || 'kg',
+    price: Number(product.price || 0),
+    description: product.description || '',
+    certification: product.certification || 'Organic',
+    image: product.image || '🌾',
+    orders: product.orders || 0,
+    listed: product.createdAt ? new Date(product.createdAt).toLocaleDateString() : 'Recently added',
+    createdAt: product.createdAt || new Date().toISOString(),
+    location: product.location || '',
+    harvestDate: product.harvestDate || '',
+  };
+};
 
-// Default sample orders
+const buildPayload = (product) => ({
+  productName: product.name,
+  category: product.category,
+  quantity: Number(product.quantity),
+  price: Number(product.price),
+  description: product.description,
+  location: product.location || '',
+  image: product.image || '',
+  unit: product.unit || 'kg',
+});
+
 const defaultOrders = [
   {
     id: 'ORD-001',
@@ -87,89 +59,111 @@ const defaultOrders = [
 ];
 
 export const ProductProvider = ({ children }) => {
-  const [products, setProducts] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [farmer, setFarmer] = useState({
-    name: 'Rajesh Deswal',
-    email: 'rajesh.deswal@agritrust.com',
-    phone: '+91 98765 43210',
-    farmName: 'Deswal Agriculture Farm',
-    farmLocation: 'Hisar, Haryana',
+  const [products, setProducts] = useState(() => {
+    try {
+      const savedProducts = localStorage.getItem('products');
+      return savedProducts ? JSON.parse(savedProducts) : [];
+    } catch (error) {
+      console.error('Error parsing products from localStorage:', error);
+      return [];
+    }
   });
-
-  // Initialize from localStorage on mount
-  useEffect(() => {
-    const savedProducts = localStorage.getItem('products');
-    const savedOrders = localStorage.getItem('orders');
-    const savedFarmer = localStorage.getItem('farmer');
-
-    if (savedProducts) {
-      try {
-        setProducts(JSON.parse(savedProducts));
-      } catch (error) {
-        console.error('Error parsing products from localStorage:', error);
-      }
-    } else {
-      // Initialize with sample products
-      setProducts(defaultProducts);
+  const [orders, setOrders] = useState(() => {
+    try {
+      const savedOrders = localStorage.getItem('orders');
+      return savedOrders ? JSON.parse(savedOrders) : defaultOrders;
+    } catch (error) {
+      console.error('Error parsing orders from localStorage:', error);
+      return defaultOrders;
     }
-
-    if (savedOrders) {
-      try {
-        setOrders(JSON.parse(savedOrders));
-      } catch (error) {
-        console.error('Error parsing orders from localStorage:', error);
-      }
-    } else {
-      setOrders(defaultOrders);
+  });
+  const [farmer, setFarmer] = useState(() => {
+    try {
+      const savedFarmer = localStorage.getItem('farmer');
+      return savedFarmer ? JSON.parse(savedFarmer) : {
+        name: 'Rajesh Deswal',
+        email: 'rajesh.deswal@agritrust.com',
+        phone: '+91 98765 43210',
+        farmName: 'Deswal Agriculture Farm',
+        farmLocation: 'Hisar, Haryana',
+      };
+    } catch (error) {
+      console.error('Error parsing farmer from localStorage:', error);
+      return {
+        name: 'Rajesh Deswal',
+        email: 'rajesh.deswal@agritrust.com',
+        phone: '+91 98765 43210',
+        farmName: 'Deswal Agriculture Farm',
+        farmLocation: 'Hisar, Haryana',
+      };
     }
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    if (savedFarmer) {
-      try {
-        setFarmer(JSON.parse(savedFarmer));
-      } catch (error) {
-        console.error('Error parsing farmer from localStorage:', error);
-      }
-    }
-  }, []);
-
-  // Save products to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('products', JSON.stringify(products));
   }, [products]);
 
-  // Save orders to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('orders', JSON.stringify(orders));
   }, [orders]);
 
-  // Save farmer info to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('farmer', JSON.stringify(farmer));
   }, [farmer]);
 
-  // Add product
-  const addProduct = (product) => {
-    const newProduct = {
-      id: Date.now().toString(),
-      ...product,
-      createdAt: new Date().toISOString(),
-    };
-    setProducts([...products, newProduct]);
-    return newProduct;
+  const refreshProducts = useCallback(async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await fetchProducts();
+      const apiProducts = Array.isArray(response?.data?.products) ? response.data.products : [];
+      setProducts(apiProducts.map(normalizeProduct));
+    } catch (err) {
+      console.error('Failed to load products:', err);
+      setError(err?.response?.data?.message || 'Unable to load products right now.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshProducts();
+  }, [refreshProducts]);
+
+  const addProduct = async (product) => {
+    try {
+      const response = await createProduct(buildPayload(product));
+      const createdProduct = normalizeProduct(response?.data?.product || response?.data || {});
+      setProducts((prev) => [createdProduct, ...prev]);
+      return createdProduct;
+    } catch (err) {
+      throw err;
+    }
   };
 
-  // Update product
-  const updateProduct = (id, updatedData) => {
-    setProducts(products.map((p) => (p.id === id ? { ...p, ...updatedData } : p)));
+  const updateProduct = async (id, updatedData) => {
+    try {
+      const response = await updateProductById(id, buildPayload({ ...updatedData, name: updatedData.name, category: updatedData.category, quantity: updatedData.quantity, price: updatedData.price, description: updatedData.description, location: updatedData.location || '', image: updatedData.image || '', unit: updatedData.unit || 'kg' }));
+      const updated = normalizeProduct(response?.data?.product || response?.data || {});
+      setProducts((prev) => prev.map((p) => (p.id === id ? updated : p)));
+      return updated;
+    } catch (err) {
+      throw err;
+    }
   };
 
-  // Delete product
-  const deleteProduct = (id) => {
-    setProducts(products.filter((p) => p.id !== id));
+  const deleteProduct = async (id) => {
+    try {
+      await deleteProductById(id);
+      setProducts((prev) => prev.filter((p) => p.id !== id));
+    } catch (err) {
+      throw err;
+    }
   };
 
-  // Add order
   const addOrder = (order) => {
     const newOrder = {
       id: `ORD-${Date.now()}`,
@@ -180,12 +174,10 @@ export const ProductProvider = ({ children }) => {
     return newOrder;
   };
 
-  // Update order
   const updateOrder = (id, updatedData) => {
     setOrders(orders.map((o) => (o.id === id ? { ...o, ...updatedData } : o)));
   };
 
-  // Update farmer info
   const updateFarmer = (farmerData) => {
     setFarmer(farmerData);
   };
@@ -196,6 +188,9 @@ export const ProductProvider = ({ children }) => {
         products,
         orders,
         farmer,
+        loading,
+        error,
+        refreshProducts,
         addProduct,
         updateProduct,
         deleteProduct,

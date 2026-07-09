@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useProducts } from '../../contexts/ProductContext';
 
 export default function MyProducts() {
-  const { products, updateProduct, deleteProduct } = useProducts();
+  const { products, updateProduct, deleteProduct, loading, error } = useProducts();
   const [view, setView] = useState('grid');
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -167,8 +167,19 @@ export default function MyProducts() {
         </div>
       </div>
 
-      {/* Grid View */}
-      {view === 'grid' && (
+      {loading && (
+        <div className="rounded-lg border border-surface-alt bg-white p-8 text-center text-accent-muted">
+          Loading your products...
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && view === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product, idx) => (
             <motion.div
@@ -253,7 +264,7 @@ export default function MyProducts() {
       )}
 
       {/* List View */}
-      {view === 'list' && (
+      {!loading && !error && view === 'list' && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -642,8 +653,7 @@ export default function MyProducts() {
         </div>
       )}
 
-      {/* Empty State */}
-      {filteredProducts.length === 0 && (
+      {!loading && !error && filteredProducts.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

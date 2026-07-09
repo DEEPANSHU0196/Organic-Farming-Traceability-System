@@ -2,8 +2,24 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+const normalizeRole = (role) => {
+  if (!role) return role;
+  if (role === 'consumer' || role === 'buyer') return 'buyer';
+  return role;
+};
+
+const roleDashboardMap = {
+  farmer: '/farmer-dashboard/overview',
+  buyer: '/buyer-dashboard/overview',
+  transporter: '/transporter-dashboard/overview',
+  admin: '/admin-dashboard/overview',
+};
+
 export default function ProtectedRoute({ children, requiredRole = null }) {
   const { isAuthenticated, user, loading } = useAuth();
+  const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole].filter(Boolean);
+  const normalizedUserRole = normalizeRole(user?.role);
+  const currentPath = window.location.pathname;
 
   if (loading) {
     return (
@@ -22,8 +38,15 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
-    return <Navigate to="/" replace />;
+  if (allowedRoles.length > 0 && !allowedRoles.includes(normalizedUserRole)) {
+    return <Navigate to={roleDashboardMap[normalizedUserRole] || '/login'} replace />;
+  }
+
+  if (allowedRoles.length > 0 && normalizedUserRole && currentPath.startsWith('/')) {
+    const expectedPathPrefix = `/${normalizedUserRole}-dashboard`;
+    if (!currentPath.startsWith(expectedPathPrefix)) {
+      return <Navigate to={roleDashboardMap[normalizedUserRole] || '/login'} replace />;
+    }
   }
 
   return children;

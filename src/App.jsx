@@ -7,6 +7,7 @@ import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import AboutSection from './components/AboutSection';
 import ContactSection from './components/ContactSection';
+import ProtectedRoute from './components/ProtectedRoute';
 import FarmerDashboard from './pages/FarmerDashboard';
 import BuyerDashboard from './pages/BuyerDashboard';
 import TransporterDashboard from './pages/TransporterDashboard';
@@ -65,10 +66,10 @@ function App() {
               <Routes>
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/farmer-dashboard/*" element={<FarmerDashboard />} />
-                <Route path="/buyer-dashboard/*" element={<BuyerDashboard />} />
-                <Route path="/transporter-dashboard/*" element={<TransporterDashboard />} />
-                <Route path="/admin-dashboard/*" element={<AdminDashboard />} />
+                <Route path="/farmer-dashboard/*" element={<ProtectedRoute requiredRole="farmer"><FarmerDashboard /></ProtectedRoute>} />
+                <Route path="/buyer-dashboard/*" element={<ProtectedRoute requiredRole="buyer"><BuyerDashboard /></ProtectedRoute>} />
+                <Route path="/transporter-dashboard/*" element={<ProtectedRoute requiredRole="transporter"><TransporterDashboard /></ProtectedRoute>} />
+                <Route path="/admin-dashboard/*" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
               </Routes>
             </Router>
           </BuyerProvider>

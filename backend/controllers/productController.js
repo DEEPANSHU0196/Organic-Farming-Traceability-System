@@ -40,6 +40,26 @@ const addProduct = async (req, res) => {
 };
 
 // =============================
+// Get All Products (shared catalog)
+// =============================
+const getAllProducts = async (req, res) => {
+  try {
+    const products = await Product.find({}).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      products,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+// =============================
 // Get All Products of Logged-in Farmer
 // =============================
 const getMyProducts = async (req, res) => {
@@ -101,10 +121,10 @@ const updateProduct = async (req, res) => {
       });
     }
 
-    if (product.farmer.toString() !== req.user.id) {
-      return res.status(401).json({
+    if (product.farmer.toString() !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "You do not have permission to update this product",
       });
     }
 
@@ -143,10 +163,10 @@ const deleteProduct = async (req, res) => {
       });
     }
 
-    if (product.farmer.toString() !== req.user.id) {
-      return res.status(401).json({
+    if (product.farmer.toString() !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({
         success: false,
-        message: "Unauthorized",
+        message: "You do not have permission to delete this product",
       });
     }
 
@@ -166,6 +186,7 @@ const deleteProduct = async (req, res) => {
 
 module.exports = {
   addProduct,
+  getAllProducts,
   getMyProducts,
   getProductById,
   updateProduct,

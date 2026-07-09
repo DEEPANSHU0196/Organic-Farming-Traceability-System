@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, Search, ShoppingBag, Heart,
   CreditCard, Star, Settings
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
 export default function BuyerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
   const { cart, placeOrder } = useBuyer();
 
   const pathSegment = location.pathname.split('/').pop() || 'overview';
@@ -37,7 +39,10 @@ export default function BuyerDashboard() {
   const [selectedProduct, setSelectedProduct] = useState(null);
 
   const handleSectionChange = (id) => navigate(`/buyer-dashboard/${id}`);
-  const handleLogout = () => navigate('/');
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const handleCheckout = () => {
     if (cart.length > 0) {

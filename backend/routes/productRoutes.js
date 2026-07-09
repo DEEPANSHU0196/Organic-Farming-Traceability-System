@@ -1,71 +1,27 @@
 const express = require("express");
 const router = express.Router();
-const authorize = require("../middleware/roleMiddleware");
 
 const {
   addProduct,
+  getAllProducts,
   getMyProducts,
   getProductById,
   updateProduct,
   deleteProduct,
 } = require("../controllers/productController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 const upload = require("../middleware/upload");
 
-console.log("addProduct:", typeof addProduct);
-console.log("getMyProducts:", typeof getMyProducts);
-console.log("getProductById:", typeof getProductById);
-console.log("updateProduct:", typeof updateProduct);
-console.log("deleteProduct:", typeof deleteProduct);
-console.log("protect:", typeof protect);
-console.log("upload:", typeof upload);
-console.log("upload.single:", typeof upload.single);
-
-// Test route
 router.get("/test", (req, res) => {
   res.send("Products route working");
 });
 
-// Only farmers can add products
-router.post(
-  "/",
-  protect,
-  authorize("farmer"),
-  upload.single("image"),
-  addProduct
-);
-
-// Only farmers can view their products
-router.get(
-  "/",
-  protect,
-  authorize("farmer"),
-  getMyProducts
-);
-
-// Anyone logged in can view one product
-router.get(
-  "/:id",
-  protect,
-  getProductById
-);
-
-// Only farmers can update
-router.put(
-  "/:id",
-  protect,
-  authorize("farmer"),
-  upload.single("image"),
-  updateProduct
-);
-
-// Only farmers can delete
-router.delete(
-  "/:id",
-  protect,
-  authorize("farmer"),
-  deleteProduct
-);
+router.post("/", protect, authorizeRoles("farmer"), upload.single("image"), addProduct);
+router.get("/all", protect, authorizeRoles("farmer", "buyer", "transporter", "admin"), getAllProducts);
+router.get("/", protect, authorizeRoles("farmer"), getMyProducts);
+router.get("/:id", protect, authorizeRoles("farmer", "buyer", "transporter", "admin"), getProductById);
+router.put("/:id", protect, authorizeRoles("farmer", "admin"), upload.single("image"), updateProduct);
+router.delete("/:id", protect, authorizeRoles("farmer", "admin"), deleteProduct);
 
 module.exports = router;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, EyeOff, LogIn, ArrowLeft, ArrowRight, Leaf, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ArrowLeft, ArrowRight, Leaf, CheckCircle, UserPlus } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 const ROLES = [
@@ -55,16 +55,9 @@ const ROLES = [
   },
 ];
 
-const DEMO_CREDS = {
-  farmer: { email: 'farmer@agritrust.com', password: 'password123' },
-  buyer: { email: 'buyer@agritrust.com', password: 'password123' },
-  transporter: { email: 'transporter@agritrust.com', password: 'password123' },
-  admin: { email: 'admin@agritrust.com', password: 'password123' },
-};
-
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, loading } = useAuth();
+  const { login, register, loading } = useAuth();
 
   const [step, setStep] = useState(1); // 1 = role select, 2 = login form
   const [selectedRole, setSelectedRole] = useState(null);
@@ -73,14 +66,35 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loginSuccess, setLoginSuccess] = useState(false);
+  const [loginError, setLoginError] = useState('');
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [registerName, setRegisterName] = useState('');
+  const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
+  const [registerRole, setRegisterRole] = useState('buyer');
+  const [registerMessage, setRegisterMessage] = useState('');
 
   const role = ROLES.find((r) => r.id === selectedRole);
+  const canCreateAccount = selectedRole !== 'admin';
+
+  const getRegistrationRole = (portalRole) => {
+    switch (portalRole) {
+      case 'farmer':
+        return 'farmer';
+      case 'transporter':
+        return 'transporter';
+      case 'admin':
+        return 'admin';
+      default:
+        return 'buyer';
+    }
+  };
 
   const handleSelectRole = (id) => {
     setSelectedRole(id);
-    const creds = DEMO_CREDS[id];
-    setEmail(creds.email);
-    setPassword(creds.password);
+    setEmail('');
+    setPassword('');
+    setRegisterRole(getRegistrationRole(id));
     setErrors({});
     setStep(2);
   };
@@ -95,14 +109,61 @@ export default function LoginPage() {
     return Object.keys(errs).length === 0;
   };
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    login(email, password, selectedRole);
-    setLoginSuccess(true);
-    setTimeout(() => {
-      navigate(role.path, { replace: true });
-    }, 800);
+
+    setLoginError('');
+    try {
+      const portal = selectedRole || role?.id;
+      const response = await login(email, password, portal);
+      const resolvedRole = (response?.user?.role === 'consumer' || response?.user?.role === 'buyer')
+        ? 'buyer'
+        : response?.user?.role || selectedRole;
+      const pathMap = {
+        farmer: '/farmer-dashboard/overview',
+        buyer: '/buyer-dashboard/overview',
+        transporter: '/transporter-dashboard/overview',
+        admin: '/admin-dashboard/overview',
+        consumer: '/buyer-dashboard/overview',
+      };
+
+      setLoginSuccess(true);
+      setTimeout(() => {
+        navigate(pathMap[resolvedRole] || role.path, { replace: true });
+      }, 800);
+    } catch (error) {
+      setLoginSuccess(false);
+      setLoginError(error?.response?.data?.message || 'Unable to sign in. Please try again.');
+    }
+  };
+
+  const handleRegister = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    setRegisterMessage('');
+
+    if (!registerName.trim() || !registerEmail.trim() || !registerPassword.trim()) {
+      setRegisterMessage('Please fill in all required fields.');
+      return;
+    }
+
+    try {
+      const portalRole = getRegistrationRole(selectedRole);
+      await register({
+        fullName: registerName,
+        email: registerEmail,
+        password: registerPassword,
+      }, portalRole);
+      setRegisterMessage('Account created successfully. You can sign in now.');
+      setRegisterName('');
+      setRegisterEmail('');
+      setRegisterPassword('');
+      setRegisterRole(portalRole);
+      setIsRegistering(false);
+    } catch (error) {
+      setRegisterMessage(error?.response?.data?.message || 'Unable to create account right now.');
+    }
   };
 
   return (
@@ -277,7 +338,7 @@ export default function LoginPage() {
               </div>
 
               <p className="text-center text-slate-400 text-xs mt-6">
-                🔒 Demo mode — any credentials work
+                🔒 Use your registered email and password to continue.
               </p>
             </motion.div>
           )}
@@ -325,6 +386,87 @@ export default function LoginPage() {
 
               {/* Form card */}
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-5">
+                {!canCreateAccount ? (
+                  <div className="rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-sm text-violet-700">
+                    Admin accounts are managed by the platform and cannot be self-registered.
+                  </div>
+                ) : !isRegistering ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsRegistering(true)}
+                    className="flex items-center gap-2 text-sm font-semibold text-emerald-600"
+                  >
+                    <UserPlus size={16} />
+                    Create an account
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setIsRegistering(false); setRegisterMessage(''); }}
+                    className="flex items-center gap-2 text-sm font-semibold text-slate-600"
+                  >
+                    <ArrowLeft size={16} />
+                    Back to sign in
+                  </button>
+                )}
+
+                {isRegistering ? (
+                  <div className="space-y-4">
+                    {registerMessage && (
+                      <div className={`rounded-xl border px-3 py-2 text-sm ${registerMessage.includes('successfully') ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-red-200 bg-red-50 text-red-600'}`}>
+                        {registerMessage}
+                      </div>
+                    )}
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
+                      <input
+                        type="text"
+                        value={registerName}
+                        onChange={(e) => setRegisterName(e.target.value)}
+                        placeholder="Your full name"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none bg-slate-50 focus:bg-white focus:border-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
+                      <input
+                        type="email"
+                        value={registerEmail}
+                        onChange={(e) => setRegisterEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none bg-slate-50 focus:bg-white focus:border-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
+                      <input
+                        type="password"
+                        value={registerPassword}
+                        onChange={(e) => setRegisterPassword(e.target.value)}
+                        placeholder="Create a password"
+                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none bg-slate-50 focus:bg-white focus:border-slate-400"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Account Type</label>
+                      <div className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm bg-slate-50 text-slate-700">
+                        {registerRole === 'farmer' ? 'Farmer Portal Account' : registerRole === 'transporter' ? 'Transporter Portal Account' : 'Buyer Portal Account'}
+                      </div>
+                    </div>
+                    <motion.button
+                      type="button"
+                      onClick={handleRegister}
+                      disabled={loading}
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 shadow-lg"
+                      style={{ background: 'linear-gradient(135deg, #22c55e, #16a34a)' }}
+                    >
+                      {loading ? 'Creating account...' : 'Create account'}
+                    </motion.button>
+                  </div>
+                ) : (
+                  <div className="space-y-5">
                 {/* Success overlay */}
                 <AnimatePresence>
                   {loginSuccess && (
@@ -384,31 +526,39 @@ export default function LoginPage() {
                   {errors.password && <p className="text-red-500 text-xs mt-1.5">{errors.password}</p>}
                 </div>
 
-                {/* Login button */}
-                <motion.button
-                  type="button"
-                  onClick={handleLogin}
-                  disabled={loading || loginSuccess}
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 shadow-lg"
-                  style={{
-                    background: `linear-gradient(135deg, ${role.accent}, ${role.accent}cc)`,
-                    boxShadow: `0 4px 20px ${role.accent}40`,
-                  }}
-                >
-                  {loading ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Signing in...
-                    </>
-                  ) : (
-                    <>
-                      <LogIn size={17} />
-                      Sign In as {role.label}
-                    </>
-                  )}
-                </motion.button>
+                {loginError && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {loginError}
+                  </div>
+                )}
+
+                    {/* Login button */}
+                    <motion.button
+                      type="button"
+                      onClick={handleLogin}
+                      disabled={loading || loginSuccess}
+                      whileHover={{ scale: 1.01 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full flex items-center justify-center gap-2.5 px-4 py-3.5 rounded-xl text-white font-semibold text-sm transition-all duration-200 disabled:opacity-60 shadow-lg"
+                      style={{
+                        background: `linear-gradient(135deg, ${role.accent}, ${role.accent}cc)`,
+                        boxShadow: `0 4px 20px ${role.accent}40`,
+                      }}
+                    >
+                      {loading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          <LogIn size={17} />
+                          Sign In as {role.label}
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+                )}
               </div>
 
               {/* Demo note */}

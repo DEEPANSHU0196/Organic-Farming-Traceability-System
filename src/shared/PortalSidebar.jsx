@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { X, LogOut, Leaf, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 // Role config: accent color class, icon emoji, portal label
 const ROLE_CONFIG = {
@@ -50,7 +51,16 @@ export default function PortalSidebar({
   userEmail = 'user@agritrust.com',
 }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const config = ROLE_CONFIG[role] || ROLE_CONFIG.farmer;
+  const displayName = user?.fullName || user?.name || userName || 'User';
+  const displayEmail = user?.email || userEmail || 'user@agritrust.com';
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'U';
 
   const handleLogout = () => {
     if (onLogout) onLogout();
@@ -162,11 +172,11 @@ export default function PortalSidebar({
           <div
             className={`w-8 h-8 rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center text-white text-sm font-bold flex-shrink-0`}
           >
-            {config.avatar}
+            {initials}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-white text-xs font-semibold truncate">{userName}</div>
-            <div className="text-white/40 text-[10px] truncate">{userEmail}</div>
+            <div className="text-white text-xs font-semibold truncate">{displayName}</div>
+            <div className="text-white/40 text-[10px] truncate">{displayEmail}</div>
           </div>
         </div>
 

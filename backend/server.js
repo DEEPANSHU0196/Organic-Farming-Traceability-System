@@ -5,17 +5,12 @@ const dotenv = require("dotenv");
 dotenv.config();
 
 const connectDB = require("./config/db");
+const { seedDefaultAdminAccounts } = require("./controllers/authController");
 
 // Routes
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
-console.log("userRoutes =", userRoutes);
-console.log("type =", typeof userRoutes);
-console.log("keys =", Object.keys(userRoutes));
 const productRoutes = require("./routes/productRoutes");
-
-// Connect Database
-connectDB();
 
 const app = express();
 
@@ -44,6 +39,13 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 5001;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-});
+const startServer = async () => {
+  await connectDB();
+  await seedDefaultAdminAccounts();
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
+};
+
+startServer();

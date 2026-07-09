@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useBuyer } from '../../contexts/BuyerContext';
 
 export default function BrowseProducts({ onProductSelect }) {
-  const { availableProducts, filterProducts, searchProducts } = useBuyer();
+  const { availableProducts, filterProducts, searchProducts, loading, error } = useBuyer();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [maxPrice, setMaxPrice] = useState(10000);
@@ -118,8 +118,19 @@ export default function BrowseProducts({ onProductSelect }) {
         )}
       </div>
 
-      {/* Products Grid */}
-      {filteredProducts.length > 0 ? (
+      {loading && (
+        <div className="rounded-lg border border-surface-alt bg-white p-8 text-center text-accent-muted">
+          Loading fresh products from the marketplace...
+        </div>
+      )}
+
+      {!loading && error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && filteredProducts.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProducts.map((product, idx) => (
             <motion.div
@@ -190,9 +201,11 @@ export default function BrowseProducts({ onProductSelect }) {
           ))}
         </div>
       ) : (
+        !loading && !error && (
         <div className="text-center py-12">
           <p className="text-accent-muted text-lg">No products found matching your criteria</p>
         </div>
+        )
       )}
     </div>
   );

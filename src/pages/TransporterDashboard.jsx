@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, Truck, Package, Users,
   Map, BarChart2, Settings
@@ -25,12 +26,16 @@ const NAV_ITEMS = [
 export default function TransporterDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const pathSegment = location.pathname.split('/').pop() || 'overview';
   const activeSection = NAV_ITEMS.find(s => s.id === pathSegment)?.id || 'overview';
 
   const handleSectionChange = (id) => navigate(`/transporter-dashboard/${id}`);
-  const handleLogout = () => navigate('/');
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const renderSection = () => {
     switch (activeSection) {
