@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
+<<<<<<< HEAD
   {
     farmer: {
       type: mongoose.Schema.Types.ObjectId,
@@ -63,10 +64,48 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+=======
+{
+  farmer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true,
+>>>>>>> 8df8ace ( product module)
   },
-  {
-    timestamps: true,
-  }
+
+  productName: {
+    type: String,
+    required: true,
+  },
+
+  category: {
+    type: String,
+    required: true,
+  },
+
+  quantity: {
+    type: Number,
+    required: true,
+  },
+
+  price: {
+    type: Number,
+    required: true,
+  },
+
+  location: String,
+
+  description: String,
+
+  image: String,
+
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+  },
+},
+{ timestamps: true }
 );
 
 module.exports = mongoose.model("Product", productSchema);
