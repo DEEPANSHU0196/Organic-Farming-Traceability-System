@@ -40,8 +40,11 @@ app.use((req, res) => {
 const PORT = process.env.PORT || 5001;
 
 const startServer = async () => {
-  await connectDB();
-  await seedDefaultAdminAccounts();
+  const dbConnection = await connectDB();
+
+  if (dbConnection) {
+    await seedDefaultAdminAccounts();
+  }
 
   app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
