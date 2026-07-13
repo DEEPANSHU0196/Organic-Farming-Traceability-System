@@ -10,18 +10,29 @@ const {
   deleteProduct,
 } = require("../controllers/productController");
 
-const { protect, authorizeRoles } = require("../middleware/authMiddleware");
+const { protect } = require("../middleware/authMiddleware");
 const upload = require("../middleware/upload");
 
-router.get("/test", (req, res) => {
-  res.send("Products route working");
-});
+router.post(
+  "/",
+  protect,
+  upload.single("image"),
+  addProduct
+);
 
-router.post("/", protect, authorizeRoles("farmer"), upload.single("image"), addProduct);
-router.get("/all", protect, authorizeRoles("farmer", "buyer", "transporter", "admin"), getAllProducts);
-router.get("/", protect, authorizeRoles("farmer"), getMyProducts);
-router.get("/:id", protect, authorizeRoles("farmer", "buyer", "transporter", "admin"), getProductById);
-router.put("/:id", protect, authorizeRoles("farmer", "admin"), upload.single("image"), updateProduct);
-router.delete("/:id", protect, authorizeRoles("farmer", "admin"), deleteProduct);
+router.get("/all", getAllProducts);
+
+router.get("/", protect, getMyProducts);
+
+router.get("/:id", protect, getProductById);
+
+router.put(
+  "/:id",
+  protect,
+  upload.single("image"),
+  updateProduct
+);
+
+router.delete("/:id", protect, deleteProduct);
 
 module.exports = router;

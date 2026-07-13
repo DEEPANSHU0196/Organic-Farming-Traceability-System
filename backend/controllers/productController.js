@@ -2,36 +2,41 @@ const Product = require("../models/Product");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 
-// =============================
-// Upload Image From Buffer
-// =============================
 const uploadFromBuffer = (buffer) => {
   return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      {
-        folder: "products",
-      },
-      (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      }
-    );
+    const stream =
+      cloudinary.uploader.upload_stream(
+        {
+          folder: "products",
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
 
-    streamifier.createReadStream(buffer).pipe(stream);
+    streamifier
+      .createReadStream(buffer)
+      .pipe(stream);
   });
 };
 
-// =============================
-// Add New Product
-// =============================
+// ======================
+// ADD PRODUCT
+// ======================
+
 const addProduct = async (req, res) => {
   try {
+    console.log(req.body);
+    console.log(req.file);
+
     let imageUrl = "";
 
     if (req.file) {
-      const result = await uploadFromBuffer(
-        req.file.buffer
-      );
+      const result =
+        await uploadFromBuffer(
+          req.file.buffer
+        );
 
       imageUrl = result.secure_url;
     }
@@ -45,20 +50,22 @@ const addProduct = async (req, res) => {
       description,
     } = req.body;
 
-    const product = await Product.create({
-      farmer: req.user._id,
-      productName,
-      category,
-      quantity,
-      price,
-      location,
-      description,
-      image: imageUrl,
-    });
+    const product =
+      await Product.create({
+        farmer: req.user._id,
+        productName,
+        category,
+        quantity,
+        price,
+        location,
+        description,
+        image: imageUrl,
+      });
 
     res.status(201).json({
       success: true,
-      message: "Product Added Successfully",
+      message:
+        "Product Added Successfully",
       product,
     });
   } catch (error) {
@@ -71,18 +78,20 @@ const addProduct = async (req, res) => {
   }
 };
 
-// =============================
-// Get All Products
-// =============================
-const getAllProducts = async (req, res) => {
+// ======================
+// GET ALL PRODUCTS
+// ======================
+
+const getAllProducts = async (
+  req,
+  res
+) => {
   try {
-    const products = await Product.find()
-      .populate("farmer", "fullName email")
-      .sort({ createdAt: -1 });
+    const products =
+      await Product.find();
 
     res.status(200).json({
       success: true,
-      count: products.length,
       products,
     });
   } catch (error) {
@@ -93,18 +102,22 @@ const getAllProducts = async (req, res) => {
   }
 };
 
-// =============================
-// Get Farmer Products
-// =============================
-const getMyProducts = async (req, res) => {
+// ======================
+// GET MY PRODUCTS
+// ======================
+
+const getMyProducts = async (
+  req,
+  res
+) => {
   try {
-    const products = await Product.find({
-      farmer: req.user._id,
-    });
+    const products =
+      await Product.find({
+        farmer: req.user._id,
+      });
 
     res.status(200).json({
       success: true,
-      count: products.length,
       products,
     });
   } catch (error) {
@@ -115,19 +128,25 @@ const getMyProducts = async (req, res) => {
   }
 };
 
-// =============================
-// Get Single Product
-// =============================
-const getProductById = async (req, res) => {
+// ======================
+// GET SINGLE PRODUCT
+// ======================
+
+const getProductById = async (
+  req,
+  res
+) => {
   try {
-    const product = await Product.findById(
-      req.params.id
-    ).populate("farmer", "fullName");
+    const product =
+      await Product.findById(
+        req.params.id
+      );
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: "Product Not Found",
+        message:
+          "Product Not Found",
       });
     }
 
@@ -143,45 +162,42 @@ const getProductById = async (req, res) => {
   }
 };
 
-// =============================
-// Update Product
-// =============================
-const updateProduct = async (req, res) => {
+// ======================
+// UPDATE PRODUCT
+// ======================
+
+const updateProduct = async (
+  req,
+  res
+) => {
   try {
-    const product = await Product.findById(
-      req.params.id
-    );
+    const product =
+      await Product.findById(
+        req.params.id
+      );
 
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: "Product Not Found",
-      });
-    }
-
-    if (
-      product.farmer.toString() !==
-        req.user._id.toString() &&
-      req.user.role !== "admin"
-    ) {
-      return res.status(403).json({
-        success: false,
         message:
-          "You do not have permission",
+          "Product Not Found",
       });
     }
 
-    let imageUrl = product.image;
+    let imageUrl =
+      product.image;
 
     if (req.file) {
-      const result = await uploadFromBuffer(
-        req.file.buffer
-      );
+      const result =
+        await uploadFromBuffer(
+          req.file.buffer
+        );
 
-      imageUrl = result.secure_url;
+      imageUrl =
+        result.secure_url;
     }
 
-    const updatedProduct =
+    const updated =
       await Product.findByIdAndUpdate(
         req.params.id,
         {
@@ -195,9 +211,7 @@ const updateProduct = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message:
-        "Product Updated Successfully",
-      product: updatedProduct,
+      product: updated,
     });
   } catch (error) {
     res.status(500).json({
@@ -207,34 +221,15 @@ const updateProduct = async (req, res) => {
   }
 };
 
-// =============================
-// Delete Product
-// =============================
-const deleteProduct = async (req, res) => {
+// ======================
+// DELETE PRODUCT
+// ======================
+
+const deleteProduct = async (
+  req,
+  res
+) => {
   try {
-    const product = await Product.findById(
-      req.params.id
-    );
-
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: "Product Not Found",
-      });
-    }
-
-    if (
-      product.farmer.toString() !==
-        req.user._id.toString() &&
-      req.user.role !== "admin"
-    ) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "You do not have permission",
-      });
-    }
-
     await Product.findByIdAndDelete(
       req.params.id
     );
@@ -242,7 +237,7 @@ const deleteProduct = async (req, res) => {
     res.status(200).json({
       success: true,
       message:
-        "Product Deleted Successfully",
+        "Product Deleted",
     });
   } catch (error) {
     res.status(500).json({
