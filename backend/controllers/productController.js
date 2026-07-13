@@ -1,10 +1,41 @@
 const Product = require("../models/Product");
+const cloudinary = require("../config/cloudinary");
+const streamifier = require("streamifier");
+
+// =============================
+// Upload Image From Buffer
+// =============================
+const uploadFromBuffer = (buffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      {
+        folder: "products",
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    );
+
+    streamifier.createReadStream(buffer).pipe(stream);
+  });
+};
 
 // =============================
 // Add New Product
 // =============================
 const addProduct = async (req, res) => {
   try {
+    let imageUrl = "";
+
+    if (req.file) {
+      const result = await uploadFromBuffer(
+        req.file.buffer
+      );
+
+      imageUrl = result.secure_url;
+    }
+
     const {
       productName,
       category,
@@ -12,18 +43,17 @@ const addProduct = async (req, res) => {
       price,
       location,
       description,
-      image,
     } = req.body;
 
     const product = await Product.create({
-      farmer: req.user.id,
+      farmer: req.user._id,
       productName,
       category,
       quantity,
       price,
       location,
       description,
-      image,
+      image: imageUrl,
     });
 
     res.status(201).json({
@@ -32,6 +62,8 @@ const addProduct = async (req, res) => {
       product,
     });
   } catch (error) {
+    console.log(error);
+
     res.status(500).json({
       success: false,
       message: error.message,
@@ -40,11 +72,13 @@ const addProduct = async (req, res) => {
 };
 
 // =============================
-// Get All Products (shared catalog)
+// Get All Products
 // =============================
 const getAllProducts = async (req, res) => {
   try {
-    const products = await Product.find({}).sort({ createdAt: -1 });
+    const products = await Product.find()
+      .populate("farmer", "fullName email")
+      .sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -60,12 +94,12 @@ const getAllProducts = async (req, res) => {
 };
 
 // =============================
-// Get All Products of Logged-in Farmer
+// Get Farmer Products
 // =============================
 const getMyProducts = async (req, res) => {
   try {
     const products = await Product.find({
-      farmer: req.user.id,
+      farmer: req.user._id,
     });
 
     res.status(200).json({
@@ -86,7 +120,9 @@ const getMyProducts = async (req, res) => {
 // =============================
 const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(
+      req.params.id
+    ).populate("farmer", "fullName");
 
     if (!product) {
       return res.status(404).json({
@@ -112,7 +148,9 @@ const getProductById = async (req, res) => {
 // =============================
 const updateProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(
+      req.params.id
+    );
 
     if (!product) {
       return res.status(404).json({
@@ -121,24 +159,44 @@ const updateProduct = async (req, res) => {
       });
     }
 
-    if (product.farmer.toString() !== req.user.id && req.user.role !== "admin") {
+    if (
+      product.farmer.toString() !==
+        req.user._id.toString() &&
+      req.user.role !== "admin"
+    ) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to update this product",
+        message:
+          "You do not have permission",
       });
     }
 
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-      }
-    );
+    let imageUrl = product.image;
+
+    if (req.file) {
+      const result = await uploadFromBuffer(
+        req.file.buffer
+      );
+
+      imageUrl = result.secure_url;
+    }
+
+    const updatedProduct =
+      await Product.findByIdAndUpdate(
+        req.params.id,
+        {
+          ...req.body,
+          image: imageUrl,
+        },
+        {
+          new: true,
+        }
+      );
 
     res.status(200).json({
       success: true,
-      message: "Product Updated Successfully",
+      message:
+        "Product Updated Successfully",
       product: updatedProduct,
     });
   } catch (error) {
@@ -154,7 +212,9 @@ const updateProduct = async (req, res) => {
 // =============================
 const deleteProduct = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(
+      req.params.id
+    );
 
     if (!product) {
       return res.status(404).json({
@@ -163,18 +223,26 @@ const deleteProduct = async (req, res) => {
       });
     }
 
-    if (product.farmer.toString() !== req.user.id && req.user.role !== "admin") {
+    if (
+      product.farmer.toString() !==
+        req.user._id.toString() &&
+      req.user.role !== "admin"
+    ) {
       return res.status(403).json({
         success: false,
-        message: "You do not have permission to delete this product",
+        message:
+          "You do not have permission",
       });
     }
 
-    await Product.findByIdAndDelete(req.params.id);
+    await Product.findByIdAndDelete(
+      req.params.id
+    );
 
     res.status(200).json({
       success: true,
-      message: "Product Deleted Successfully",
+      message:
+        "Product Deleted Successfully",
     });
   } catch (error) {
     res.status(500).json({
