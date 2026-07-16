@@ -21,15 +21,28 @@ const uploadFromBuffer = (buffer) => {
   });
 };
 
+const uploadFromBodyImage = async (image) => {
+  if (!image) {
+    return "";
+  }
+
+  if (image.startsWith("http://") || image.startsWith("https://")) {
+    return image;
+  }
+
+  const result = await cloudinary.uploader.upload(image, {
+    folder: "products",
+  });
+
+  return result.secure_url;
+};
+
 // ======================
 // ADD PRODUCT
 // ======================
 
 const addProduct = async (req, res) => {
   try {
-    console.log(req.body);
-    console.log(req.file);
-
     let imageUrl = "";
 
     if (req.file) {
@@ -39,6 +52,8 @@ const addProduct = async (req, res) => {
         );
 
       imageUrl = result.secure_url;
+    } else if (req.body.image) {
+      imageUrl = await uploadFromBodyImage(req.body.image);
     }
 
     const {
@@ -50,9 +65,18 @@ const addProduct = async (req, res) => {
       description,
     } = req.body;
 
+    const farmerId = req.user?._id || req.user?.id;
+
+    if (!farmerId) {
+      return res.status(401).json({
+        success: false,
+        message: "User not authenticated",
+      });
+    }
+
     const product =
       await Product.create({
-        farmer: req.user._id,
+        farmer: farmerId,
         productName,
         category,
         quantity,
@@ -69,8 +93,6 @@ const addProduct = async (req, res) => {
       product,
     });
   } catch (error) {
-    console.log(error);
-
     res.status(500).json({
       success: false,
       message: error.message,
