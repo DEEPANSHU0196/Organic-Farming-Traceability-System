@@ -10,6 +10,14 @@ export default function ReviewsRatings() {
   const [comment, setComment] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  const renderProductImage = (image, className) => {
+    if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
+      return <img src={image} alt="Product" className={className} />;
+    }
+
+    return <span className={className}>{image || '🌾'}</span>;
+  };
+
   const handleSubmitReview = () => {
     if (comment.trim()) {
       addReview(selectedProduct.id, {
@@ -53,7 +61,9 @@ export default function ReviewsRatings() {
 
           {/* Product Display */}
           <div className="bg-surface-alt rounded-lg p-4 mb-6 flex items-center gap-4">
-            <div className="text-4xl">{selectedProduct.image}</div>
+            <div className="h-16 w-16 overflow-hidden rounded-lg bg-white flex items-center justify-center">
+              {renderProductImage(selectedProduct.image, 'h-full w-full object-cover')}
+            </div>
             <div>
               <h3 className="font-bold text-primary">{selectedProduct.name}</h3>
               <p className="text-sm text-accent-muted">{selectedProduct.category}</p>
@@ -142,7 +152,7 @@ export default function ReviewsRatings() {
               >
                 {/* Product Image */}
                 <div className="h-40 bg-gradient-to-br from-emerald-100 to-green-200 flex items-center justify-center text-6xl">
-                  {product.image}
+                  {renderProductImage(product.image, 'h-full w-full object-cover')}
                 </div>
 
                 {/* Product Info */}

@@ -2,8 +2,24 @@ const Product = require("../models/Product");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 
+const ensureCloudinaryConfig = () => {
+  const hasConfig = Boolean(
+    process.env.CLOUDINARY_CLOUD_NAME &&
+      process.env.CLOUDINARY_API_KEY &&
+      process.env.CLOUDINARY_API_SECRET
+  );
+
+  if (!hasConfig) {
+    throw new Error(
+      "Image upload is not configured. Please check Cloudinary credentials in the backend environment."
+    );
+  }
+};
+
 const uploadFromBuffer = (buffer) => {
   return new Promise((resolve, reject) => {
+    ensureCloudinaryConfig();
+
     const stream =
       cloudinary.uploader.upload_stream(
         {
@@ -29,6 +45,8 @@ const uploadFromBodyImage = async (image) => {
   if (image.startsWith("http://") || image.startsWith("https://")) {
     return image;
   }
+
+  ensureCloudinaryConfig();
 
   const result = await cloudinary.uploader.upload(image, {
     folder: "products",

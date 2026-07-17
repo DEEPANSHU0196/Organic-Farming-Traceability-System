@@ -1,84 +1,7 @@
 import { motion } from 'motion/react';
 import { CheckCircle, XCircle, Eye, Clock, Search, X, Download, Phone, Mail, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
-
-const defaultOrders = [
-  {
-    id: '#OD001',
-    buyer: 'Rajesh Kumar',
-    buyerEmail: 'rajesh@email.com',
-    buyerPhone: '+91 98765 43210',
-    product: 'Premium Wheat',
-    quantity: 100,
-    unit: 'kg',
-    date: '2025-12-15',
-    status: 'Pending',
-    amount: '₹2,50,000',
-    deliveryDate: '2025-12-20',
-    location: 'Delhi',
-    notes: 'Please ensure quality packaging',
-  },
-  {
-    id: '#OD002',
-    buyer: 'Priya Sharma',
-    buyerEmail: 'priya@email.com',
-    buyerPhone: '+91 87654 32109',
-    product: 'Basmati Rice',
-    quantity: 50,
-    unit: 'kg',
-    date: '2025-12-14',
-    status: 'Accepted',
-    amount: '₹2,25,000',
-    deliveryDate: '2025-12-19',
-    location: 'Mumbai',
-    notes: 'Fast delivery needed',
-  },
-  {
-    id: '#OD003',
-    buyer: 'Amit Singh',
-    buyerEmail: 'amit@email.com',
-    buyerPhone: '+91 76543 21098',
-    product: 'Yellow Mustard',
-    quantity: 75,
-    unit: 'kg',
-    date: '2025-12-13',
-    status: 'Rejected',
-    amount: '₹4,12,500',
-    deliveryDate: 'N/A',
-    location: 'Bangalore',
-    notes: 'Rejected due to price negotiation',
-  },
-  {
-    id: '#OD004',
-    buyer: 'Deepak Patel',
-    buyerEmail: 'deepak@email.com',
-    buyerPhone: '+91 65432 10987',
-    product: 'Organic Corn',
-    quantity: 200,
-    unit: 'kg',
-    date: '2025-12-12',
-    status: 'Accepted',
-    amount: '₹3,60,000',
-    deliveryDate: '2025-12-18',
-    location: 'Pune',
-    notes: 'Regular buyer, good payment history',
-  },
-  {
-    id: '#OD005',
-    buyer: 'Kavya Nair',
-    buyerEmail: 'kavya@email.com',
-    buyerPhone: '+91 54321 09876',
-    product: 'Premium Wheat',
-    quantity: 150,
-    unit: 'kg',
-    date: '2025-12-11',
-    status: 'Accepted',
-    amount: '₹3,75,000',
-    deliveryDate: '2025-12-17',
-    location: 'Chennai',
-    notes: 'Bulk order',
-  },
-];
+import api from '../../api/axios';
 
 export default function OrdersManagement() {
   const [orders, setOrders] = useState([]);
@@ -87,15 +10,37 @@ export default function OrdersManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('All');
   const [showNotification, setShowNotification] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const saved = localStorage.getItem('farmerOrders');
-    setOrders(saved ? JSON.parse(saved) : defaultOrders);
+    let active = true;
+
+    const fetchOrders = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/orders/farmer');
+        if (!active) return;
+        setOrders(response?.data?.orders || []);
+        setError('');
+      } catch (err) {
+        if (!active) return;
+        console.error('Failed to load farmer orders:', err);
+        setError(err?.response?.data?.message || 'Unable to load orders right now.');
+        setOrders([]);
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchOrders();
+
+    return () => {
+      active = false;
+    };
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('farmerOrders', JSON.stringify(orders));
-  }, [orders]);
 
   const getStatusIcon = (status) => {
     if (status === 'Accepted') return <CheckCircle className="text-green-600" size={18} />;
@@ -105,35 +50,56 @@ export default function OrdersManagement() {
   };
 
   const getStatusColor = (status) => {
-    if (status === 'Accepted') return 'bg-green-100 text-green-700';
-    if (status === 'Rejected') return 'bg-red-100 text-red-700';
-    if (status === 'Pending') return 'bg-amber-100 text-amber-700';
+    const normalized = (status || '').toLowerCase();
+    if (normalized === 'accepted') return 'bg-green-100 text-green-700';
+    if (normalized === 'rejected') return 'bg-red-100 text-red-700';
+    if (normalized === 'pending') return 'bg-amber-100 text-amber-700';
     return 'bg-gray-100 text-gray-700';
   };
 
-  const filteredOrders = orders.filter(order => {
-    const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.buyer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.product.toLowerCase().includes(searchTerm.toLowerCase());
+  const normalizeStatus = (status) => {
+    const normalized = (status || '').toLowerCase();
+    if (normalized === 'accepted') return 'Accepted';
+    if (normalized === 'rejected') return 'Rejected';
+    return 'Pending';
+  };
+
+  const normalizedOrders = orders.map((order) => ({ ...order, status: normalizeStatus(order.status) }));
+
+  const filteredOrders = normalizedOrders.filter(order => {
+    const searchValue = (searchTerm || '').toLowerCase();
+    const matchesSearch =
+      order.id.toLowerCase().includes(searchValue) ||
+      order.buyer.toLowerCase().includes(searchValue) ||
+      order.product.toLowerCase().includes(searchValue);
     const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
     return matchesSearch && matchesStatus;
   });
 
   const stats = {
-    total: orders.length,
-    pending: orders.filter(o => o.status === 'Pending').length,
-    accepted: orders.filter(o => o.status === 'Accepted').length,
-    rejected: orders.filter(o => o.status === 'Rejected').length,
+    total: normalizedOrders.length,
+    pending: normalizedOrders.filter(o => o.status === 'Pending').length,
+    accepted: normalizedOrders.filter(o => o.status === 'Accepted').length,
+    rejected: normalizedOrders.filter(o => o.status === 'Rejected').length,
+    avgValue: normalizedOrders.length
+      ? `₹${Math.round(normalizedOrders.reduce((sum, order) => sum + (Number(order.amount?.replace(/[^0-9]/g, '') || 0)), 0) / normalizedOrders.length).toLocaleString('en-IN')}`
+      : '₹0',
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
-    setShowNotification({ type: 'success', message: `Order ${newStatus.toLowerCase()}!` });
-    setTimeout(() => setShowNotification(null), 3000);
-    setShowDetailModal(false);
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const response = await api.put(`/orders/farmer/${orderId}`, { status: newStatus });
+      const updatedOrder = response?.data?.order;
+      if (updatedOrder) {
+        setOrders((prev) => prev.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)));
+      }
+      setShowNotification({ type: 'success', message: `Order ${newStatus.toLowerCase()}!` });
+      setTimeout(() => setShowNotification(null), 3000);
+      setShowDetailModal(false);
+    } catch (err) {
+      setShowNotification({ type: 'error', message: err?.response?.data?.message || 'Unable to update order status' });
+      setTimeout(() => setShowNotification(null), 4000);
+    }
   };
 
   const handleViewDetails = (order) => {
@@ -162,9 +128,9 @@ export default function OrdersManagement() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`p-4 rounded-lg text-white ${showNotification.type === 'success' ? 'bg-green-500' : 'bg-blue-500'}`}
+          className={`p-4 rounded-lg text-white ${showNotification.type === 'success' ? 'bg-green-500' : showNotification.type === 'error' ? 'bg-red-500' : 'bg-blue-500'}`}
         >
-          ✓ {showNotification.message}
+          {showNotification.type === 'success' ? '✓' : '⚠'} {showNotification.message}
         </motion.div>
       )}
 
@@ -175,7 +141,7 @@ export default function OrdersManagement() {
           { label: 'Pending', value: stats.pending, icon: '⏳', color: 'bg-amber-50' },
           { label: 'Accepted', value: stats.accepted, icon: '✓', color: 'bg-green-50' },
           { label: 'Rejected', value: stats.rejected, icon: '✗', color: 'bg-red-50' },
-          { label: 'Avg Value', value: '₹3.2L', icon: '💰', color: 'bg-purple-50' },
+          { label: 'Avg Value', value: stats.avgValue, icon: '💰', color: 'bg-purple-50' },
         ].map((stat, idx) => (
           <motion.div
             key={idx}
@@ -228,12 +194,21 @@ export default function OrdersManagement() {
         </div>
       </motion.div>
 
+      {error && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
       {/* Orders Table */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white rounded-lg shadow-md border border-surface-alt overflow-hidden"
       >
+        {loading ? (
+          <div className="p-8 text-center text-accent-muted">Loading orders from buyers...</div>
+        ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-surface-alt border-b border-surface-alt">
@@ -283,6 +258,7 @@ export default function OrdersManagement() {
             </tbody>
           </table>
         </div>
+        )}
       </motion.div>
 
       {/* Detail Modal */}
@@ -345,7 +321,12 @@ export default function OrdersManagement() {
               </div>
 
               <div className="bg-surface-alt rounded-lg p-4">
-                <h3 className="font-bold text-primary mb-4">Buyer Information</h3>
+                <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+                  <h3 className="font-bold text-primary">Buyer Information</h3>
+                  <span className="text-xs px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                    Verified buyer
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="flex items-start gap-3">
                     <Mail size={18} className="text-emerald-500 mt-1" />
@@ -361,6 +342,15 @@ export default function OrdersManagement() {
                       <p className="font-semibold text-primary">{selectedOrder.buyerPhone}</p>
                     </div>
                   </div>
+                  {selectedOrder.buyerAddress && (
+                    <div className="flex items-start gap-3 md:col-span-2">
+                      <MapPin size={18} className="text-emerald-500 mt-1" />
+                      <div>
+                        <p className="text-xs text-accent-muted">Address</p>
+                        <p className="font-semibold text-primary">{selectedOrder.buyerAddress}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 

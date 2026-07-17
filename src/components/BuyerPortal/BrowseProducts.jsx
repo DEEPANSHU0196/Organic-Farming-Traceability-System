@@ -25,6 +25,14 @@ export default function BrowseProducts({ onProductSelect }) {
     );
   }
 
+  const renderProductImage = (image, className) => {
+    if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
+      return <img src={image} alt="Product" className={className} />;
+    }
+
+    return <span className={className}>{image || '🌾'}</span>;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -147,7 +155,7 @@ export default function BrowseProducts({ onProductSelect }) {
                   whileHover={{ scale: 1.1 }}
                   className="group-hover:scale-110 transition-transform duration-300"
                 >
-                  {product.image}
+                  {renderProductImage(product.image, 'h-40 w-full object-cover')}
                 </motion.div>
                 <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
                   <Star size={14} className="fill-yellow-400 text-yellow-400" />

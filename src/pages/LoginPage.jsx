@@ -148,6 +148,11 @@ export default function LoginPage() {
       return;
     }
 
+    if (registerPassword.length < 6) {
+      setRegisterMessage('Password must be at least 6 characters long.');
+      return;
+    }
+
     try {
       const portalRole = getRegistrationRole(selectedRole);
       await register({
@@ -566,7 +571,7 @@ export default function LoginPage() {
                 className="mt-4 px-4 py-3 rounded-xl border text-xs text-center"
                 style={{ borderColor: role.accentBorder, background: role.accentLight, color: role.accent }}
               >
-                <span className="font-semibold">Demo credentials pre-filled.</span> Just click Sign In →
+                <span className="font-semibold">Use your own password</span> when creating a new account.
               </div>
             </motion.div>
           )}

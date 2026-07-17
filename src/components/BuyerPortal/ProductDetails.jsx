@@ -9,6 +9,14 @@ export default function ProductDetails({ product, onClose, onAddToCart }) {
   const [activeTab, setActiveTab] = useState('details');
   const productReviews = getProductReviews(product.id);
 
+  const renderProductImage = (image, className) => {
+    if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
+      return <img src={image} alt="Product" className={className} />;
+    }
+
+    return <span className={className}>{image || '🌾'}</span>;
+  };
+
   const handleAddToCart = () => {
     addToCart(product, quantity);
     onAddToCart();
@@ -38,7 +46,9 @@ export default function ProductDetails({ product, onClose, onAddToCart }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Product Image */}
             <div className="bg-gradient-to-br from-emerald-100 to-green-200 rounded-lg p-8 flex flex-col items-center justify-center min-h-80">
-              <div className="text-8xl mb-4">{product.image}</div>
+              <div className="mb-4 w-full flex items-center justify-center overflow-hidden rounded-2xl">
+                {renderProductImage(product.image, 'max-h-80 w-auto object-contain')}
+              </div>
               <div className="flex items-center gap-2 text-center">
                 <Leaf size={16} className="text-emerald-600" />
                 <span className="font-semibold text-emerald-700">{product.certification}</span>
