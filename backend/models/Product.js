@@ -1,76 +1,49 @@
 const mongoose = require("mongoose");
 
 const productSchema = new mongoose.Schema(
-  {
+{
     farmer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required:true
     },
 
-    productName: {
-      type: String,
-      required: true,
-      trim: true,
+    name:{
+        type:String,
+        required:true
     },
 
-    category: {
-      type: String,
-      required: true,
-      trim: true,
+    category:{
+        type:String
     },
 
-    unit: {
-      type: String,
-      default: "kg",
+    quantity:{
+        type:Number
     },
 
-    quantity: {
-      type: Number,
-      required: true,
+    harvestDate:{
+        type:Date
     },
 
-    price: {
-      type: Number,
-      required: true,
+
+    qrCode:{
+        type:String
     },
 
-    location: {
-      type: String,
-      default: "",
-    },
+    traceabilityId:{
+        type:String,
+        unique:true
+    }
 
-    description: {
-      type: String,
-      default: "",
-    },
 
-    certification: {
-      type: String,
-      default: "Organic",
-    },
+},
+{
+    timestamps:true
+});
 
-    harvestDate: {
-      type: String,
-      default: "",
-    },
 
-    image: {
-      type: String,
-      default: "",
-    },
-
-    blockchainHash: {
-      type: String,
-      default: "",
-    },
-    status: {
-      type: String,
-      enum: ["pending", "approved", "rejected"],
-      default: "pending",
-    },
-  },
-  { timestamps: true }
+module.exports =
+mongoose.model(
+    "Product",
+    productSchema
 );
-
-module.exports = mongoose.model("Product", productSchema);
