@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { User, Bell, Shield, Globe, Save, Check, Eye, EyeOff, Camera } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -10,12 +11,32 @@ const TABS = [
 ];
 
 function ProfileTab() {
+  const { user } = useAuth();
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
-    name: 'Ravi Arora', email: 'ravi@example.com', phone: '+91 98100 12345',
-    city: 'New Delhi', state: 'Delhi', pincode: '110001',
-    company: '', gst: '',
+    name: user?.fullName || user?.name || 'Buyer',
+    email: user?.email || 'buyer@example.com',
+    phone: user?.phone || '+91 98100 12345',
+    city: user?.city || 'New Delhi',
+    state: user?.state || 'Delhi',
+    pincode: user?.pincode || '110001',
+    company: user?.company || '',
+    gst: user?.gst || '',
   });
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      name: user?.fullName || user?.name || prev.name || 'Buyer',
+      email: user?.email || prev.email || 'buyer@example.com',
+      phone: user?.phone || prev.phone || '+91 98100 12345',
+      city: user?.city || prev.city || 'New Delhi',
+      state: user?.state || prev.state || 'Delhi',
+      pincode: user?.pincode || prev.pincode || '110001',
+      company: user?.company || prev.company || '',
+      gst: user?.gst || prev.gst || '',
+    }));
+  }, [user?.fullName, user?.email, user?.phone, user?.city, user?.state, user?.pincode, user?.company, user?.gst]);
 
   return (
     <div className="space-y-6">
@@ -29,8 +50,8 @@ function ProfileTab() {
             </button>
           </div>
           <div>
-            <p className="font-semibold text-slate-800">Ravi Arora</p>
-            <p className="text-sm text-slate-500">ravi@example.com</p>
+            <p className="font-semibold text-slate-800">{form.name}</p>
+            <p className="text-sm text-slate-500">{form.email}</p>
             <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">Verified Buyer ✓</span>
           </div>
         </div>

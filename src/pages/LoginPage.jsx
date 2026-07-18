@@ -77,6 +77,21 @@ export default function LoginPage() {
   const role = ROLES.find((r) => r.id === selectedRole);
   const canCreateAccount = selectedRole !== 'admin';
 
+  const clearLoginFields = () => {
+    setEmail('');
+    setPassword('');
+    setErrors({});
+    setLoginError('');
+    setLoginSuccess(false);
+  };
+
+  const clearRegistrationFields = () => {
+    setRegisterName('');
+    setRegisterEmail('');
+    setRegisterPassword('');
+    setRegisterMessage('');
+  };
+
   const getRegistrationRole = (portalRole) => {
     switch (portalRole) {
       case 'farmer':
@@ -92,10 +107,9 @@ export default function LoginPage() {
 
   const handleSelectRole = (id) => {
     setSelectedRole(id);
-    setEmail('');
-    setPassword('');
+    clearLoginFields();
+    clearRegistrationFields();
     setRegisterRole(getRegistrationRole(id));
-    setErrors({});
     setStep(2);
   };
 
@@ -145,6 +159,11 @@ export default function LoginPage() {
 
     if (!registerName.trim() || !registerEmail.trim() || !registerPassword.trim()) {
       setRegisterMessage('Please fill in all required fields.');
+      return;
+    }
+
+    if (registerPassword.length < 6) {
+      setRegisterMessage('Password must be at least 6 characters long.');
       return;
     }
 
@@ -265,7 +284,7 @@ export default function LoginPage() {
         <div className="w-full max-w-[480px] mb-6">
           {step === 2 ? (
             <button
-              onClick={() => { setStep(1); setSelectedRole(null); setErrors({}); setLoginSuccess(false); }}
+              onClick={() => { setStep(1); setSelectedRole(null); clearLoginFields(); clearRegistrationFields(); setIsRegistering(false); }}
               className="flex items-center gap-2 text-slate-500 hover:text-slate-800 text-sm font-medium transition-colors"
             >
               <ArrowLeft size={16} />
@@ -393,7 +412,7 @@ export default function LoginPage() {
                 ) : !isRegistering ? (
                   <button
                     type="button"
-                    onClick={() => setIsRegistering(true)}
+                    onClick={() => { clearRegistrationFields(); setIsRegistering(true); }}
                     className="flex items-center gap-2 text-sm font-semibold text-emerald-600"
                   >
                     <UserPlus size={16} />
@@ -402,7 +421,7 @@ export default function LoginPage() {
                 ) : (
                   <button
                     type="button"
-                    onClick={() => { setIsRegistering(false); setRegisterMessage(''); }}
+                    onClick={() => { clearRegistrationFields(); setIsRegistering(false); }}
                     className="flex items-center gap-2 text-sm font-semibold text-slate-600"
                   >
                     <ArrowLeft size={16} />
@@ -420,30 +439,38 @@ export default function LoginPage() {
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name</label>
                       <input
+                        key={`register-name-${selectedRole || 'default'}`}
                         type="text"
                         value={registerName}
                         onChange={(e) => setRegisterName(e.target.value)}
                         placeholder="Your full name"
+                        autoComplete="name"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none bg-slate-50 focus:bg-white focus:border-slate-400"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Email Address</label>
                       <input
+                        key={`register-email-${selectedRole || 'default'}`}
                         type="email"
                         value={registerEmail}
                         onChange={(e) => setRegisterEmail(e.target.value)}
                         placeholder="you@example.com"
+                        autoComplete="new-email"
+                        name="registerEmail"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none bg-slate-50 focus:bg-white focus:border-slate-400"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
                       <input
+                        key={`register-password-${selectedRole || 'default'}`}
                         type="password"
                         value={registerPassword}
                         onChange={(e) => setRegisterPassword(e.target.value)}
                         placeholder="Create a password"
+                        autoComplete="new-password"
+                        name="registerPassword"
                         className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none bg-slate-50 focus:bg-white focus:border-slate-400"
                       />
                     </div>
@@ -488,10 +515,13 @@ export default function LoginPage() {
                     Email Address
                   </label>
                   <input
+                    key={`login-email-${selectedRole || 'default'}`}
                     type="email"
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setErrors((p) => ({ ...p, email: '' })); }}
                     placeholder="you@example.com"
+                    autoComplete="username"
+                    name="email"
                     className={`w-full px-4 py-3 rounded-xl border text-sm transition-all duration-200 outline-none bg-slate-50 focus:bg-white ${
                       errors.email ? 'border-red-400 focus:border-red-400 focus:ring-2 focus:ring-red-100' : 'border-slate-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-100'
                     }`}
@@ -507,10 +537,13 @@ export default function LoginPage() {
                   </label>
                   <div className="relative">
                     <input
+                      key={`login-password-${selectedRole || 'default'}`}
                       type={showPassword ? 'text' : 'password'}
                       value={password}
                       onChange={(e) => { setPassword(e.target.value); setErrors((p) => ({ ...p, password: '' })); }}
                       placeholder="••••••••"
+                      autoComplete="current-password"
+                      name="password"
                       className={`w-full px-4 py-3 rounded-xl border text-sm transition-all duration-200 outline-none bg-slate-50 focus:bg-white pr-12 ${
                         errors.password ? 'border-red-400 focus:border-red-400 focus:ring-2 focus:ring-red-100' : 'border-slate-200 focus:border-slate-400 focus:ring-2 focus:ring-slate-100'
                       }`}
@@ -566,7 +599,7 @@ export default function LoginPage() {
                 className="mt-4 px-4 py-3 rounded-xl border text-xs text-center"
                 style={{ borderColor: role.accentBorder, background: role.accentLight, color: role.accent }}
               >
-                <span className="font-semibold">Demo credentials pre-filled.</span> Just click Sign In →
+                <span className="font-semibold">Use your own password</span> when creating a new account.
               </div>
             </motion.div>
           )}

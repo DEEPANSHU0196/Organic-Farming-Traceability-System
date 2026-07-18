@@ -67,11 +67,19 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  const updateUserProfile = useCallback((updatedUser) => {
+    const nextUser = updatedUser ? { ...user, ...updatedUser, role: normalizeRole(updatedUser.role || user?.role) } : user;
+    if (nextUser) {
+      localStorage.setItem('agroverse_user', JSON.stringify(nextUser));
+      setUser(nextUser);
+    }
+  }, [user]);
+
   const isAuthenticated = !!user;
   const isAdmin = user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAuthenticated, isAdmin }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUserProfile, isAuthenticated, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );

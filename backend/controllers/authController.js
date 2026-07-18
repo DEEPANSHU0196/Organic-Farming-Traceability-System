@@ -203,6 +203,53 @@ const loginUser = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+    const { fullName, email, phone, address } = req.body;
+
+    if (!fullName || !email) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide your full name and email",
+      });
+    }
+
+    const existingUser = await User.findOne({ email, _id: { $ne: req.user._id } });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "Another account is already using this email",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    user.fullName = fullName;
+    user.email = email;
+    user.phone = phone || user.phone;
+    user.address = address || user.address;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        address: user.address,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 const getUsers = async (req, res) => {
   try {
     if (req.user?.role !== "admin") {
@@ -339,4 +386,5 @@ module.exports = {
   getUsers,
   createUserByAdmin,
   deleteUserByAdmin,
+  updateProfile,
 };

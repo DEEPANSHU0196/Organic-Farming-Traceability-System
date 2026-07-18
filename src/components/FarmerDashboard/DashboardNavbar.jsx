@@ -1,10 +1,21 @@
 import { motion } from 'motion/react';
 import { Menu, Bell, Search, User, Settings, LogOut } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function DashboardNavbar({ onToggleSidebar, sidebarOpen, onLogout }) {
+  const { user } = useAuth();
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+
+  const displayName = user?.fullName || user?.name || 'Farmer';
+  const displayEmail = user?.email || 'farmer@agroverse.com';
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'F';
 
   const notifications = [
     { id: 1, message: 'Order #1234 completed', time: '2 hours ago' },
@@ -89,7 +100,7 @@ export default function DashboardNavbar({ onToggleSidebar, sidebarOpen, onLogout
             className="p-2 hover:bg-surface-alt rounded-lg transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center text-white font-bold text-sm">
-              JD
+              {initials}
             </div>
           </motion.button>
 
@@ -101,8 +112,8 @@ export default function DashboardNavbar({ onToggleSidebar, sidebarOpen, onLogout
               className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-surface-alt z-50"
             >
               <div className="p-4 border-b border-surface-alt">
-                <p className="text-sm font-medium text-primary">Jatin Deswal</p>
-                <p className="text-xs text-accent-muted">jatin@farm.com</p>
+                <p className="text-sm font-medium text-primary">{displayName}</p>
+                <p className="text-xs text-accent-muted">{displayEmail}</p>
               </div>
               <div className="p-2 space-y-1">
                 <button className="w-full flex items-center gap-2 px-4 py-2 text-sm text-primary hover:bg-surface-alt rounded transition-colors">

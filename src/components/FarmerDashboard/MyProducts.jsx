@@ -1,9 +1,11 @@
 import { motion } from 'motion/react';
 import { Edit2, Trash2, Eye, MoreVertical, Plus, Search, X, Save } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../contexts/ProductContext';
 
 export default function MyProducts() {
+  const navigate = useNavigate();
   const { products, updateProduct, deleteProduct, loading, error } = useProducts();
   const [view, setView] = useState('grid');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -47,7 +49,7 @@ export default function MyProducts() {
   };
 
   // Add status to products
-  const productsWithStatus = products.map(p => ({
+  const productsWithStatus = (Array.isArray(products) ? products : []).map((p) => ({
     ...p,
     status: p.status || getProductStatus(p.quantity),
   }));
@@ -112,9 +114,8 @@ export default function MyProducts() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            disabled
-            title="Use Add Product page instead"
-            className="flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-600 rounded-lg cursor-not-allowed font-medium opacity-50"
+            onClick={() => navigate('/farmer-dashboard/add-product')}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-lg font-medium hover:bg-emerald-600 transition-colors"
           >
             <Plus size={18} />
             Add Product

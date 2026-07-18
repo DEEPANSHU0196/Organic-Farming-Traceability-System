@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 
 const { protect, authorizeRoles } = require("../middleware/authMiddleware");
-const { getUsers, createUserByAdmin, deleteUserByAdmin } = require("../controllers/authController");
+const { getUsers, createUserByAdmin, deleteUserByAdmin, updateProfile } = require("../controllers/authController");
 
 // Get Logged-in User Profile
 router.get("/profile", protect, (req, res) => {
@@ -12,6 +12,8 @@ router.get("/profile", protect, (req, res) => {
     user: req.user,
   });
 });
+
+router.put("/profile", protect, updateProfile);
 
 // Admin-only user management
 router.get("/", protect, authorizeRoles("admin"), getUsers);

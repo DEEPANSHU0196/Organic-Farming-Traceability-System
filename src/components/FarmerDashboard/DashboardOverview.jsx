@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { TrendingUp, Package, CheckCircle, DollarSign, ArrowUpRight, ArrowDownLeft, Plus, ShoppingCart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Line, Bar } from 'react-chartjs-2';
+import { useAuth } from '../../contexts/AuthContext';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -57,6 +58,8 @@ const productPerformanceData = {
 
 export default function DashboardOverview() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const displayName = user?.fullName || user?.name || 'Farmer';
 
   return (
     <div className="space-y-8">
@@ -64,7 +67,7 @@ export default function DashboardOverview() {
       <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome back, Jatin! 👋</h1>
+            <h1 className="text-3xl font-bold mb-2">Welcome back, {displayName}! 👋</h1>
             <p className="text-white/90">Here's your farm's performance summary for this month</p>
           </div>
           <div className="flex gap-3 flex-wrap md:flex-nowrap">

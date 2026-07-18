@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import {
   User, Bell, Shield, Palette, Globe, CreditCard,
   Eye, EyeOff, Save, Camera, Check
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api/axios';
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -13,22 +15,69 @@ const TABS = [
 ];
 
 function ProfileTab() {
+  const { user, updateUserProfile } = useAuth();
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    name: 'Jatin Deswal',
-    email: 'jatin@agrofarm.com',
-    phone: '+91 98765 43210',
-    village: 'Rohtak',
-    state: 'Haryana',
-    pincode: '124001',
-    farmSize: '12 acres',
-    cropTypes: 'Wheat, Rice, Mustard',
-    bio: 'Experienced farmer growing organic produce for over 15 years.',
+    name: '',
+    email: '',
+    phone: '',
+    village: '',
+    state: '',
+    pincode: '',
+    farmSize: '',
+    cropTypes: '',
+    bio: '',
   });
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  useEffect(() => {
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        name: user.fullName || user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        village: user.address || '',
+        state: '',
+        pincode: '',
+        farmSize: '',
+        cropTypes: '',
+        bio: '',
+      }));
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const response = await api.put('/users/profile', {
+        fullName: form.name,
+        email: form.email,
+        phone: form.phone,
+        address: [form.village, form.state, form.pincode].filter(Boolean).join(', '),
+      });
+
+      const updatedUser = response?.data?.user;
+      if (updatedUser) {
+        const authUser = {
+          ...user,
+          ...updatedUser,
+          fullName: updatedUser.fullName || updatedUser.name || user?.fullName || user?.name || '',
+          email: updatedUser.email || user?.email || '',
+          phone: updatedUser.phone || user?.phone || '',
+          address: updatedUser.address || user?.address || '',
+        };
+        updateUserProfile(authUser);
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+      setSaved(false);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -92,9 +141,10 @@ function ProfileTab() {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleSave}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold shadow-md hover:bg-emerald-700 transition-colors"
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold shadow-md hover:bg-emerald-700 transition-colors disabled:opacity-70"
           >
-            {saved ? <><Check size={15} /> Saved!</> : <><Save size={15} /> Save Changes</>}
+            {saving ? 'Saving...' : saved ? <><Check size={15} /> Saved!</> : <><Save size={15} /> Save Changes</>}
           </motion.button>
         </div>
       </div>

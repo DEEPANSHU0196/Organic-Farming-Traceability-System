@@ -4,6 +4,7 @@ import { Line, Pie, Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
 import { TrendingUp, Package, CheckCircle, AlertCircle, Bell, Search, Settings, User, MapPin, Clock, DollarSign, Menu } from 'lucide-react';
 import { useDashboard } from '../../contexts/DashboardContext';
+import { useAuth } from '../../contexts/AuthContext';
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
@@ -231,10 +232,10 @@ export default function ModernLogisticsDashboard() {
               className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors ml-2"
             >
               <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                VS
+                {initials}
               </div>
               <div className="hidden sm:block text-sm">
-                <p className="font-semibold text-slate-800">Vikram Singh</p>
+                <p className="font-semibold text-slate-800">{displayName}</p>
                 <p className="text-xs text-slate-500">Transporter</p>
               </div>
             </motion.div>
@@ -251,7 +252,7 @@ export default function ModernLogisticsDashboard() {
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           <h1 className="text-3xl font-bold text-slate-900">Logistics Dashboard</h1>
-          <p className="text-slate-600 mt-1">Welcome back! Here's your delivery overview.</p>
+          <p className="text-slate-600 mt-1">Welcome back, {displayName.split(' ')[0]}! Here's your delivery overview.</p>
         </motion.div>
 
         {/* Stats Grid - 4 Columns */}

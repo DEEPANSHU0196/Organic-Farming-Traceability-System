@@ -1,103 +1,44 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Star, ThumbsUp, MessageCircle, Send, TrendingUp, Award, Users, Filter } from 'lucide-react';
+import { useBuyer } from '../../contexts/BuyerContext';
 
-/* ─── Dummy Data ─────────────────────────────────────────── */
-const REVIEWS_DATA = [
-  {
-    id: 1,
-    buyer: 'Rajesh Kumar',
-    rating: 5,
-    date: '10 Jun 2026',
-    review: 'Excellent quality wheat! The grains are clean, well-sorted and packed perfectly. Highly recommended for bulk purchases. Will definitely order again next season.',
-    product: 'Premium Wheat',
-    avatar: 'RK',
-    avatarColor: 'from-emerald-400 to-green-600',
-    helpful: 24,
+const getInitials = (name = '') => {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'BU';
+};
+
+const getAvatarColor = (index) => {
+  const colors = [
+    'from-emerald-400 to-green-600',
+    'from-sky-400 to-blue-500',
+    'from-amber-400 to-orange-500',
+    'from-violet-400 to-purple-600',
+    'from-rose-400 to-pink-600',
+    'from-teal-400 to-cyan-600',
+  ];
+  return colors[index % colors.length];
+};
+
+const normalizeReviews = (reviews = []) => {
+  return reviews.map((review, index) => ({
+    id: review.id || `${review.productId || 'review'}-${index}`,
+    buyer: review.buyerName || 'Buyer',
+    rating: Number(review.rating || 0),
+    date: review.createdAt ? new Date(review.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recently added',
+    review: review.comment || 'No comment provided.',
+    product: review.productName || 'Product',
+    avatar: getInitials(review.buyerName || 'Buyer'),
+    avatarColor: getAvatarColor(index),
+    helpful: 0,
     replied: false,
-    type: 'positive',
-  },
-  {
-    id: 2,
-    buyer: 'Priya Sharma',
-    rating: 4,
-    date: '8 Jun 2026',
-    review: 'Good quality rice, very fast delivery. Minor issue with packaging — one bag had a small tear — but the product itself was fresh and aromatic. Overall satisfied.',
-    product: 'Basmati Rice',
-    avatar: 'PS',
-    avatarColor: 'from-sky-400 to-blue-500',
-    helpful: 18,
-    replied: true,
-    replyText: 'Thank you Priya! We have improved our packaging process. Looking forward to your next order! 🙏',
-    type: 'positive',
-  },
-  {
-    id: 3,
-    buyer: 'Amit Singh',
-    rating: 5,
-    date: '5 Jun 2026',
-    review: 'Pure mustard oil — no mixing, no adulteration. Fresh and authentic taste. My family has been using it for two months now and we love it. A+++',
-    product: 'Yellow Mustard',
-    avatar: 'AS',
-    avatarColor: 'from-amber-400 to-orange-500',
-    helpful: 32,
-    replied: false,
-    type: 'positive',
-  },
-  {
-    id: 4,
-    buyer: 'Deepak Patel',
-    rating: 3,
-    date: '2 Jun 2026',
-    review: 'Product quality is decent but packaging could be much better to prevent moisture entry. Two bags had slight dampness. Hope the farmer addresses this.',
-    product: 'Organic Corn',
-    avatar: 'DP',
-    avatarColor: 'from-violet-400 to-purple-600',
-    helpful: 12,
-    replied: false,
-    type: 'critical',
-  },
-  {
-    id: 5,
-    buyer: 'Sunita Mehra',
-    rating: 5,
-    date: '30 May 2026',
-    review: 'Outstanding turmeric! Deep yellow color, strong aroma — clearly organically grown. Made my curries taste so much better. Will be a repeat customer.',
-    product: 'Organic Turmeric',
-    avatar: 'SM',
-    avatarColor: 'from-rose-400 to-pink-600',
-    helpful: 41,
-    replied: false,
-    type: 'positive',
-  },
-  {
-    id: 6,
-    buyer: 'Karan Mehta',
-    rating: 2,
-    date: '25 May 2026',
-    review: 'Delivery was delayed by 5 days and there was no communication. Product quality is okay, but the logistics and updates need serious improvement.',
-    product: 'Chana Dal',
-    avatar: 'KM',
-    avatarColor: 'from-slate-400 to-slate-600',
-    helpful: 8,
-    replied: false,
-    type: 'critical',
-  },
-  {
-    id: 7,
-    buyer: 'Nisha Verma',
-    rating: 4,
-    date: '20 May 2026',
-    review: 'Great toor dal — clean and uniform lentils. Cooked well and tasted fresh. Delivery was on time. Slightly pricier than market but quality justifies it.',
-    product: 'Toor Dal',
-    avatar: 'NV',
-    avatarColor: 'from-teal-400 to-cyan-600',
-    helpful: 15,
-    replied: true,
-    replyText: 'Thank you Nisha for the kind words! We take pride in quality over quantity. 🌾',
-    type: 'positive',
-  },
-];
+    type: Number(review.rating || 0) >= 4 ? 'positive' : 'critical',
+  }));
+};
 
 /* ─── Helpers ────────────────────────────────────────────── */
 function StarRow({ rating, size = 16, interactive = false, onSet }) {
@@ -351,13 +292,16 @@ const FILTER_TABS = [
 ];
 
 export default function ReviewsRatings() {
+  const { reviews } = useBuyer();
   const [activeFilter, setActiveFilter] = useState('all');
 
+  const normalizedReviews = useMemo(() => normalizeReviews(reviews), [reviews]);
+
   const filteredReviews = useMemo(() => {
-    if (activeFilter === 'positive') return REVIEWS_DATA.filter((r) => r.rating >= 4);
-    if (activeFilter === 'critical') return REVIEWS_DATA.filter((r) => r.rating <= 3);
-    return REVIEWS_DATA;
-  }, [activeFilter]);
+    if (activeFilter === 'positive') return normalizedReviews.filter((r) => r.rating >= 4);
+    if (activeFilter === 'critical') return normalizedReviews.filter((r) => r.rating <= 3);
+    return normalizedReviews;
+  }, [activeFilter, normalizedReviews]);
 
   return (
     <div className="space-y-6">
@@ -374,7 +318,7 @@ export default function ReviewsRatings() {
       </div>
 
       {/* Summary Card */}
-      <SummaryCard reviews={REVIEWS_DATA} />
+      <SummaryCard reviews={normalizedReviews} />
 
       {/* Filter Tabs */}
       <div className="flex gap-2 flex-wrap">

@@ -1,6 +1,6 @@
 import { motion } from 'motion/react';
 import { Upload, X, Plus, Check } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../contexts/ProductContext';
 
@@ -23,18 +23,50 @@ export default function AddProductForm() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
+  const [isDraggingOver, setIsDraggingOver] = useState(false);
+  const fileInputRef = useRef(null);
 
   const categories = ['Wheat', 'Rice', 'Corn', 'Mustard', 'Cotton', 'Sugarcane', 'Vegetables'];
   const units = ['kg', 'quintal', 'ton', 'liter', 'bundle'];
 
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setFormData({ ...formData, image: file });
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result);
-      reader.readAsDataURL(file);
+  const handleImageSelection = (file) => {
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setSubmitError('Please select a valid image file.');
+      return;
     }
+
+    setSubmitError('');
+    setFormData({ ...formData, image: file });
+    const reader = new FileReader();
+    reader.onloadend = () => setImagePreview(reader.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files?.[0];
+    handleImageSelection(file);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
+    const file = e.dataTransfer?.files?.[0];
+    handleImageSelection(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingOver(false);
   };
 
   const handleSubmit = async (e) => {
@@ -51,7 +83,7 @@ export default function AddProductForm() {
         price: parseFloat(formData.price),
         harvestDate: formData.harvestDate,
         description: formData.description,
-        image: imagePreview || '',
+        image: formData.image || '',
       });
 
       setShowSuccess(true);
@@ -213,7 +245,13 @@ export default function AddProductForm() {
         {/* Image Upload */}
         <div className="mb-8">
           <label className="block text-sm font-medium text-primary mb-4">Product Image</label>
-          <div className="border-2 border-dashed border-surface-alt rounded-lg p-8 text-center hover:border-emerald-500 transition-colors">
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onClick={() => fileInputRef.current?.click()}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${isDraggingOver ? 'border-emerald-500 bg-emerald-50' : 'border-surface-alt hover:border-emerald-500'}`}
+          >
             {imagePreview ? (
               <div className="relative inline-block">
                 <img src={imagePreview} alt="Preview" className="h-48 object-cover rounded-lg" />
@@ -236,18 +274,16 @@ export default function AddProductForm() {
                 <p className="text-primary font-medium mb-1">Drag and drop your image</p>
                 <p className="text-accent-muted text-sm mb-4">or click to browse</p>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/*"
                   onChange={handleImageChange}
                   className="hidden"
                   id="image-input"
                 />
-                <label
-                  htmlFor="image-input"
-                  className="inline-block px-4 py-2 bg-emerald-500 text-white rounded-lg cursor-pointer hover:bg-emerald-600 transition-colors"
-                >
+                <span className="inline-block px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors">
                   Select Image
-                </label>
+                </span>
               </div>
             )}
           </div>

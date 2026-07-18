@@ -24,16 +24,33 @@ const normalizeProduct = (product) => {
   };
 };
 
-const buildPayload = (product) => ({
-  productName: product.name,
-  category: product.category,
-  quantity: Number(product.quantity),
-  price: Number(product.price),
-  description: product.description,
-  location: product.location || '',
-  image: product.image || '',
-  unit: product.unit || 'kg',
-});
+const buildPayload = (product) => {
+  if (product?.image instanceof File) {
+    const formData = new FormData();
+    formData.append('productName', product.name || '');
+    formData.append('category', product.category || '');
+    formData.append('quantity', Number(product.quantity || 0));
+    formData.append('price', Number(product.price || 0));
+    formData.append('description', product.description || '');
+    formData.append('location', product.location || '');
+    formData.append('unit', product.unit || 'kg');
+    formData.append('harvestDate', product.harvestDate || '');
+    formData.append('image', product.image);
+    return formData;
+  }
+
+  return {
+    productName: product.name,
+    category: product.category,
+    quantity: Number(product.quantity),
+    price: Number(product.price),
+    description: product.description,
+    location: product.location || '',
+    image: product.image || '',
+    unit: product.unit || 'kg',
+    harvestDate: product.harvestDate || '',
+  };
+};
 
 const defaultOrders = [
   {
