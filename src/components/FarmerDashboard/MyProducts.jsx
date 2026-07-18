@@ -93,6 +93,14 @@ export default function MyProducts() {
     setShowEditModal(true);
   };
 
+  const renderProductImage = (image, className) => {
+    if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
+      return <img src={image} alt="Product" className={className} />;
+    }
+
+    return <span className={className}>{image || '🌾'}</span>;
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-4">
@@ -190,8 +198,8 @@ export default function MyProducts() {
               className="bg-white rounded-lg shadow-md border border-surface-alt overflow-hidden hover:shadow-lg transition-shadow"
             >
               {/* Product Image */}
-              <div className="h-40 bg-gradient-to-br from-emerald-100 to-green-200 flex items-center justify-center text-6xl relative group">
-                {product.image}
+              <div className="h-40 bg-gradient-to-br from-emerald-100 to-green-200 relative group overflow-hidden">
+                {renderProductImage(product.image, 'h-full w-full object-cover')}
                 <motion.div
                   initial={{ opacity: 0 }}
                   whileHover={{ opacity: 1 }}
@@ -288,7 +296,7 @@ export default function MyProducts() {
                   <tr key={product.id} className="border-b border-surface-alt hover:bg-surface-alt/50 transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">{product.image}</span>
+                        {renderProductImage(product.image, 'w-12 h-12 rounded-lg object-cover')}
                         <span className="font-medium text-primary">{product.name}</span>
                       </div>
                     </td>
@@ -354,7 +362,9 @@ export default function MyProducts() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="text-5xl text-center mb-4">{selectedProduct.image}</div>
+              <div className="mb-6 flex justify-center">
+                {renderProductImage(selectedProduct.image, 'w-64 h-64 rounded-xl object-cover shadow-lg')}
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-accent-muted">Product Name</p>

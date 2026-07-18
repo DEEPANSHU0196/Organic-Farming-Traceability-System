@@ -306,7 +306,13 @@ export default function DashboardContent() {
                 whileHover={{ x: 4 }}
                 className="flex items-start gap-3 cursor-pointer"
               >
-                <div className="text-3xl">{product.image}</div>
+                <div className="h-10 w-10 rounded-lg overflow-hidden bg-slate-100 flex items-center justify-center">
+                  {typeof product.image === 'string' && (product.image.startsWith('http://') || product.image.startsWith('https://') || product.image.startsWith('data:image/')) ? (
+                    <img src={product.image} alt="Product" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-3xl">{product.image || '🌾'}</span>
+                  )}
+                </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-slate-900 truncate">{product.name}</p>
                   <p className="text-sm text-slate-600">{product.qty}</p>
