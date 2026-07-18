@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { fetchProducts, createProduct, updateProductById, deleteProductById } from '../api/product';
+import { useAuth } from './AuthContext';
 
 const ProductContext = createContext();
 
@@ -76,6 +77,10 @@ const defaultOrders = [
 ];
 
 export const ProductProvider = ({ children }) => {
+  // Wait for AuthContext to finish reading from localStorage before fetching.
+  // This prevents a race condition where the API fires before the token is
+  // confirmed to exist, especially on hard refresh with React StrictMode.
+  const { loading: authLoading } = useAuth();
   const [products, setProducts] = useState(() => {
     try {
       const savedProducts = localStorage.getItem('products');
@@ -147,8 +152,12 @@ export const ProductProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    // Don't fetch until AuthContext has finished its initialization effect.
+    // authLoading is true on the very first render and turns false once
+    // AuthContext's useEffect has run and resolved the stored token.
+    if (authLoading) return;
     refreshProducts();
-  }, [refreshProducts]);
+  }, [authLoading, refreshProducts]);
 
   const addProduct = async (product) => {
     try {
