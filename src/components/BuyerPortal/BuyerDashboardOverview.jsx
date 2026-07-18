@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { ShoppingBag, Package, Star, CreditCard, TrendingUp, ArrowRight } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const stats = [
   { label: 'Total Orders', value: '24', icon: ShoppingBag, change: '+3 this month', color: '#0ea5e9', bg: '#e0f2fe' },
@@ -28,11 +29,14 @@ const statusColors = {
 };
 
 export default function BuyerDashboardOverview({ onNavigate }) {
+  const { user } = useAuth();
+  const displayName = user?.fullName || user?.name || 'there';
+
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-800">Welcome back, Ravi! 👋</h2>
+        <h2 className="text-2xl font-bold text-slate-800">Welcome back, {displayName}! 👋</h2>
         <p className="text-slate-500 text-sm mt-1">Here's what's happening with your account today.</p>
       </div>
 

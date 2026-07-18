@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { User, Bell, Shield, Truck, Save, Check, Eye, EyeOff, Camera, Plus } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -10,11 +11,30 @@ const TABS = [
 ];
 
 function ProfileTab() {
+  const { user } = useAuth();
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
-    name: 'Manish Singh', email: 'manish@logistics.com', phone: '+91 98765 43210',
-    license: 'HR-12-2019-009876', city: 'Rohtak', state: 'Haryana', experience: '8 Years',
+    name: user?.fullName || user?.name || 'Transporter',
+    email: user?.email || 'transporter@example.com',
+    phone: user?.phone || '+91 98765 43210',
+    license: user?.license || 'HR-12-2019-009876',
+    city: user?.city || 'Rohtak',
+    state: user?.state || 'Haryana',
+    experience: user?.experience || '8 Years',
   });
+
+  useEffect(() => {
+    setForm((prev) => ({
+      ...prev,
+      name: user?.fullName || user?.name || prev.name || 'Transporter',
+      email: user?.email || prev.email || 'transporter@example.com',
+      phone: user?.phone || prev.phone || '+91 98765 43210',
+      license: user?.license || prev.license || 'HR-12-2019-009876',
+      city: user?.city || prev.city || 'Rohtak',
+      state: user?.state || prev.state || 'Haryana',
+      experience: user?.experience || prev.experience || '8 Years',
+    }));
+  }, [user?.fullName, user?.email, user?.phone, user?.license, user?.city, user?.state, user?.experience]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">

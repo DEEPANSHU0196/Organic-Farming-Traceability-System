@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useBuyer } from '../../contexts/BuyerContext';
 
 export default function ReviewsRatings() {
-  const { availableProducts, addReview, getProductReviews } = useBuyer();
+  const { availableProducts, addReview, getProductReviews, buyerProfile } = useBuyer();
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
@@ -23,7 +23,8 @@ export default function ReviewsRatings() {
       addReview(selectedProduct.id, {
         rating,
         comment,
-        buyerName: 'You',
+        buyerName: buyerProfile?.name || 'You',
+        productName: selectedProduct.name,
       });
       setComment('');
       setRating(5);
@@ -140,7 +141,7 @@ export default function ReviewsRatings() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {availableProducts.map((product, idx) => {
             const productReviews = getProductReviews(product.id);
-            const alreadyReviewed = productReviews.some(r => r.buyerName === 'You');
+            const alreadyReviewed = productReviews.some(r => r.buyerName === buyerProfile?.name);
 
             return (
               <motion.div

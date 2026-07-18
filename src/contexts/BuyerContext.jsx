@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchAllProducts } from '../api/product';
+import { useAuth } from './AuthContext';
 
 const BuyerContext = createContext();
 
@@ -27,15 +28,16 @@ const normalizeProduct = (product) => {
 };
 
 export const BuyerProvider = ({ children }) => {
+  const { user } = useAuth();
   const [availableProducts, setAvailableProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [buyerProfile, setBuyerProfile] = useState({
-    name: 'Amit Sharma',
-    email: 'amit.sharma@agri.com',
-    phone: '+91 98765 43210',
-    address: 'New Delhi, India',
+    name: user?.fullName || user?.name || 'Amit Sharma',
+    email: user?.email || 'amit.sharma@agri.com',
+    phone: user?.phone || '+91 98765 43210',
+    address: user?.address || 'New Delhi, India',
     savedAddresses: [
       { id: 1, name: 'Home', address: 'New Delhi, India' },
       { id: 2, name: 'Office', address: 'Gurgaon, India' },
@@ -82,6 +84,16 @@ export const BuyerProvider = ({ children }) => {
       }
     }
   }, []);
+
+  useEffect(() => {
+    setBuyerProfile((prev) => ({
+      ...prev,
+      name: user?.fullName || user?.name || prev.name || 'Amit Sharma',
+      email: user?.email || prev.email || 'amit.sharma@agri.com',
+      phone: user?.phone || prev.phone || '+91 98765 43210',
+      address: user?.address || prev.address || 'New Delhi, India',
+    }));
+  }, [user?.fullName, user?.email, user?.phone, user?.address]);
 
   useEffect(() => {
     const loadProducts = async () => {
@@ -177,9 +189,11 @@ export const BuyerProvider = ({ children }) => {
   };
 
   const addReview = (productId, review) => {
+    const product = availableProducts.find((item) => item.id === productId);
     const newReview = {
       id: `REV-${Date.now()}`,
       productId,
+      productName: product?.name || review.productName || 'Product',
       ...review,
       createdAt: new Date().toISOString(),
     };
