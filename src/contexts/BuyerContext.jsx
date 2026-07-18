@@ -28,7 +28,7 @@ const normalizeProduct = (product) => {
 };
 
 export const BuyerProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [availableProducts, setAvailableProducts] = useState([]);
   const [cart, setCart] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -113,8 +113,13 @@ export const BuyerProvider = ({ children }) => {
       }
     };
 
-    loadProducts();
-  }, []);
+    // Don't fetch until AuthContext has finished its initialization effect.
+    // authLoading is true on the very first render; once it turns false the
+    // token is confirmed in localStorage and the interceptor will attach it.
+    if (!authLoading) {
+      loadProducts();
+    }
+  }, [authLoading]);
 
   useEffect(() => {
     localStorage.setItem('buyerCart', JSON.stringify(cart));
