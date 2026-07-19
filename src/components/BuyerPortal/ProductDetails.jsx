@@ -1,10 +1,10 @@
 import { motion } from 'motion/react';
-import { X, ShoppingCart, Star, MapPin, Leaf, Check, Calendar } from 'lucide-react';
+import { X, ShoppingCart, Star, MapPin, Leaf, Check, Calendar, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useBuyer } from '../../contexts/BuyerContext';
 
 export default function ProductDetails({ product, onClose, onAddToCart }) {
-  const { addToCart, getProductReviews } = useBuyer();
+  const { addToCart, getProductReviews, toggleWishlist, isInWishlist } = useBuyer();
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('details');
   const productReviews = getProductReviews(product.id);
@@ -128,16 +128,27 @@ export default function ProductDetails({ product, onClose, onAddToCart }) {
                 </div>
               </div>
 
-              {/* Add to Cart Button */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleAddToCart}
-                className="w-full px-6 py-3 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
-              >
-                <ShoppingCart size={20} />
-                Add to Cart
-              </motion.button>
+              {/* Actions */}
+              <div className="flex items-center gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={handleAddToCart}
+                  className="flex-1 px-6 py-3 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+                >
+                  <ShoppingCart size={20} />
+                  Add to Cart
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => toggleWishlist(product)}
+                  className="p-3 border-2 border-surface-alt rounded-lg text-red-500 hover:bg-red-50 hover:border-red-200 transition-colors flex items-center justify-center"
+                >
+                  <Heart size={24} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
+                </motion.button>
+              </div>
             </div>
           </div>
 

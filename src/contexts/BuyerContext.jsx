@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchAllProducts } from '../api/product';
+import { fetchAllReviews, addReview as apiAddReview, deleteReview as apiDeleteReview } from '../api/review';
 import { useAuth } from './AuthContext';
 
 const BuyerContext = createContext();
@@ -30,84 +31,66 @@ const normalizeProduct = (product) => {
 export const BuyerProvider = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const [availableProducts, setAvailableProducts] = useState([]);
-  const [cart, setCart] = useState([]);
-  const [orders, setOrders] = useState([]);
+
+  // Lazy initializers — read from localStorage on first render, before any effect fires.
+  // This prevents the save-effect from overwriting stored data before the load-effect reads it.
+  const [cart, setCart] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('buyerCart') || '[]'); }
+    catch { return []; }
+  });
+  const [orders, setOrders] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('buyerOrders') || '[]'); }
+    catch { return []; }
+  });
+  const [wishlist, setWishlist] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('buyerWishlist') || '[]'); }
+    catch { return []; }
+  });
   const [reviews, setReviews] = useState([]);
-  const [buyerProfile, setBuyerProfile] = useState({
-    name: user?.fullName || user?.name || 'Amit Sharma',
-    email: user?.email || 'amit.sharma@agri.com',
-    phone: user?.phone || '+91 98765 43210',
-    address: user?.address || 'New Delhi, India',
-    savedAddresses: [
-      { id: 1, name: 'Home', address: 'New Delhi, India' },
-      { id: 2, name: 'Office', address: 'Gurgaon, India' },
-    ],
+  const [buyerProfile, setBuyerProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('buyerProfile');
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return { name: '', email: '', phone: '', address: '', savedAddresses: [] };
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    const savedCart = localStorage.getItem('buyerCart');
-    const savedOrders = localStorage.getItem('buyerOrders');
-    const savedReviews = localStorage.getItem('buyerReviews');
-    const savedProfile = localStorage.getItem('buyerProfile');
-
-    if (savedCart) {
-      try {
-        setCart(JSON.parse(savedCart));
-      } catch (error) {
-        console.error('Error parsing cart:', error);
-      }
-    }
-
-    if (savedOrders) {
-      try {
-        setOrders(JSON.parse(savedOrders));
-      } catch (error) {
-        console.error('Error parsing orders:', error);
-      }
-    }
-
-    if (savedReviews) {
-      try {
-        setReviews(JSON.parse(savedReviews));
-      } catch (error) {
-        console.error('Error parsing reviews:', error);
-      }
-    }
-
-    if (savedProfile) {
-      try {
-        setBuyerProfile(JSON.parse(savedProfile));
-      } catch (error) {
-        console.error('Error parsing profile:', error);
-      }
-    }
-  }, []);
 
   useEffect(() => {
+    if (!user) return;
     setBuyerProfile((prev) => ({
       ...prev,
-      name: user?.fullName || user?.name || prev.name || 'Amit Sharma',
-      email: user?.email || prev.email || 'amit.sharma@agri.com',
-      phone: user?.phone || prev.phone || '+91 98765 43210',
-      address: user?.address || prev.address || 'New Delhi, India',
+      name: user?.fullName || user?.name || prev.name || '',
+      email: user?.email || prev.email || '',
+      phone: user?.phone || prev.phone || '',
+      address: user?.address || prev.address || '',
     }));
-  }, [user?.fullName, user?.email, user?.phone, user?.address]);
+  }, [user]);
 
   useEffect(() => {
-    const loadProducts = async () => {
+    const loadData = async () => {
       setLoading(true);
       setError('');
 
       try {
-        const response = await fetchAllProducts();
-        const apiProducts = Array.isArray(response?.data?.products) ? response.data.products : [];
+        const [productsRes, reviewsRes] = await Promise.all([
+          fetchAllProducts(),
+          fetchAllReviews()
+        ]);
+        
+        const apiProducts = Array.isArray(productsRes?.data?.products) ? productsRes.data.products : [];
         setAvailableProducts(apiProducts.map(normalizeProduct));
+        
+        if (reviewsRes?.data?.success) {
+          setReviews(reviewsRes.data.reviews || []);
+        }
       } catch (err) {
-        console.error('Failed to load buyer products:', err);
-        setError(err?.response?.data?.message || 'Unable to load products right now.');
+        console.error('Failed to load buyer data:', err);
+        setError(err?.response?.data?.message || 'Unable to load data right now.');
         setAvailableProducts([]);
+        setReviews([]);
       } finally {
         setLoading(false);
       }
@@ -117,7 +100,7 @@ export const BuyerProvider = ({ children }) => {
     // authLoading is true on the very first render; once it turns false the
     // token is confirmed in localStorage and the interceptor will attach it.
     if (!authLoading) {
-      loadProducts();
+      loadData();
     }
   }, [authLoading]);
 
@@ -129,13 +112,15 @@ export const BuyerProvider = ({ children }) => {
     localStorage.setItem('buyerOrders', JSON.stringify(orders));
   }, [orders]);
 
-  useEffect(() => {
-    localStorage.setItem('buyerReviews', JSON.stringify(reviews));
-  }, [reviews]);
+  // Reviews are stored on server, don't persist them via localStorage here anymore
 
   useEffect(() => {
     localStorage.setItem('buyerProfile', JSON.stringify(buyerProfile));
   }, [buyerProfile]);
+
+  useEffect(() => {
+    localStorage.setItem('buyerWishlist', JSON.stringify(wishlist));
+  }, [wishlist]);
 
   const addToCart = (product, quantity) => {
     const existingItem = cart.find((item) => item.id === product.id);
@@ -193,29 +178,58 @@ export const BuyerProvider = ({ children }) => {
     ));
   };
 
-  const addReview = (productId, review) => {
-    const product = availableProducts.find((item) => item.id === productId);
-    const newReview = {
-      id: `REV-${Date.now()}`,
-      productId,
-      productName: product?.name || review.productName || 'Product',
-      ...review,
-      createdAt: new Date().toISOString(),
-    };
-    setReviews([...reviews, newReview]);
+  const addReview = async (productId, reviewData) => {
+    try {
+      const payload = {
+        productId,
+        ...reviewData
+      };
+      const response = await apiAddReview(payload);
+      const newReview = response.data.review;
+      
+      setReviews([...reviews, newReview]);
 
-    setAvailableProducts(availableProducts.map((product) => {
-      if (product.id === productId) {
-        const productReviews = reviews.filter((r) => r.productId === productId).concat([newReview]);
-        const avgRating = productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length;
-        return { ...product, rating: avgRating, reviews: productReviews.length };
-      }
-      return product;
-    }));
+      // Update local product rating stats immediately
+      setAvailableProducts(availableProducts.map((product) => {
+        if (product.id === productId) {
+          const productReviews = reviews.filter((r) => r.product === productId).concat([newReview]);
+          const avgRating = productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length;
+          return { ...product, rating: avgRating, reviews: productReviews.length };
+        }
+        return product;
+      }));
+      return newReview;
+    } catch (error) {
+      console.error('Failed to add review:', error);
+      throw error;
+    }
+  };
+
+  const removeReview = async (reviewId, productId) => {
+    try {
+      await apiDeleteReview(reviewId);
+      const updatedReviews = reviews.filter((r) => r._id !== reviewId && r.id !== reviewId);
+      setReviews(updatedReviews);
+
+      // Update local product rating stats immediately
+      setAvailableProducts(availableProducts.map((product) => {
+        if (product.id === productId) {
+          const productReviews = updatedReviews.filter((r) => r.product === productId);
+          const avgRating = productReviews.length > 0 
+            ? productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length 
+            : 0;
+          return { ...product, rating: avgRating, reviews: productReviews.length };
+        }
+        return product;
+      }));
+    } catch (error) {
+      console.error('Failed to remove review:', error);
+      throw error;
+    }
   };
 
   const getProductReviews = (productId) => {
-    return reviews.filter((review) => review.productId === productId);
+    return reviews.filter((review) => review.product === productId || review.productId === productId);
   };
 
   const updateBuyerProfile = (profileData) => {
@@ -239,6 +253,19 @@ export const BuyerProvider = ({ children }) => {
     });
   };
 
+  const toggleWishlist = (product) => {
+    setWishlist((prev) => {
+      if (prev.find((item) => item.id === product.id)) {
+        return prev.filter((item) => item.id !== product.id);
+      }
+      return [...prev, product];
+    });
+  };
+
+  const isInWishlist = (productId) => {
+    return wishlist.some((item) => item.id === productId);
+  };
+
   return (
     <BuyerContext.Provider
       value={{
@@ -246,6 +273,7 @@ export const BuyerProvider = ({ children }) => {
         cart,
         orders,
         reviews,
+        wishlist,
         buyerProfile,
         loading,
         error,
@@ -256,10 +284,13 @@ export const BuyerProvider = ({ children }) => {
         placeOrder,
         updateOrderStatus,
         addReview,
+        removeReview,
         getProductReviews,
         updateBuyerProfile,
         searchProducts,
         filterProducts,
+        toggleWishlist,
+        isInWishlist,
       }}
     >
       {children}

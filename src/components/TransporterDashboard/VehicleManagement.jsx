@@ -2,12 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Truck, Plus, Edit2, Trash2, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 
-const initialVehicles = [
-  { id: 'V001', regNo: 'HR-26-AB-1234', type: 'Tempo', capacity: '2 Ton', driver: 'Ramesh Kumar', status: 'Active', fuel: 'Diesel', lastService: 'Jun 10, 2026', nextService: 'Sep 10, 2026' },
-  { id: 'V002', regNo: 'DL-01-BC-5678', type: 'Mini Truck', capacity: '5 Ton', driver: 'Sunil Sharma', status: 'In Transit', fuel: 'Diesel', lastService: 'May 20, 2026', nextService: 'Aug 20, 2026' },
-  { id: 'V003', regNo: 'UP-32-CD-9012', type: 'Large Truck', capacity: '10 Ton', driver: 'Unassigned', status: 'Maintenance', fuel: 'Diesel', lastService: 'Jun 01, 2026', nextService: 'Jun 25, 2026' },
-  { id: 'V004', regNo: 'PB-10-EF-3456', type: 'Refrigerated', capacity: '3 Ton', driver: 'Gurpreet Singh', status: 'Active', fuel: 'CNG', lastService: 'Jun 15, 2026', nextService: 'Sep 15, 2026' },
-];
+const initialVehicles = [];
 
 const statusStyles = {
   Active: { bg: '#dcfce7', text: '#16a34a', icon: CheckCircle },

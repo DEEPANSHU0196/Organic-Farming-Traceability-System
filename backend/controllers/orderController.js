@@ -85,9 +85,29 @@ const updateFarmerOrderStatus = async (req, res) => {
   }
 };
 
+const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate("buyer", "fullName email phone address")
+      .populate("product", "productName price unit location farmer")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      orders,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
 module.exports = {
   createOrder,
   getMyOrders,
   getFarmerOrders,
   updateFarmerOrderStatus,
+  getAllOrders,
 };

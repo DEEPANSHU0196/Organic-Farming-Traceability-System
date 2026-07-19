@@ -1,17 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import {
   Users, ShoppingCart, Package, TrendingUp, TrendingDown,
   CheckCircle, Clock, AlertTriangle, ArrowRight,
   BarChart3, Activity, Star, Truck
 } from 'lucide-react';
-
-const STATS = [
-  { label: 'Total Farmers', value: '1,248', change: '+12%', up: true, icon: Users, color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
-  { label: 'Active Buyers', value: '3,891', change: '+8%', up: true, icon: ShoppingCart, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)' },
-  { label: 'Products Listed', value: '5,674', change: '+21%', up: true, icon: Package, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
-  { label: 'Revenue (₹)', value: '₹24.6L', change: '-3%', up: false, icon: BarChart3, color: '#fb923c', bg: 'rgba(251,146,60,0.1)' },
-];
+import api from '../../api/axios';
 
 const RECENT_APPROVALS = [
   { id: 1, name: 'Ramesh Kumar', type: 'Farmer', product: 'Organic Wheat', status: 'pending', time: '5 min ago' },
@@ -19,13 +13,6 @@ const RECENT_APPROVALS = [
   { id: 3, name: 'Vikram Transport Co.', type: 'Transporter', product: 'Vehicle Registration', status: 'pending', time: '25 min ago' },
   { id: 4, name: 'Fresh Greens Ltd', type: 'Buyer', product: 'Bulk Order #B-2341', status: 'approved', time: '1 hr ago' },
   { id: 5, name: 'Harpreet Singh', type: 'Farmer', product: 'Turmeric Premium', status: 'rejected', time: '2 hr ago' },
-];
-
-const QUICK_ACTIONS = [
-  { label: 'Review Pending', icon: Clock, count: 14, color: '#fb923c', section: 'approvals' },
-  { label: 'Reported Issues', icon: AlertTriangle, count: 3, color: '#ef4444', section: 'analytics' },
-  { label: 'New Registrations', icon: Users, count: 28, color: '#22c55e', section: 'farmers' },
-  { label: 'Active Orders', icon: Truck, count: 192, color: '#38bdf8', section: 'orders' },
 ];
 
 const WEEKLY_DATA = [40, 65, 48, 72, 55, 88, 74];
@@ -64,6 +51,58 @@ const STATUS_STYLES = {
 
 export default function AdminDashboardOverview({ onNavigate }) {
   const [hoveredStat, setHoveredStat] = useState(null);
+  const [counts, setCounts] = useState({ farmers: 0, buyers: 0, products: 0, revenue: 0, pendingApprovals: 0, activeOrders: 0 });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPlatformStats = async () => {
+      try {
+        const [usersRes, productsRes, ordersRes] = await Promise.all([
+          api.get('/users'),
+          api.get('/products/all'),
+          api.get('/orders'),
+        ]);
+
+        const allUsers = usersRes?.data?.users || [];
+        const allProducts = productsRes?.data?.products || [];
+        const allOrders = ordersRes?.data?.orders || [];
+
+        const farmersCount = allUsers.filter(u => u.role === 'farmer').length;
+        const buyersCount = allUsers.filter(u => u.role === 'buyer' || u.role === 'consumer').length;
+        const totalRevenue = allOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        const pendingProductsCount = allProducts.filter(p => p.status === 'pending').length;
+        const activeOrdersCount = allOrders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled').length;
+
+        setCounts({
+          farmers: farmersCount,
+          buyers: buyersCount,
+          products: allProducts.length,
+          revenue: totalRevenue,
+          pendingApprovals: pendingProductsCount,
+          activeOrders: activeOrdersCount
+        });
+      } catch (err) {
+        console.error('Failed to fetch platform statistics:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPlatformStats();
+  }, []);
+
+  const stats = [
+    { label: 'Total Farmers', value: String(counts.farmers), change: '+0%', up: true, icon: Users, color: '#22c55e', bg: 'rgba(34,197,94,0.1)' },
+    { label: 'Active Buyers', value: String(counts.buyers), change: '+0%', up: true, icon: ShoppingCart, color: '#38bdf8', bg: 'rgba(56,189,248,0.1)' },
+    { label: 'Products Listed', value: String(counts.products), change: '+0%', up: true, icon: Package, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
+    { label: 'Revenue (₹)', value: `₹${counts.revenue.toLocaleString()}`, change: '+0%', up: true, icon: BarChart3, color: '#fb923c', bg: 'rgba(251,146,60,0.1)' },
+  ];
+
+  const quickActions = [
+    { label: 'Review Pending', icon: Clock, count: counts.pendingApprovals, color: '#fb923c', section: 'approvals' },
+    { label: 'Reported Issues', icon: AlertTriangle, count: 0, color: '#ef4444', section: 'analytics' },
+    { label: 'New Registrations', icon: Users, count: counts.farmers + counts.buyers, color: '#22c55e', section: 'farmers' },
+    { label: 'Active Orders', icon: Truck, count: counts.activeOrders, color: '#38bdf8', section: 'orders' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -88,7 +127,7 @@ export default function AdminDashboardOverview({ onNavigate }) {
 
       {/* Stat Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {STATS.map((s, i) => {
+        {stats.map((s, i) => {
           const Icon = s.icon;
           return (
             <motion.div
@@ -103,7 +142,7 @@ export default function AdminDashboardOverview({ onNavigate }) {
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.bg }}>
-                  <Icon size={18} style={{ color: s.color }} />
+                   <Icon size={18} style={{ color: s.color }} />
                 </div>
                 <span className={`text-xs font-semibold flex items-center gap-0.5 ${s.up ? 'text-emerald-600' : 'text-red-500'}`}>
                   {s.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
@@ -123,7 +162,7 @@ export default function AdminDashboardOverview({ onNavigate }) {
         <div className="lg:col-span-2 bg-white border border-slate-100 rounded-2xl p-5 shadow-sm">
           <h3 className="text-sm font-bold text-slate-800 mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 gap-3">
-            {QUICK_ACTIONS.map((qa) => {
+            {quickActions.map((qa) => {
               const Icon = qa.icon;
               return (
                 <motion.button

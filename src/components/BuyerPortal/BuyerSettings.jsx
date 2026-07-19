@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { User, Bell, Shield, Globe, Save, Check, Eye, EyeOff, Camera } from 'lucide-react';
+import { User, Bell, Shield, Globe, Save, Check, Eye, EyeOff, Camera, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api/axios';
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -11,32 +12,65 @@ const TABS = [
 ];
 
 function ProfileTab() {
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
-    name: user?.fullName || user?.name || 'Buyer',
-    email: user?.email || 'buyer@example.com',
-    phone: user?.phone || '+91 98100 12345',
-    city: user?.city || 'New Delhi',
-    state: user?.state || 'Delhi',
-    pincode: user?.pincode || '110001',
-    company: user?.company || '',
-    gst: user?.gst || '',
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    company: '',
+    gst: '',
   });
 
   useEffect(() => {
-    setForm((prev) => ({
-      ...prev,
-      name: user?.fullName || user?.name || prev.name || 'Buyer',
-      email: user?.email || prev.email || 'buyer@example.com',
-      phone: user?.phone || prev.phone || '+91 98100 12345',
-      city: user?.city || prev.city || 'New Delhi',
-      state: user?.state || prev.state || 'Delhi',
-      pincode: user?.pincode || prev.pincode || '110001',
-      company: user?.company || prev.company || '',
-      gst: user?.gst || prev.gst || '',
-    }));
-  }, [user?.fullName, user?.email, user?.phone, user?.city, user?.state, user?.pincode, user?.company, user?.gst]);
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        name: user.fullName || user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        address: user.address || '',
+        company: user.company || '',
+        gst: user.gst || '',
+      }));
+    }
+  }, [user]);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError('');
+      const response = await api.put('/users/profile', {
+        fullName: form.name,
+        email: form.email,
+        phone: form.phone,
+        address: form.address,
+      });
+
+      const updatedUser = response?.data?.user;
+      if (updatedUser) {
+        updateUserProfile({
+          ...user,
+          ...updatedUser,
+          fullName: updatedUser.fullName || form.name,
+          email: updatedUser.email || form.email,
+          phone: updatedUser.phone || form.phone,
+          address: updatedUser.address || form.address,
+        });
+      }
+
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error('Failed to update profile:', err);
+      setError(err?.response?.data?.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -50,27 +84,48 @@ function ProfileTab() {
             </button>
           </div>
           <div>
-            <p className="font-semibold text-slate-800">{form.name}</p>
+            <p className="font-semibold text-slate-800">{form.name || 'Buyer'}</p>
             <p className="text-sm text-slate-500">{form.email}</p>
             <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-sky-100 text-sky-700">Verified Buyer ✓</span>
           </div>
         </div>
+
+        {error && (
+          <div className="mb-4 flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+            <AlertCircle size={15} />
+            {error}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {Object.entries({ 'Full Name': 'name', 'Email Address': 'email', 'Phone Number': 'phone', 'City': 'city', 'State': 'state', 'Pin Code': 'pincode', 'Company (optional)': 'company', 'GST Number (optional)': 'gst' }).map(([label, key]) => (
+          {[
+            { label: 'Full Name', key: 'name', type: 'text' },
+            { label: 'Email Address', key: 'email', type: 'email' },
+            { label: 'Phone Number', key: 'phone', type: 'tel' },
+            { label: 'Address', key: 'address', type: 'text' },
+            { label: 'Company (optional)', key: 'company', type: 'text' },
+            { label: 'GST Number (optional)', key: 'gst', type: 'text' },
+          ].map(({ label, key, type }) => (
             <div key={key}>
               <label className="block text-xs font-semibold text-slate-600 mb-1.5">{label}</label>
               <input
-                value={form[key]} onChange={(e) => setForm(p => ({ ...p, [key]: e.target.value }))}
+                type={type}
+                value={form[key]}
+                onChange={(e) => setForm((p) => ({ ...p, [key]: e.target.value }))}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm bg-slate-50 focus:bg-white focus:border-sky-400 focus:ring-2 focus:ring-sky-100 outline-none transition-all"
               />
             </div>
           ))}
         </div>
         <div className="mt-5 flex justify-end">
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-            onClick={() => { setSaved(true); setTimeout(() => setSaved(false), 2000); }}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold shadow-md hover:bg-sky-700 transition-colors">
-            {saved ? <><Check size={15} /> Saved!</> : <><Save size={15} /> Save Changes</>}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-sky-600 text-white text-sm font-semibold shadow-md hover:bg-sky-700 transition-colors disabled:opacity-70"
+          >
+            {saving ? 'Saving...' : saved ? <><Check size={15} /> Saved!</> : <><Save size={15} /> Save Changes</>}
           </motion.button>
         </div>
       </div>

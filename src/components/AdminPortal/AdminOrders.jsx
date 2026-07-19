@@ -1,17 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Search, Filter, Eye, Truck, CheckCircle, Clock, XCircle, Package, User, MapPin } from 'lucide-react';
-
-const ORDERS = [
-  { id: 'ORD-7821', farmer: 'Ramesh Kumar', buyer: 'Green Valley Mart', product: 'Organic Wheat (50kg)', amount: '₹3,200', date: '20 Jun 2026', status: 'delivered', transporter: 'Manish Singh' },
-  { id: 'ORD-7820', farmer: 'Sunita Devi', buyer: 'FreshMart Online', product: 'Basmati Rice (100kg)', amount: '₹8,500', date: '19 Jun 2026', status: 'in-transit', transporter: 'Ravi Transport' },
-  { id: 'ORD-7819', farmer: 'Harpreet Singh', buyer: 'Spice Garden Ltd', product: 'Turmeric (20kg)', amount: '₹2,100', date: '18 Jun 2026', status: 'processing', transporter: 'Not assigned' },
-  { id: 'ORD-7818', farmer: 'Priya Farms', buyer: 'Nature Basket', product: 'Cherry Tomatoes (30kg)', amount: '₹1,800', date: '18 Jun 2026', status: 'cancelled', transporter: 'N/A' },
-  { id: 'ORD-7817', farmer: 'Anita Patel', buyer: 'HomeChef Foods', product: 'Spinach (15kg)', amount: '₹900', date: '17 Jun 2026', status: 'delivered', transporter: 'Fast Courier' },
-  { id: 'ORD-7816', farmer: 'Devendra Yadav', buyer: 'Organic Hub', product: 'Mango (200kg)', amount: '₹14,000', date: '17 Jun 2026', status: 'in-transit', transporter: 'AgriTrans' },
-  { id: 'ORD-7815', farmer: 'Kavita Sharma', buyer: 'City Fresh Store', product: 'Potato (100kg)', amount: '₹3,500', date: '16 Jun 2026', status: 'processing', transporter: 'Not assigned' },
-  { id: 'ORD-7814', farmer: 'Mahesh Gupta', buyer: 'Veggie Direct', product: 'Onion (150kg)', amount: '₹4,200', date: '15 Jun 2026', status: 'delivered', transporter: 'QuickShip' },
-];
+import api from '../../api/axios';
 
 const STATUS_STYLES = {
   delivered:   { label: 'Delivered',   bg: 'rgba(34,197,94,0.12)',    color: '#16a34a', icon: CheckCircle },
@@ -29,11 +19,49 @@ const TABS = [
 ];
 
 export default function AdminOrders() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [search, setSearch] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const filtered = ORDERS.filter((o) => {
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        const response = await api.get('/orders');
+        if (response?.data?.success) {
+          const apiOrders = (response.data.orders || []).map(o => {
+            let status = 'processing';
+            if (o.status?.toLowerCase() === 'delivered' || o.status?.toLowerCase() === 'completed') {
+              status = 'delivered';
+            } else if (o.status?.toLowerCase() === 'in transit' || o.status?.toLowerCase() === 'shipped') {
+              status = 'in-transit';
+            } else if (o.status?.toLowerCase() === 'cancelled' || o.status?.toLowerCase() === 'rejected') {
+              status = 'cancelled';
+            }
+            return {
+              id: o._id || o.id,
+              farmer: o.product?.farmer?.fullName || o.product?.farmerName || 'Verified Farmer',
+              buyer: o.buyer?.fullName || o.buyer?.name || 'Verified Buyer',
+              product: `${o.product?.productName || 'Fresh Produce'} (${o.quantity || 1} ${o.product?.unit || 'unit'})`,
+              amount: `₹${(o.totalAmount || (o.price * o.quantity) || 0).toLocaleString()}`,
+              date: new Date(o.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }),
+              status,
+              transporter: 'Not assigned',
+            };
+          });
+          setOrders(apiOrders);
+        }
+      } catch (error) {
+        console.error('Failed to fetch admin orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOrders();
+  }, []);
+
+  const filtered = orders.filter((o) => {
     const matchTab = activeTab === 'all' || o.status === activeTab;
     const q = search.toLowerCase();
     const matchSearch = !q || o.id.toLowerCase().includes(q) || o.farmer.toLowerCase().includes(q) ||
@@ -50,7 +78,7 @@ export default function AdminOrders() {
           <p className="text-sm text-slate-500 mt-0.5">Monitor all platform orders and their statuses</p>
         </div>
         <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-2 text-center">
-          <p className="text-xl font-bold text-violet-700">{ORDERS.length}</p>
+          <p className="text-xl font-bold text-violet-700">{orders.length}</p>
           <p className="text-[10px] text-violet-500">Total Orders</p>
         </div>
       </div>

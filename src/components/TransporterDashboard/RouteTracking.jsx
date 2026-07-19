@@ -3,68 +3,7 @@ import { motion } from 'motion/react';
 import { MapPin, Navigation, Clock, Fuel, AlertTriangle, ChevronRight } from 'lucide-react';
 
 export default function RouteTracking() {
-  const [routes, setRoutes] = useState([
-    {
-      id: 1,
-      name: 'Route 1: Delhi Circuit',
-      start: 'Jaipur (Pickup)',
-      end: 'New Delhi (Delivery)',
-      stops: [
-        { location: 'Jaipur Warehouse', type: 'start', status: 'completed', time: '9:00 AM' },
-        { location: 'Gurgaon Toll Booth', type: 'checkpoint', status: 'completed', time: '10:15 AM' },
-        { location: 'Sector 18, Noida', type: 'checkpoint', status: 'current', time: '11:30 AM' },
-        { location: 'MG Road, Delhi', type: 'end', status: 'pending', time: '1:30 PM (ETA)' },
-      ],
-      totalDistance: '245 km',
-      totalTime: '4h 30m',
-      timeSpent: '2h 30m',
-      remainingTime: '2h',
-      avgSpeed: '98 km/h',
-      fuelConsumption: '12.5 L',
-      delays: 0,
-      issues: [],
-    },
-    {
-      id: 2,
-      name: 'Route 2: Bangalore Haul',
-      start: 'Hisar (Pickup)',
-      end: 'Bangalore (Delivery)',
-      stops: [
-        { location: 'Hisar', type: 'start', status: 'current', time: '12:00 PM' },
-        { location: 'Chandigarh Bypass', type: 'checkpoint', status: 'pending', time: '3:00 PM (ETA)' },
-        { location: 'Lucknow Junction', type: 'checkpoint', status: 'pending', time: '9:00 PM (ETA)' },
-        { location: 'Bangalore Warehouse', type: 'end', status: 'pending', time: 'Tomorrow 10:00 AM (ETA)' },
-      ],
-      totalDistance: '1200 km',
-      totalTime: '22h',
-      timeSpent: '0h',
-      remainingTime: '22h',
-      avgSpeed: '0 km/h',
-      fuelConsumption: '84 L',
-      delays: 0,
-      issues: [],
-    },
-    {
-      id: 3,
-      name: 'Route 3: Local Delivery',
-      start: 'Warehouse (Pickup)',
-      end: 'Noida Extension (Delivery)',
-      stops: [
-        { location: 'Warehouse, Noida', type: 'start', status: 'completed', time: '10:00 AM' },
-        { location: 'Sector 62, Noida', type: 'checkpoint', status: 'completed', time: '10:45 AM' },
-        { location: 'Sector 63, Noida', type: 'current', status: 'current', time: '11:20 AM' },
-        { location: 'Noida Extension', type: 'end', status: 'pending', time: '12:15 PM (ETA)' },
-      ],
-      totalDistance: '35 km',
-      totalTime: '2h 15m',
-      timeSpent: '1h 20m',
-      remainingTime: '55m',
-      avgSpeed: '26.25 km/h',
-      fuelConsumption: '2.8 L',
-      delays: 1,
-      issues: ['Traffic at Sector 62'],
-    },
-  ]);
+  const [routes, setRoutes] = useState([]);
 
   const [expandedRoute, setExpandedRoute] = useState(null);
 

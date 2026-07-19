@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Eye,
   Edit,
@@ -7,51 +7,36 @@ import {
   AlertCircle,
   XCircle,
 } from 'lucide-react';
+import api from '../../api/axios';
 
 const BuyersManagement = () => {
-  const [buyers] = useState([
-    {
-      id: 1,
-      name: 'Fresh Food Supplies Co.',
-      orders: 156,
-      spending: '$45,800',
-      status: 'Active',
-      joinDate: 'Dec 20, 2023',
-    },
-    {
-      id: 2,
-      name: 'Organic Markets Ltd.',
-      orders: 98,
-      spending: '$32,150',
-      status: 'Active',
-      joinDate: 'Jan 10, 2024',
-    },
-    {
-      id: 3,
-      name: 'Metro Retail Group',
-      orders: 203,
-      spending: '$67,900',
-      status: 'Active',
-      joinDate: 'Nov 5, 2023',
-      icon: 'MR',
-    },
-    {
-      id: 4,
-      name: 'Green Valley Distribution',
-      orders: 0,
-      spending: '$0',
-      status: 'Suspended',
-      joinDate: 'Feb 1, 2024',
-    },
-    {
-      id: 5,
-      name: 'Premium Wholesale Partners',
-      orders: 134,
-      spending: '$52,300',
-      status: 'Active',
-      joinDate: 'Jan 25, 2024',
-    },
-  ]);
+  const [buyers, setBuyers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchBuyers = async () => {
+      try {
+        const response = await api.get('/users');
+        if (response?.data?.success) {
+          const allUsers = response.data.users || [];
+          const buyersList = allUsers.filter(u => u.role === 'buyer' || u.role === 'consumer').map(u => ({
+            id: u._id,
+            name: u.fullName || u.name || 'Anonymous Buyer',
+            orders: 0,
+            spending: '₹0',
+            status: 'Active',
+            joinDate: new Date(u.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+          }));
+          setBuyers(buyersList);
+        }
+      } catch (error) {
+        console.error('Failed to load buyers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchBuyers();
+  }, []);
 
   const getStatusBadge = (status) => {
     if (status === 'Active') {
@@ -167,7 +152,9 @@ const BuyersManagement = () => {
 
       {/* Footer */}
       <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center">
-        <p className="text-sm text-slate-600">Showing 5 of 5,234 buyers</p>
+        <p className="text-sm text-slate-600">
+          {loading ? 'Loading...' : `Showing ${buyers.length} registered buyer(s)`}
+        </p>
         <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
           View All Buyers →
         </button>

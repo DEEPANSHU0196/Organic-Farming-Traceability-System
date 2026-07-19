@@ -18,6 +18,7 @@ const orderRoutes = require("./routes/orderRoutes");
 const shipmentRoutes = require("./routes/shipmentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const qrRoutes = require("./routes/qrRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 
 
 
@@ -124,6 +125,16 @@ app.use(
 app.use(
   "/api/shipments",
   shipmentRoutes
+);
+
+app.use(
+  "/api/reviews",
+  reviewRoutes
+);
+
+app.use(
+  "/api/users",
+  userRoutes
 );
 
 

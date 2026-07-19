@@ -1,49 +1,41 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { CheckCircle, Camera, MapPin, User, Package, X, Upload } from 'lucide-react';
+import { getShipments } from '../../api/shipment';
+import api from '../../api/axios';
 
 export default function DeliveryConfirmation() {
-  const [deliveries, setDeliveries] = useState([
-    {
-      id: 1,
-      orderId: 'ORD-2024-001',
-      buyerName: 'Fresh Mart Delhi',
-      buyerPhone: '+91-98765-43210',
-      product: 'Organic Tomatoes (50kg)',
-      deliveryAddress: 'MG Road, New Delhi',
-      deliveryTime: '1:45 PM',
-      status: 'Completed',
-      signature: null,
-      photo: null,
-      receivedBy: 'Rajesh Singh',
-    },
-    {
-      id: 2,
-      orderId: 'ORD-2024-002',
-      buyerName: 'Organic Store Mumbai',
-      buyerPhone: '+91-99876-54321',
-      product: 'Fresh Vegetables Bundle',
-      deliveryAddress: 'Bandra, Mumbai',
-      deliveryTime: 'Pending',
-      status: 'Pending',
-      signature: null,
-      photo: null,
-      receivedBy: '',
-    },
-    {
-      id: 3,
-      orderId: 'ORD-2024-004',
-      buyerName: 'Bangalore Wholesale',
-      buyerPhone: '+91-97654-32109',
-      product: 'Rice & Wheat (100kg)',
-      deliveryAddress: 'Whitefield, Bangalore',
-      deliveryTime: 'Tomorrow 10:00 AM',
-      status: 'Pending',
-      signature: null,
-      photo: null,
-      receivedBy: '',
-    },
-  ]);
+  const [deliveries, setDeliveries] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDeliveries();
+  }, []);
+
+  const fetchDeliveries = async () => {
+    try {
+      const res = await getShipments();
+      if (res?.data?.shipments) {
+        setDeliveries(res.data.shipments.map(s => ({
+          id: s._id,
+          orderId: s._id.substring(0, 8).toUpperCase(),
+          buyerName: s.deliveryAddress?.fullName || 'Buyer Name',
+          buyerPhone: s.deliveryAddress?.phone || 'N/A',
+          product: 'Various Products', // Wait, shipment might have order populated
+          deliveryAddress: s.deliveryAddress ? `${s.deliveryAddress.street}, ${s.deliveryAddress.city}` : 'Unknown Address',
+          deliveryTime: s.status === 'Delivered' ? (s.updatedAt ? new Date(s.updatedAt).toLocaleTimeString() : 'N/A') : 'Pending',
+          status: s.status === 'Delivered' ? 'Completed' : 'Pending',
+          signature: null,
+          photo: null,
+          receivedBy: '',
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch deliveries:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);

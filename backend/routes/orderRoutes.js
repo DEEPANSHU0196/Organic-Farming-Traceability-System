@@ -6,14 +6,16 @@ const {
   getMyOrders,
   getFarmerOrders,
   updateFarmerOrderStatus,
+  getAllOrders,
 } = require("../controllers/orderController");
 
-const { protect } = require("../middleware/authMiddleware");
+const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 
 router.post("/", protect, createOrder);
 
 router.get("/my", protect, getMyOrders);
 router.get("/farmer", protect, getFarmerOrders);
+router.get("/", protect, authorizeRoles("admin"), getAllOrders);
 router.put("/farmer/:id", protect, updateFarmerOrderStatus);
 
 module.exports = router;

@@ -2,12 +2,7 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Users, Plus, Edit2, Trash2, Phone, Star } from 'lucide-react';
 
-const initialDrivers = [
-  { id: 'D001', name: 'Ramesh Kumar', phone: '+91 98765 11111', license: 'HR-12-2019-001234', vehicle: 'HR-26-AB-1234', trips: 142, rating: 4.8, status: 'Available', joined: 'Jan 2023' },
-  { id: 'D002', name: 'Sunil Sharma', phone: '+91 98765 22222', license: 'DL-12-2020-005678', vehicle: 'DL-01-BC-5678', trips: 89, rating: 4.6, status: 'On Duty', joined: 'Mar 2023' },
-  { id: 'D003', name: 'Gurpreet Singh', phone: '+91 98765 33333', license: 'PB-12-2018-009012', vehicle: 'PB-10-EF-3456', trips: 215, rating: 4.9, status: 'Available', joined: 'Sep 2022' },
-  { id: 'D004', name: 'Anil Yadav', phone: '+91 98765 44444', license: 'UP-12-2021-003456', vehicle: 'Unassigned', trips: 34, rating: 4.4, status: 'Leave', joined: 'Aug 2024' },
-];
+const initialDrivers = [];
 
 const statusColors = {
   Available: { bg: '#dcfce7', text: '#16a34a' },

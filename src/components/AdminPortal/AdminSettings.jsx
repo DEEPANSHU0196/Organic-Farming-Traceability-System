@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { User, Bell, Shield, Globe, Palette, Database, Save, Check, Eye, EyeOff, Camera, ToggleLeft, ToggleRight } from 'lucide-react';
+import { User, Bell, Shield, Globe, Palette, Database, Save, Check, Eye, EyeOff, Camera, ToggleLeft, ToggleRight, AlertCircle } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api/axios';
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
@@ -10,13 +12,58 @@ const TABS = [
 ];
 
 function ProfileTab() {
+  const { user, updateUserProfile } = useAuth();
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [form, setForm] = useState({
-    name: 'Admin User', email: 'admin@agritrust.com', phone: '+91 98000 00001',
-    role: 'Super Administrator', department: 'Platform Operations',
+    name: '',
+    email: '',
+    phone: '',
+    role: 'Super Administrator',
+    department: 'Platform Operations',
   });
+
+  useEffect(() => {
+    if (user) {
+      setForm((prev) => ({
+        ...prev,
+        name: user.fullName || user.name || '',
+        email: user.email || '',
+        phone: user.phone || '',
+      }));
+    }
+  }, [user]);
+
   const handleChange = (k, v) => setForm((f) => ({ ...f, [k]: v }));
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
+  
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError('');
+      const response = await api.put('/users/profile', {
+        fullName: form.name,
+        email: form.email,
+        phone: form.phone,
+      });
+
+      const updatedUser = response?.data?.user;
+      if (updatedUser) {
+        updateUserProfile({
+          ...user,
+          ...updatedUser,
+        });
+      }
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error('Failed to update admin profile:', err);
+      setError(err?.response?.data?.message || 'Failed to save profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
       <div className="flex items-center gap-5">
@@ -27,11 +74,19 @@ function ProfileTab() {
           </button>
         </div>
         <div>
-          <p className="font-semibold text-slate-800">{form.name}</p>
+          <p className="font-semibold text-slate-800">{form.name || 'Admin'}</p>
           <p className="text-sm text-slate-500">{form.email}</p>
           <span className="inline-block mt-1 text-xs font-medium px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">Super Admin 🛡️</span>
         </div>
       </div>
+
+      {error && (
+        <div className="flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700">
+          <AlertCircle size={15} />
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {Object.entries({ 'Full Name': 'name', 'Email': 'email', 'Phone': 'phone', 'Role': 'role', 'Department': 'department' }).map(([label, key]) => (
           <div key={key}>
@@ -39,7 +94,8 @@ function ProfileTab() {
             <input
               value={form[key]}
               onChange={(e) => handleChange(key, e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all"
+              disabled={key === 'role' || key === 'department'}
+              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm text-slate-800 focus:outline-none focus:border-violet-400 focus:ring-2 focus:ring-violet-100 transition-all disabled:opacity-50"
             />
           </div>
         ))}
@@ -48,10 +104,11 @@ function ProfileTab() {
         <motion.button
           whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
           onClick={handleSave}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all"
+          disabled={saving}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-all disabled:opacity-75"
           style={{ background: saved ? '#22c55e' : '#7c3aed' }}
         >
-          {saved ? <><Check size={15} />Saved!</> : <><Save size={15} />Save Changes</>}
+          {saving ? 'Saving...' : saved ? <><Check size={15} />Saved!</> : <><Save size={15} />Save Changes</>}
         </motion.button>
       </div>
     </div>

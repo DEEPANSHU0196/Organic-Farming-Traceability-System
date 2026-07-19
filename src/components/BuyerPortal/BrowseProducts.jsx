@@ -1,10 +1,10 @@
 import { motion } from 'motion/react';
-import { Search, Filter, Star, MapPin, Leaf } from 'lucide-react';
+import { Search, Filter, Star, MapPin, Leaf, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useBuyer } from '../../contexts/BuyerContext';
 
 export default function BrowseProducts({ onProductSelect }) {
-  const { availableProducts, filterProducts, searchProducts, loading, error } = useBuyer();
+  const { availableProducts, filterProducts, searchProducts, loading, error, toggleWishlist, isInWishlist } = useBuyer();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [maxPrice, setMaxPrice] = useState(10000);
@@ -157,9 +157,20 @@ export default function BrowseProducts({ onProductSelect }) {
                 >
                   {renderProductImage(product.image, 'h-40 w-full object-cover')}
                 </motion.div>
-                <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1">
-                  <Star size={14} className="fill-yellow-400 text-yellow-400" />
-                  <span className="text-xs font-semibold text-primary">{product.rating}</span>
+                <div className="absolute top-3 right-3 flex flex-col gap-2">
+                  <div className="bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full flex items-center gap-1 shadow-sm">
+                    <Star size={14} className="fill-yellow-400 text-yellow-400" />
+                    <span className="text-xs font-semibold text-primary">{product.rating}</span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleWishlist(product);
+                    }}
+                    className="w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full shadow-sm flex items-center justify-center text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    <Heart size={16} fill={isInWishlist(product.id) ? "currentColor" : "none"} />
+                  </button>
                 </div>
               </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Line, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -12,6 +12,7 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
+import api from '../../api/axios';
 
 ChartJS.register(
   CategoryScale,
@@ -26,7 +27,33 @@ ChartJS.register(
 );
 
 const PlatformAnalytics = () => {
-  // User Growth Chart Data
+  const [stats, setStats] = useState({ farmers: 0, buyers: 0, products: 0, orders: 0, revenue: 0 });
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [usersRes, productsRes, ordersRes] = await Promise.all([
+          api.get('/users'),
+          api.get('/products/all'),
+          api.get('/orders'),
+        ]);
+        const allUsers = usersRes?.data?.users || [];
+        const allProducts = productsRes?.data?.products || [];
+        const allOrders = ordersRes?.data?.orders || [];
+        const totalRevenue = allOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        setStats({
+          farmers: allUsers.filter(u => u.role === 'farmer').length,
+          buyers: allUsers.filter(u => u.role === 'buyer' || u.role === 'consumer').length,
+          products: allProducts.length,
+          orders: allOrders.length,
+          revenue: totalRevenue,
+        });
+      } catch (err) {
+        console.error('Failed to load analytics:', err);
+      }
+    };
+    fetchStats();
+  }, []);
   const userGrowthData = {
     labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
     datasets: [
@@ -205,6 +232,22 @@ const PlatformAnalytics = () => {
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-slate-900">Platform Analytics</h2>
+
+      {/* Live Summary Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {[
+          { label: 'Farmers', value: stats.farmers, color: 'text-blue-600', bg: 'bg-blue-50' },
+          { label: 'Buyers', value: stats.buyers, color: 'text-purple-600', bg: 'bg-purple-50' },
+          { label: 'Products', value: stats.products, color: 'text-orange-600', bg: 'bg-orange-50' },
+          { label: 'Orders', value: stats.orders, color: 'text-green-600', bg: 'bg-green-50' },
+          { label: 'Revenue (₹)', value: `₹${stats.revenue.toLocaleString()}`, color: 'text-emerald-700', bg: 'bg-emerald-50' },
+        ].map(s => (
+          <div key={s.label} className={`${s.bg} rounded-xl p-4 text-center border border-slate-100`}>
+            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+            <p className="text-xs text-slate-500 mt-1">{s.label}</p>
+          </div>
+        ))}
+      </div>
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

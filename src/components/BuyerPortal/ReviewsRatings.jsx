@@ -1,10 +1,10 @@
 import { motion } from 'motion/react';
-import { Star, Send, MessageSquare } from 'lucide-react';
+import { Star, Send, MessageSquare, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useBuyer } from '../../contexts/BuyerContext';
 
 export default function ReviewsRatings() {
-  const { availableProducts, addReview, getProductReviews, buyerProfile } = useBuyer();
+  const { availableProducts, addReview, removeReview, getProductReviews, buyerProfile } = useBuyer();
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
@@ -184,21 +184,44 @@ export default function ReviewsRatings() {
                     <p className="font-semibold text-primary">{productReviews.length} reviews</p>
                   </div>
 
-                  {/* Action Button */}
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedProduct(product)}
-                    className={`w-full px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${
-                      alreadyReviewed
-                        ? 'bg-gray-200 text-gray-600 cursor-not-allowed'
-                        : 'bg-emerald-500 text-white hover:bg-emerald-600'
-                    }`}
-                    disabled={alreadyReviewed}
-                  >
-                    <MessageSquare size={16} />
-                    {alreadyReviewed ? 'Already Reviewed' : 'Leave Review'}
-                  </motion.button>
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-2">
+                    {alreadyReviewed ? (
+                      <div className="flex gap-2 w-full">
+                        <button
+                          className="flex-1 px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 bg-gray-200 text-gray-600 cursor-not-allowed"
+                          disabled
+                        >
+                          <MessageSquare size={16} />
+                          Reviewed
+                        </button>
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            const myReview = productReviews.find(r => r.buyerName === buyerProfile?.name);
+                            if (myReview) {
+                              removeReview(myReview._id || myReview.id, product.id);
+                            }
+                          }}
+                          className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors"
+                          title="Remove Review"
+                        >
+                          <Trash2 size={16} />
+                        </motion.button>
+                      </div>
+                    ) : (
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setSelectedProduct(product)}
+                        className="w-full px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors bg-emerald-500 text-white hover:bg-emerald-600"
+                      >
+                        <MessageSquare size={16} />
+                        Leave Review
+                      </motion.button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             );

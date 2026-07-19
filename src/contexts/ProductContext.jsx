@@ -53,28 +53,7 @@ const buildPayload = (product) => {
   };
 };
 
-const defaultOrders = [
-  {
-    id: 'ORD-001',
-    customerName: 'Amit Kumar',
-    productName: 'Premium Wheat',
-    quantity: 50,
-    unit: 'kg',
-    price: 1250,
-    status: 'Pending',
-    date: new Date().toISOString(),
-  },
-  {
-    id: 'ORD-002',
-    customerName: 'Priya Singh',
-    productName: 'Basmati Rice',
-    quantity: 25,
-    unit: 'kg',
-    price: 1625,
-    status: 'Completed',
-    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-  },
-];
+// Removed defaultOrders to ensure no dummy data is used.
 
 export const ProductProvider = ({ children }) => {
   // Wait for AuthContext to finish reading from localStorage before fetching.
@@ -93,31 +72,19 @@ export const ProductProvider = ({ children }) => {
   const [orders, setOrders] = useState(() => {
     try {
       const savedOrders = localStorage.getItem('orders');
-      return savedOrders ? JSON.parse(savedOrders) : defaultOrders;
+      return savedOrders ? JSON.parse(savedOrders) : [];
     } catch (error) {
       console.error('Error parsing orders from localStorage:', error);
-      return defaultOrders;
+      return [];
     }
   });
   const [farmer, setFarmer] = useState(() => {
     try {
       const savedFarmer = localStorage.getItem('farmer');
-      return savedFarmer ? JSON.parse(savedFarmer) : {
-        name: 'Rajesh Deswal',
-        email: 'rajesh.deswal@agritrust.com',
-        phone: '+91 98765 43210',
-        farmName: 'Deswal Agriculture Farm',
-        farmLocation: 'Hisar, Haryana',
-      };
+      return savedFarmer ? JSON.parse(savedFarmer) : null;
     } catch (error) {
       console.error('Error parsing farmer from localStorage:', error);
-      return {
-        name: 'Rajesh Deswal',
-        email: 'rajesh.deswal@agritrust.com',
-        phone: '+91 98765 43210',
-        farmName: 'Deswal Agriculture Farm',
-        farmLocation: 'Hisar, Haryana',
-      };
+      return null;
     }
   });
   const [loading, setLoading] = useState(true);

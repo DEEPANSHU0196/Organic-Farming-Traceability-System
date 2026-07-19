@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Eye,
   Edit,
@@ -8,55 +8,37 @@ import {
   CheckCircle,
   AlertCircle,
 } from 'lucide-react';
+import api from '../../api/axios';
 
 const FarmersManagement = () => {
-  const [farmers] = useState([
-    {
-      id: 1,
-      name: 'Rajesh Kumar',
-      location: 'Punjab, India',
-      products: 24,
-      status: 'Verified',
-      joinDate: 'Jan 15, 2024',
-      revenue: '$12,400',
-    },
-    {
-      id: 2,
-      name: 'Priya Singh',
-      location: 'Haryana, India',
-      products: 18,
-      status: 'Verified',
-      joinDate: 'Feb 3, 2024',
-      revenue: '$8,950',
-    },
-    {
-      id: 3,
-      name: 'Amit Patel',
-      location: 'Gujarat, India',
-      products: 32,
-      status: 'Pending',
-      joinDate: 'Feb 20, 2024',
-      revenue: '$5,200',
-    },
-    {
-      id: 4,
-      name: 'Deepa Verma',
-      location: 'Maharashtra, India',
-      products: 15,
-      status: 'Verified',
-      joinDate: 'Mar 1, 2024',
-      revenue: '$6,800',
-    },
-    {
-      id: 5,
-      name: 'Suresh Nair',
-      location: 'Karnataka, India',
-      products: 28,
-      status: 'Verified',
-      joinDate: 'Mar 10, 2024',
-      revenue: '$14,200',
-    },
-  ]);
+  const [farmers, setFarmers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchFarmers = async () => {
+      try {
+        const response = await api.get('/users');
+        if (response?.data?.success) {
+          const allUsers = response.data.users || [];
+          const farmersList = allUsers.filter(u => u.role === 'farmer').map(u => ({
+            id: u._id,
+            name: u.fullName || u.name || 'Anonymous Farmer',
+            location: u.address || 'India',
+            products: 0, // Placeholder or count if products fetched
+            status: 'Verified',
+            joinDate: new Date(u.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
+            revenue: '₹0',
+          }));
+          setFarmers(farmersList);
+        }
+      } catch (error) {
+        console.error('Failed to load farmers:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchFarmers();
+  }, []);
 
   const getStatusIcon = (status) => {
     if (status === 'Verified') {
@@ -169,7 +151,9 @@ const FarmersManagement = () => {
 
       {/* Footer */}
       <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center">
-        <p className="text-sm text-slate-600">Showing 5 of 2,847 farmers</p>
+        <p className="text-sm text-slate-600">
+          {loading ? 'Loading...' : `Showing ${farmers.length} registered farmer(s)`}
+        </p>
         <button className="text-sm text-green-600 hover:text-green-700 font-medium">
           View All Farmers →
         </button>

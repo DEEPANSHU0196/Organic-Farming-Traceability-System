@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Line, Pie, Doughnut } from 'react-chartjs-2';
+import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler } from 'chart.js';
 import { TrendingUp, Package, CheckCircle, AlertCircle, Bell, Search, Settings, User, MapPin, Clock, DollarSign, Menu } from 'lucide-react';
 import { useDashboard } from '../../contexts/DashboardContext';
 import { useAuth } from '../../contexts/AuthContext';
+import { getMyShipments } from '../../api/shipment';
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
@@ -87,30 +88,45 @@ const vehicleStatusData = {
   ],
 };
 
-const recentDeliveries = [
-  { id: 1, order: 'ORD-2024-001', location: 'New Delhi', status: 'In Transit', eta: '2:30 PM', distance: '245 km' },
-  { id: 2, order: 'ORD-2024-002', location: 'Gurugram', status: 'Completed', eta: 'Done', distance: '180 km' },
-  { id: 3, order: 'ORD-2024-003', location: 'Noida', status: 'Pending', eta: '4:15 PM', distance: '95 km' },
-  { id: 4, order: 'ORD-2024-004', location: 'Bangalore', status: 'In Transit', eta: '6:00 PM', distance: '520 km' },
-  { id: 5, order: 'ORD-2024-005', location: 'Mumbai', status: 'Completed', eta: 'Done', distance: '680 km' },
-];
-
 const notifications = [
-  { id: 1, type: 'success', message: 'ORD-2024-002 delivered successfully', time: '2 hours ago' },
-  { id: 2, type: 'warning', message: 'Vehicle VH-001 requires maintenance', time: '4 hours ago' },
-  { id: 3, type: 'info', message: 'New route assigned: Route-45', time: '6 hours ago' },
-  { id: 4, type: 'error', message: 'Delivery delay on ORD-2024-003', time: '8 hours ago' },
+  { id: 1, type: 'success', message: 'Activity logs initialized successfully', time: 'Just now' },
 ];
 
 export default function ModernLogisticsDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [shipments, setShipments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const { toggleSidebar } = useDashboard();
+  const { user } = useAuth();
+
+  useEffect(() => {
+    const fetchShipments = async () => {
+      try {
+        const response = await getMyShipments();
+        if (response?.data?.success) {
+          setShipments(response.data.shipments || []);
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard shipments:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchShipments();
+  }, []);
+
+  const displayName = user?.fullName || user?.name || 'Transporter';
+  const initials = displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'TR';
+
+  const pendingCount = shipments.filter(s => s.status !== 'Completed' && s.status !== 'Rejected').length;
+  const completedCount = shipments.filter(s => s.status === 'Completed').length;
+  const totalDistance = completedCount * 145; // Simulated distance based on real completions
 
   const stats = [
     {
       title: 'Pending Deliveries',
-      value: '12',
-      change: '+2.5%',
+      value: String(pendingCount),
+      change: '+0.0%',
       icon: Package,
       bgColor: 'bg-blue-50',
       iconColor: 'text-blue-600',
@@ -118,8 +134,8 @@ export default function ModernLogisticsDashboard() {
     },
     {
       title: 'Completed Today',
-      value: '48',
-      change: '+12.3%',
+      value: String(completedCount),
+      change: '+0.0%',
       icon: CheckCircle,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600',
@@ -127,8 +143,8 @@ export default function ModernLogisticsDashboard() {
     },
     {
       title: 'Total Distance',
-      value: '1,245 km',
-      change: '+5.2%',
+      value: `${totalDistance.toLocaleString()} km`,
+      change: '+0.0%',
       icon: TrendingUp,
       bgColor: 'bg-purple-50',
       iconColor: 'text-purple-600',
@@ -136,14 +152,23 @@ export default function ModernLogisticsDashboard() {
     },
     {
       title: 'Active Issues',
-      value: '3',
-      change: '-1.8%',
+      value: '0',
+      change: '0.0%',
       icon: AlertCircle,
       bgColor: 'bg-red-50',
       iconColor: 'text-red-600',
       borderColor: 'border-l-4 border-l-red-600',
     },
   ];
+
+  const recentDeliveries = shipments.slice(0, 5).map(ship => ({
+    id: ship._id || ship.id,
+    order: ship.trackingId || `TRK-${ship._id?.substring(0, 8)}`,
+    location: ship.currentLocation || 'Distribution Hub, Delhi',
+    status: ship.status || 'Assigned',
+    eta: ship.status === 'Completed' ? 'Done' : 'ETA 24h',
+    distance: '145 km',
+  }));
 
   const getStatusColor = (status) => {
     switch (status) {

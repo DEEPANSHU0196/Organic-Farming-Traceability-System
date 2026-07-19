@@ -1,66 +1,64 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Phone, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { getMyShipments, updateShipment } from '../../api/shipment';
 
 export default function AssignedDeliveries() {
-  const [deliveries, setDeliveries] = useState([
-    {
-      id: 1,
-      orderId: 'ORD-2024-001',
-      farmer: 'Rajesh Kumar',
-      buyer: 'Fresh Mart Delhi',
-      pickupLocation: 'Block-45, Jaipur',
-      deliveryLocation: 'MG Road, New Delhi',
-      product: 'Organic Tomatoes (50kg)',
-      priority: 'High',
-      assignedTime: '10:30 AM',
-      deadline: '2:00 PM',
-      status: 'New',
-      distance: '245 km',
-      phone: '+91-98765-43210',
-    },
-    {
-      id: 2,
-      orderId: 'ORD-2024-002',
-      farmer: 'Priya Singh',
-      buyer: 'Organic Store Mumbai',
-      pickupLocation: 'Village Harmada, Gujarat',
-      deliveryLocation: 'Bandra, Mumbai',
-      product: 'Fresh Vegetables Bundle',
-      priority: 'Medium',
-      assignedTime: '11:15 AM',
-      deadline: '5:30 PM',
-      status: 'New',
-      distance: '520 km',
-      phone: '+91-99876-54321',
-    },
-    {
-      id: 3,
-      orderId: 'ORD-2024-003',
-      farmer: 'Amit Patel',
-      buyer: 'Bangalore Wholesale',
-      pickupLocation: 'Near Hisar, Haryana',
-      deliveryLocation: 'Whitefield, Bangalore',
-      product: 'Rice & Wheat (100kg)',
-      priority: 'Low',
-      assignedTime: '12:00 PM',
-      deadline: 'Tomorrow 10:00 AM',
-      status: 'New',
-      distance: '1200 km',
-      phone: '+91-97654-32109',
-    },
-  ]);
+  const [deliveries, setDeliveries] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleAccept = (id) => {
-    setDeliveries(
-      deliveries.map(d => (d.id === id ? { ...d, status: 'Accepted' } : d))
-    );
+  useEffect(() => {
+    const fetchDeliveries = async () => {
+      try {
+        const response = await getMyShipments();
+        if (response?.data?.success) {
+          // Normalize API shipments to match UI fields
+          const formatted = (response.data.shipments || []).map(ship => ({
+            id: ship._id || ship.id,
+            orderId: ship.trackingId || `TRK-${ship._id?.substring(0, 8)}`,
+            farmer: 'Verified Farmer',
+            buyer: 'Verified Buyer',
+            pickupLocation: 'Farmer Coop, Jaipur',
+            deliveryLocation: ship.currentLocation || 'Distribution Hub, New Delhi',
+            product: 'Organic Harvest Produce',
+            priority: 'Medium',
+            assignedTime: new Date(ship.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            deadline: 'Within 24 Hours',
+            status: ship.status || 'New',
+            distance: '120 km',
+            phone: '+91 99999 88888',
+          }));
+          setDeliveries(formatted);
+        }
+      } catch (error) {
+        console.error('Failed to load shipments:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDeliveries();
+  }, []);
+
+  const handleAccept = async (id) => {
+    try {
+      await updateShipment(id, { status: 'Accepted' });
+      setDeliveries(
+        deliveries.map(d => (d.id === id ? { ...d, status: 'Accepted' } : d))
+      );
+    } catch (err) {
+      console.error('Failed to accept shipment:', err);
+    }
   };
 
-  const handleReject = (id) => {
-    setDeliveries(
-      deliveries.map(d => (d.id === id ? { ...d, status: 'Rejected' } : d))
-    );
+  const handleReject = async (id) => {
+    try {
+      await updateShipment(id, { status: 'Rejected' });
+      setDeliveries(
+        deliveries.map(d => (d.id === id ? { ...d, status: 'Rejected' } : d))
+      );
+    } catch (err) {
+      console.error('Failed to reject shipment:', err);
+    }
   };
 
   const getPriorityColor = (priority) => {

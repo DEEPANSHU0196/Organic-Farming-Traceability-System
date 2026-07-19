@@ -1,11 +1,36 @@
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { TrendingUp, Package, CheckCircle, AlertCircle } from 'lucide-react';
+import { getShipments } from '../../api/shipment';
 
 export default function DashboardOverview() {
+  const [shipments, setShipments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchShipments = async () => {
+      try {
+        const res = await getShipments();
+        if (res?.data?.shipments) {
+          setShipments(res.data.shipments);
+        }
+      } catch (error) {
+        console.error('Failed to fetch shipments:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchShipments();
+  }, []);
+
+  const pendingDeliveries = shipments.filter(s => s.status === 'Pending').length;
+  const completedToday = shipments.filter(s => s.status === 'Completed').length; // Ideally check date
+  const inTransit = shipments.filter(s => s.status === 'In Transit').length;
+
   const stats = [
     {
       title: 'Pending Deliveries',
-      value: '12',
+      value: pendingDeliveries.toString(),
       icon: Package,
       color: 'from-orange-400 to-orange-600',
       bgColor: 'bg-orange-50',
@@ -13,7 +38,7 @@ export default function DashboardOverview() {
     },
     {
       title: 'Completed Today',
-      value: '8',
+      value: completedToday.toString(),
       icon: CheckCircle,
       color: 'from-green-400 to-green-600',
       bgColor: 'bg-green-50',
@@ -21,28 +46,29 @@ export default function DashboardOverview() {
     },
     {
       title: 'Total Distance',
-      value: '245 km',
+      value: '245 km', // Placeholder, depends on real data tracking
       icon: TrendingUp,
       color: 'from-blue-400 to-blue-600',
       bgColor: 'bg-blue-50',
       textColor: 'text-blue-600',
     },
     {
-      title: 'Issues',
-      value: '2',
+      title: 'In Transit',
+      value: inTransit.toString(),
       icon: AlertCircle,
-      color: 'from-red-400 to-red-600',
-      bgColor: 'bg-red-50',
-      textColor: 'text-red-600',
+      color: 'from-blue-400 to-blue-600',
+      bgColor: 'bg-blue-50',
+      textColor: 'text-blue-600',
     },
   ];
 
-  const recentDeliveries = [
-    { id: 1, order: 'ORD-001', location: 'New Delhi', status: 'In Transit', eta: '2:30 PM' },
-    { id: 2, order: 'ORD-002', location: 'Gurugram', status: 'Completed', eta: 'Done' },
-    { id: 3, order: 'ORD-003', location: 'Noida', status: 'Pending', eta: '4:15 PM' },
-    { id: 4, order: 'ORD-004', location: 'Bangalore', status: 'In Transit', eta: '6:00 PM' },
-  ];
+  const recentDeliveries = shipments.slice(0, 5).map(s => ({
+    id: s._id,
+    order: s._id.substring(0, 8),
+    location: s.deliveryAddress?.city || 'Unknown',
+    status: s.status,
+    eta: s.eta || 'Pending',
+  }));
 
   return (
     <div className="space-y-8">

@@ -1,46 +1,40 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Truck, MapPin, CheckCircle, AlertCircle, Camera, Plus, X } from 'lucide-react';
+import { getShipments } from '../../api/shipment';
+import api from '../../api/axios';
 
 export default function UpdateShipmentStatus() {
-  const [shipments, setShipments] = useState([
-    {
-      id: 1,
-      orderId: 'ORD-2024-001',
-      status: 'In Transit',
-      currentLocation: 'Jaipur - Delhi Highway',
-      progress: 45,
-      nextStop: 'Gurgaon Toll Booth',
-      eta: '1:30 PM',
-      temperature: '18°C',
-      humidity: '65%',
-      notes: 'Running on schedule',
-    },
-    {
-      id: 2,
-      orderId: 'ORD-2024-002',
-      status: 'Out for Delivery',
-      currentLocation: 'Sector 63, Noida',
-      progress: 80,
-      nextStop: 'Customer Location',
-      eta: '12:45 PM',
-      temperature: '22°C',
-      humidity: '58%',
-      notes: 'Customer not available, will retry',
-    },
-    {
-      id: 3,
-      orderId: 'ORD-2024-003',
-      status: 'Picked Up',
-      currentLocation: 'Warehouse, Hisar',
-      progress: 10,
-      nextStop: 'Bypass Road Entry',
-      eta: 'Tomorrow 8:00 AM',
-      temperature: '16°C',
-      humidity: '72%',
-      notes: 'Loaded and ready to depart',
-    },
-  ]);
+  const [shipments, setShipments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchShipmentsData();
+  }, []);
+
+  const fetchShipmentsData = async () => {
+    try {
+      const res = await getShipments();
+      if (res?.data?.shipments) {
+        setShipments(res.data.shipments.map(s => ({
+          id: s._id,
+          orderId: s._id.substring(0, 8).toUpperCase(),
+          status: s.status,
+          currentLocation: s.currentLocation || 'Warehouse',
+          progress: s.status === 'Assigned' ? 10 : s.status === 'Picked Up' ? 20 : s.status === 'In Transit' ? 50 : s.status === 'Out for Delivery' ? 80 : s.status === 'Delivered' ? 100 : 0,
+          nextStop: s.deliveryAddress?.city || 'Destination',
+          eta: s.eta || 'Pending',
+          temperature: 'N/A',
+          humidity: 'N/A',
+          notes: s.notes || 'No notes',
+        })));
+      }
+    } catch (error) {
+      console.error('Failed to fetch shipments:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
