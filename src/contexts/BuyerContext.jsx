@@ -25,6 +25,8 @@ const normalizeProduct = (product) => {
     reviews: product.reviews || 12,
     origin: product.origin || product.location || 'India',
     history: product.history || [],
+    qrCode: product.qrCode || '',
+    traceabilityId: product.traceabilityId || '',
   };
 };
 

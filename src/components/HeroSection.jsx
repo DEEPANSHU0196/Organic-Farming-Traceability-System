@@ -177,16 +177,7 @@ function IntroOverlay() {
         </h2>
       </motion.div>
 
-      {/* Top-right corner tag */}
-      <motion.div
-        className="absolute top-20 right-10 md:right-14 text-right text-white"
-        initial={{ opacity: 0, x: 12 }}
-        animate={{ opacity: [0, 0, 0.7, 0.7], x: [12, 12, 0, 0] }}
-        transition={{ duration: 6.5, times: [0, 0.35, 0.6, 1] }}
-      >
-        <p className="text-[10px] tracking-[0.25em] uppercase text-white/50">Established</p>
-        <p className="text-sm font-semibold text-white/70">2024</p>
-      </motion.div>
+
     </motion.div>
   );
 }

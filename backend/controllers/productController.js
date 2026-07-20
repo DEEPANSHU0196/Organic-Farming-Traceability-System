@@ -104,6 +104,8 @@ const uploadFromBodyImage = async(image)=>{
 
 
 
+const QRCode = require("qrcode");
+
 // ======================
 // ADD PRODUCT
 // ======================
@@ -203,6 +205,13 @@ const addProduct = async(req,res)=>{
 
       });
 
+
+    // Generate QR Code automatically
+    const traceabilityURL = `http://localhost:5173/product/${product._id}`;
+    const qrCode = await QRCode.toDataURL(traceabilityURL);
+    product.qrCode = qrCode;
+    product.traceabilityId = "TRACE-" + product._id;
+    await product.save();
 
 
     res.status(201).json({

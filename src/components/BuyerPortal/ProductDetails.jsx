@@ -211,6 +211,15 @@ export default function ProductDetails({ product, onClose, onAddToCart }) {
                     ✓ No middlemen involved
                   </p>
                 </div>
+                {product.qrCode && (
+                  <div className="bg-white border border-surface-alt rounded-lg p-4 flex flex-col items-center mt-4">
+                    <h4 className="font-semibold text-primary mb-3">Traceability QR Code</h4>
+                    <img src={product.qrCode} alt="Traceability QR Code" className="w-40 h-40 object-contain border border-surface-alt rounded-lg p-2 shadow-sm" />
+                    <p className="text-xs text-accent-muted mt-2 text-center max-w-xs">
+                      Scan this QR code to verify the product's origin and complete journey.
+                    </p>
+                  </div>
+                )}
               </motion.div>
             )}
 

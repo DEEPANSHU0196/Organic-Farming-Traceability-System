@@ -73,9 +73,14 @@ export default function MyProducts() {
       price: parseFloat(editFormData.price),
       description: editFormData.description,
       unit: editFormData.unit,
+      status: editFormData.status,
     });
     setShowEditModal(false);
     setEditFormData(null);
+  };
+
+  const handleQuickStatusChange = (product, newStatus) => {
+    updateProduct(product.id, { ...product, status: newStatus });
   };
 
   const handleDeleteProduct = (id) => {
@@ -227,9 +232,16 @@ export default function MyProducts() {
               <div className="p-4">
                 <div className="flex items-start justify-between mb-2">
                   <h3 className="font-bold text-primary">{product.name}</h3>
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${getStatusColor(product.status)}`}>
-                    {product.status}
-                  </span>
+                  <select
+                    value={product.status}
+                    onChange={(e) => handleQuickStatusChange(product, e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`text-xs px-2 py-1 rounded-full font-medium border-0 outline-none cursor-pointer ${getStatusColor(product.status)}`}
+                  >
+                    <option value="Active">Active</option>
+                    <option value="Low Stock">Low Stock</option>
+                    <option value="Out of Stock">Out of Stock</option>
+                  </select>
                 </div>
 
                 <p className="text-sm text-accent-muted mb-3">{product.category}</p>
@@ -363,8 +375,17 @@ export default function MyProducts() {
               </button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="mb-6 flex justify-center">
-                {renderProductImage(selectedProduct.image, 'w-64 h-64 rounded-xl object-cover shadow-lg')}
+              <div className="mb-6 flex flex-wrap justify-center gap-6">
+                <div className="flex flex-col items-center">
+                  {renderProductImage(selectedProduct.image, 'w-64 h-64 rounded-xl object-cover shadow-lg')}
+                  <p className="mt-2 text-sm text-accent-muted font-medium">Product Image</p>
+                </div>
+                {selectedProduct.qrCode && (
+                  <div className="flex flex-col items-center">
+                    <img src={selectedProduct.qrCode} alt="QR Code" className="w-64 h-64 rounded-xl object-contain shadow-lg bg-white border border-surface-alt p-4" />
+                    <p className="mt-2 text-sm text-primary font-bold">Traceability QR Code</p>
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
@@ -520,6 +541,29 @@ export default function MyProducts() {
                   className="w-full p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500 resize-none"
                   rows="3"
                 />
+              </div>
+              <div>
+                <label className="text-sm text-accent-muted mb-2 block">Product Status</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {['Active', 'Low Stock', 'Out of Stock'].map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      onClick={() => setEditFormData({ ...editFormData, status: s })}
+                      className={`py-2 px-3 rounded-lg text-sm font-medium border-2 transition-all ${
+                        editFormData.status === s
+                          ? s === 'Active'
+                            ? 'bg-green-100 border-green-500 text-green-700'
+                            : s === 'Low Stock'
+                            ? 'bg-amber-100 border-amber-500 text-amber-700'
+                            : 'bg-red-100 border-red-500 text-red-700'
+                          : 'bg-white border-surface-alt text-accent-muted hover:border-emerald-300'
+                      }`}
+                    >
+                      {s === 'Active' ? '🟢' : s === 'Low Stock' ? '🟡' : '🔴'} {s}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-3 pt-6">
                 <motion.button

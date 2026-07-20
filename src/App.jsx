@@ -3,6 +3,7 @@ import { ProductProvider } from './contexts/ProductContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import { BuyerProvider } from './contexts/BuyerContext';
 import { AuthProvider } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import AboutSection from './components/AboutSection';
@@ -57,25 +58,27 @@ function HomePage() {
 
 function App() {
   return (
-    <AuthProvider>
-      <DashboardProvider>
-        <ProductProvider>
-          <BuyerProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <DashboardProvider>
+          <ProductProvider>
+            <BuyerProvider>
 
-            <Router>
-              <Routes>
-                <Route path="/" element={<HomePage />} />
-                <Route path="/login" element={<LoginPage />} />
-                <Route path="/farmer-dashboard/*" element={<ProtectedRoute requiredRole="farmer"><FarmerDashboard /></ProtectedRoute>} />
-                <Route path="/buyer-dashboard/*" element={<ProtectedRoute requiredRole="buyer"><BuyerDashboard /></ProtectedRoute>} />
-                <Route path="/transporter-dashboard/*" element={<ProtectedRoute requiredRole="transporter"><TransporterDashboard /></ProtectedRoute>} />
-                <Route path="/admin-dashboard/*" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
-              </Routes>
-            </Router>
-          </BuyerProvider>
-        </ProductProvider>
-      </DashboardProvider>
-    </AuthProvider>
+              <Router>
+                <Routes>
+                  <Route path="/" element={<HomePage />} />
+                  <Route path="/login" element={<LoginPage />} />
+                  <Route path="/farmer-dashboard/*" element={<ProtectedRoute requiredRole="farmer"><FarmerDashboard /></ProtectedRoute>} />
+                  <Route path="/buyer-dashboard/*" element={<ProtectedRoute requiredRole="buyer"><BuyerDashboard /></ProtectedRoute>} />
+                  <Route path="/transporter-dashboard/*" element={<ProtectedRoute requiredRole="transporter"><TransporterDashboard /></ProtectedRoute>} />
+                  <Route path="/admin-dashboard/*" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+                </Routes>
+              </Router>
+            </BuyerProvider>
+          </ProductProvider>
+        </DashboardProvider>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 

@@ -21,6 +21,27 @@ const productSchema = new mongoose.Schema(
         type:Number
     },
 
+    price:{
+        type:Number
+    },
+
+    description:{
+        type:String
+    },
+
+    location:{
+        type:String
+    },
+
+    unit:{
+        type:String,
+        default:"kg"
+    },
+
+    image:{
+        type:String
+    },
+
     harvestDate:{
         type:Date
     },
@@ -32,7 +53,8 @@ const productSchema = new mongoose.Schema(
 
     traceabilityId:{
         type:String,
-        unique:true
+        unique:true,
+        sparse:true
     }
 
 

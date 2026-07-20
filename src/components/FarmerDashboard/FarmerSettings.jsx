@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
+import { useTheme } from '../../contexts/ThemeContext';
 import {
   User, Bell, Shield, Palette, Globe, CreditCard,
   Eye, EyeOff, Save, Camera, Check
@@ -249,9 +250,9 @@ function SecurityTab() {
 }
 
 function PreferencesTab() {
+  const { theme, setTheme } = useTheme();
   const [lang, setLang] = useState('en');
   const [currency, setCurrency] = useState('INR');
-  const [theme, setTheme] = useState('light');
   const [saved, setSaved] = useState(false);
 
   return (
@@ -279,12 +280,18 @@ function PreferencesTab() {
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-2">Theme</label>
           <div className="flex gap-2">
-            {['light', 'dark', 'system'].map((t) => (
-              <button key={t} onClick={() => setTheme(t)}
-                className={`px-3.5 py-2 rounded-xl text-xs font-semibold border transition-all capitalize ${theme === t ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-emerald-300'}`}>
-                {t}
-              </button>
-            ))}
+            <button
+              onClick={() => setTheme('light')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${theme === 'light' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-emerald-300'}`}
+            >
+              ☀️ Light
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${theme === 'dark' ? 'bg-emerald-600 text-white border-emerald-600' : 'bg-slate-50 text-slate-600 border-slate-200 hover:border-emerald-300'}`}
+            >
+              🌙 Dark
+            </button>
           </div>
         </div>
       </div>

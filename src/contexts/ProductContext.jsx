@@ -22,6 +22,8 @@ const normalizeProduct = (product) => {
     createdAt: product.createdAt || new Date().toISOString(),
     location: product.location || '',
     harvestDate: product.harvestDate || '',
+    qrCode: product.qrCode || '',
+    traceabilityId: product.traceabilityId || '',
   };
 };
 
@@ -130,7 +132,8 @@ export const ProductProvider = ({ children }) => {
     try {
       const response = await createProduct(buildPayload(product));
       const createdProduct = normalizeProduct(response?.data?.product || response?.data || {});
-      setProducts((prev) => [createdProduct, ...prev]);
+      // Refresh from server to get the Cloudinary image URL and QR code
+      await refreshProducts();
       return createdProduct;
     } catch (err) {
       throw err;
