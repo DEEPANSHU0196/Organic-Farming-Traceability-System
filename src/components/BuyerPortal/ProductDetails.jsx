@@ -1,10 +1,12 @@
 import { motion } from 'motion/react';
-import { X, ShoppingCart, Star, MapPin, Leaf, Check, Calendar, Heart } from 'lucide-react';
+import { X, ShoppingCart, Star, MapPin, Leaf, Check, Calendar, Heart, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useBuyer } from '../../contexts/BuyerContext';
 
 export default function ProductDetails({ product, onClose, onAddToCart }) {
   const { addToCart, getProductReviews, toggleWishlist, isInWishlist } = useBuyer();
+  const navigate = useNavigate();
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState('details');
   const productReviews = getProductReviews(product.id);
@@ -129,15 +131,25 @@ export default function ProductDetails({ product, onClose, onAddToCart }) {
               </div>
 
               {/* Actions */}
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleAddToCart}
-                  className="flex-1 px-6 py-3 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[140px] px-6 py-3 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
                 >
                   <ShoppingCart size={20} />
                   Add to Cart
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => navigate(`/trace/${product.id || product._id}`)}
+                  className="px-6 py-3 border-2 border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg font-semibold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2"
+                >
+                  <ExternalLink size={18} />
+                  Traceability
                 </motion.button>
                 
                 <motion.button

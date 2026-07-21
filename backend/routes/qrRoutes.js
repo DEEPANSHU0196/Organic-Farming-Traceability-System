@@ -1,18 +1,23 @@
 const express = require("express");
 
-const router = express.Router();
+const router =
+  express.Router();
 
 const {
-  generateProductQR
-} = require("../controllers/qrController");
+  generateProductQR,
+  getProductQR,
+} = require(
+  "../controllers/qrController"
+);
 
 const {
-  protect
-} = require("../middleware/authMiddleware");
+  protect,
+} = require(
+  "../middleware/authMiddleware"
+);
 
 
-// Generate Product QR
-
+// Generate QR
 router.post(
   "/generate/:id",
   protect,
@@ -20,4 +25,13 @@ router.post(
 );
 
 
-module.exports = router;
+// Get QR
+router.get(
+  "/:id",
+  protect,
+  getProductQR
+);
+
+
+module.exports =
+  router;

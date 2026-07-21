@@ -1,4 +1,5 @@
 const express = require("express");
+
 const router = express.Router();
 
 const {
@@ -6,12 +7,22 @@ const {
   getAllProducts,
   getMyProducts,
   getProductById,
+  getProductTrace,
   updateProduct,
   deleteProduct,
 } = require("../controllers/productController");
 
-const { protect } = require("../middleware/authMiddleware");
-const upload = require("../middleware/upload");
+const {
+  protect,
+} = require("../middleware/authMiddleware");
+
+const upload =
+  require("../middleware/upload");
+
+
+// ======================
+// ADD PRODUCT
+// ======================
 
 router.post(
   "/",
@@ -20,11 +31,53 @@ router.post(
   addProduct
 );
 
-router.get("/all", getAllProducts);
 
-router.get("/", protect, getMyProducts);
+// ======================
+// GET ALL PRODUCTS
+// ======================
 
-router.get("/:id", protect, getProductById);
+router.get(
+  "/all",
+  getAllProducts
+);
+
+
+// ======================
+// PUBLIC TRACEABILITY
+// (KEEP THIS ABOVE /:id)
+// ======================
+
+router.get(
+  "/trace/:id",
+  getProductTrace
+);
+
+
+// ======================
+// GET MY PRODUCTS
+// ======================
+
+router.get(
+  "/",
+  protect,
+  getMyProducts
+);
+
+
+// ======================
+// GET SINGLE PRODUCT
+// ======================
+
+router.get(
+  "/:id",
+  protect,
+  getProductById
+);
+
+
+// ======================
+// UPDATE PRODUCT
+// ======================
 
 router.put(
   "/:id",
@@ -33,6 +86,16 @@ router.put(
   updateProduct
 );
 
-router.delete("/:id", protect, deleteProduct);
+
+// ======================
+// DELETE PRODUCT
+// ======================
+
+router.delete(
+  "/:id",
+  protect,
+  deleteProduct
+);
+
 
 module.exports = router;

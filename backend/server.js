@@ -21,6 +21,26 @@ const qrRoutes = require("./routes/qrRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 
 
+const getAllowedOrigins = () => {
+
+  const defaults = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    "http://localhost:5176",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:5174",
+    "http://127.0.0.1:5175",
+    "http://127.0.0.1:5176",
+  ];
+
+  const configured = process.env.FRONTEND_URL
+    ? process.env.FRONTEND_URL.split(",").map((origin) => origin.trim()).filter(Boolean)
+    : [];
+
+  return [...new Set([...defaults, ...configured])];
+};
+
 
 // App
 
@@ -32,7 +52,14 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin(origin, callback) {
+      if (!origin || getAllowedOrigins().includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
   })
 );
@@ -57,8 +84,19 @@ app.use(cookieParser());
 
 mongoose
   .connect(process.env.MONGO_URI)
-  .then(() => {
+  .then(async () => {
     console.log("MongoDB Connected");
+
+    try {
+      const db = mongoose.connection.db;
+      if (db) {
+        await db.collection("products").dropIndex("traceabilityId_1").catch(() => {});
+        await db.collection("products").dropIndex("traceabilityId_1").catch(() => {});
+        console.log("Ensured stale traceability index is removed");
+      }
+    } catch (error) {
+      console.log("Index cleanup skipped:", error.message);
+    }
   })
   .catch((error) => {
     console.log(

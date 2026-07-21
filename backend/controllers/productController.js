@@ -1,6 +1,7 @@
 const Product = require("../models/Product");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
+const QRCode = require("qrcode");
 
 
 // ======================
@@ -9,24 +10,17 @@ const streamifier = require("streamifier");
 
 const ensureCloudinaryConfig = () => {
 
-  const hasConfig = Boolean(
+  const hasConfig =
     process.env.CLOUDINARY_CLOUD_NAME &&
     process.env.CLOUDINARY_API_KEY &&
-    process.env.CLOUDINARY_API_SECRET
-  );
-
+    process.env.CLOUDINARY_API_SECRET;
 
   if (!hasConfig) {
-
     throw new Error(
-      "Image upload is not configured. Please check Cloudinary credentials."
+      "Cloudinary credentials are missing."
     );
-
   }
-
 };
-
-
 
 const uploadFromBuffer = (buffer) => {
 
@@ -34,28 +28,20 @@ const uploadFromBuffer = (buffer) => {
 
     ensureCloudinaryConfig();
 
-
     const stream =
       cloudinary.uploader.upload_stream(
         {
           folder: "products",
         },
-
         (error, result) => {
 
           if (error) {
-
             reject(error);
-
           } else {
-
             resolve(result);
-
           }
-
         }
       );
-
 
     streamifier
       .createReadStream(buffer)
@@ -65,195 +51,157 @@ const uploadFromBuffer = (buffer) => {
 
 };
 
+const uploadFromBodyImage = async (image) => {
 
+  if (!image) return "";
 
-const uploadFromBodyImage = async(image)=>{
-
-
-  if(!image){
-    return "";
-  }
-
-
-  if(
+  if (
     image.startsWith("http://") ||
     image.startsWith("https://")
-  ){
-
+  ) {
     return image;
-
   }
 
-
   ensureCloudinaryConfig();
-
 
   const result =
     await cloudinary.uploader.upload(
       image,
       {
-        folder:"products"
+        folder: "products",
       }
     );
 
-
   return result.secure_url;
-
 };
 
+const getFrontendBaseUrl = () =>
+  process.env.FRONTEND_URL || "http://localhost:5175";
 
+const buildTraceabilityUrl = (productId) =>
+  new URL(`/trace/${productId}`, getFrontendBaseUrl()).toString();
 
+const generateTraceabilityAssets = async (product) => {
+  const traceUrl = buildTraceabilityUrl(product._id);
+  const qrCode = await QRCode.toDataURL(traceUrl);
 
-const QRCode = require("qrcode");
+  product.qrCode = qrCode;
+  product.traceabilityId = `TRACE-${product._id}`;
+  await product.save();
+
+  return {
+    qrCode,
+    traceabilityId: product.traceabilityId,
+    traceUrl,
+  };
+};
+
 
 // ======================
 // ADD PRODUCT
 // ======================
 
-const addProduct = async(req,res)=>{
+const addProduct = async (req, res) => {
 
-  try{
+  try {
 
+    let imageUrl = "";
 
-    let imageUrl="";
-
-
-    if(req.file){
+    if (req.file) {
 
       const result =
         await uploadFromBuffer(
           req.file.buffer
         );
 
-
       imageUrl =
         result.secure_url;
 
-
-    }
-    else if(req.body.image){
+    } else if (req.body.image) {
 
       imageUrl =
         await uploadFromBodyImage(
           req.body.image
         );
-
     }
-
-
-
-    // Accept both fields
-    const productName =
-      req.body.name ||
-      req.body.productName;
-
-
-
-    const {
-      category,
-      quantity,
-      price,
-      location,
-      description,
-      harvestDate
-    } = req.body;
-
-
 
     const farmerId =
       req.user?._id ||
       req.user?.id;
 
-
-
-    if(!farmerId){
-
+    if (!farmerId) {
       return res.status(401).json({
-
-        success:false,
-
+        success: false,
         message:
-        "User not authenticated"
-
+          "User not authenticated",
       });
-
     }
-
-
-
 
     const product =
       await Product.create({
 
         farmer: farmerId,
 
-        name: productName,
+        name:
+          req.body.name ||
+          req.body.productName,
 
-        category,
+        category:
+          req.body.category,
 
-        quantity,
+        quantity:
+          req.body.quantity,
 
-        price,
+        price:
+          req.body.price,
 
-        location,
+        location:
+          req.body.location,
 
-        description,
+        description:
+          req.body.description,
 
-        harvestDate,
+        harvestDate:
+          req.body.harvestDate,
 
-        image:imageUrl
+        image:
+          imageUrl,
 
       });
 
+    await generateTraceabilityAssets(product);
 
-    // Generate QR Code automatically
-    const traceabilityURL = `http://localhost:5173/product/${product._id}`;
-    const qrCode = await QRCode.toDataURL(traceabilityURL);
-    product.qrCode = qrCode;
-    product.traceabilityId = "TRACE-" + product._id;
-    await product.save();
-
+    const savedProduct = await Product.findById(product._id);
 
     res.status(201).json({
-
-      success:true,
-
+      success: true,
       message:
-      "Product Added Successfully",
-
-      product
-
+        "Product Added Successfully",
+      product: savedProduct,
     });
 
-
-
-  }
-  catch(error){
+  } catch (error) {
 
     res.status(500).json({
-
-      success:false,
-
-      message:error.message
-
+      success: false,
+      message:
+        error.message,
     });
 
   }
-
 };
-
-
-
 
 
 // ======================
 // GET ALL PRODUCTS
 // ======================
 
-const getAllProducts = async(req,res)=>{
+const getAllProducts = async (
+  req,
+  res
+) => {
 
-  try{
-
+  try {
 
     const products =
       await Product.find()
@@ -262,88 +210,67 @@ const getAllProducts = async(req,res)=>{
         "fullName email phone address"
       );
 
-
     res.status(200).json({
-
-      success:true,
-
-      products
-
+      success: true,
+      products,
     });
 
-
-  }
-  catch(error){
+  } catch (error) {
 
     res.status(500).json({
-
-      success:false,
-
-      message:error.message
-
+      success: false,
+      message:
+        error.message,
     });
 
   }
-
 };
-
-
-
 
 
 // ======================
 // GET MY PRODUCTS
 // ======================
 
-const getMyProducts = async(req,res)=>{
+const getMyProducts = async (
+  req,
+  res
+) => {
 
-  try{
-
+  try {
 
     const products =
       await Product.find({
-
-        farmer:req.user._id
-
+        farmer:
+          req.user._id,
       });
 
-
     res.status(200).json({
-
-      success:true,
-
-      products
-
+      success: true,
+      products,
     });
 
-
-  }
-  catch(error){
+  } catch (error) {
 
     res.status(500).json({
-
-      success:false,
-
-      message:error.message
-
+      success: false,
+      message:
+        error.message,
     });
 
   }
-
 };
-
-
-
 
 
 // ======================
 // GET SINGLE PRODUCT
 // ======================
 
-const getProductById = async(req,res)=>{
+const getProductById = async (
+  req,
+  res
+) => {
 
-  try{
-
+  try {
 
     const product =
       await Product.findById(
@@ -354,213 +281,199 @@ const getProductById = async(req,res)=>{
         "fullName email phone address"
       );
 
-
-
-    if(!product){
+    if (!product) {
 
       return res.status(404).json({
-
-        success:false,
-
+        success: false,
         message:
-        "Product Not Found"
-
+          "Product Not Found",
       });
 
     }
 
-
-
     res.status(200).json({
-
-      success:true,
-
-      product
-
+      success: true,
+      product,
     });
 
-
-  }
-  catch(error){
+  } catch (error) {
 
     res.status(500).json({
-
-      success:false,
-
-      message:error.message
-
+      success: false,
+      message:
+        error.message,
     });
 
   }
-
 };
 
 
+// ======================
+// PUBLIC TRACEABILITY
+// ======================
 
+const getProductTrace =
+  async (req, res) => {
+
+    try {
+
+      const product =
+        await Product.findById(
+          req.params.id
+        )
+        .populate(
+          "farmer",
+          "fullName email phone address"
+        )
+        .populate(
+          "shipment.transporter",
+          "fullName email phone address role"
+        );
+
+      if (!product) {
+
+        return res.status(404).json({
+          success: false,
+          message:
+            "Product Not Found",
+        });
+
+      }
+
+      res.status(200).json({
+        success: true,
+        product,
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+        success: false,
+        message:
+          error.message,
+      });
+
+    }
+  };
 
 
 // ======================
 // UPDATE PRODUCT
 // ======================
 
-const updateProduct = async(req,res)=>{
+const updateProduct =
+  async (req, res) => {
 
-  try{
+    try {
 
+      const product =
+        await Product.findById(
+          req.params.id
+        );
 
-    const product =
-      await Product.findById(
-        req.params.id
-      );
+      if (!product) {
 
+        return res.status(404).json({
+          success: false,
+          message:
+            "Product Not Found",
+        });
 
+      }
 
-    if(!product){
+      let imageUrl =
+        product.image;
 
-      return res.status(404).json({
+      if (req.file) {
 
-        success:false,
+        const result =
+          await uploadFromBuffer(
+            req.file.buffer
+          );
 
+        imageUrl =
+          result.secure_url;
+      }
+
+      const updated =
+        await Product.findByIdAndUpdate(
+
+          req.params.id,
+
+          {
+            ...req.body,
+
+            name:
+              req.body.name ||
+              req.body.productName ||
+              product.name,
+
+            image:
+              imageUrl,
+          },
+
+          {
+            new: true,
+          }
+
+        );
+
+      res.status(200).json({
+        success: true,
+        product:
+          updated,
+      });
+
+    } catch (error) {
+
+      res.status(500).json({
+        success: false,
         message:
-        "Product Not Found"
-
+          error.message,
       });
 
     }
-
-
-
-    let imageUrl =
-      product.image;
-
-
-
-    if(req.file){
-
-      const result =
-        await uploadFromBuffer(
-          req.file.buffer
-        );
-
-
-      imageUrl =
-        result.secure_url;
-
-    }
-
-
-
-    const updated =
-      await Product.findByIdAndUpdate(
-
-        req.params.id,
-
-        {
-
-          ...req.body,
-
-          name:
-          req.body.name ||
-          req.body.productName ||
-          product.name,
-
-          image:imageUrl
-
-        },
-
-        {
-          new:true
-        }
-
-      );
-
-
-
-    res.status(200).json({
-
-      success:true,
-
-      product:updated
-
-    });
-
-
-
-  }
-  catch(error){
-
-    res.status(500).json({
-
-      success:false,
-
-      message:error.message
-
-    });
-
-  }
-
-};
-
-
-
+  };
 
 
 // ======================
 // DELETE PRODUCT
 // ======================
 
-const deleteProduct = async(req,res)=>{
+const deleteProduct =
+  async (req, res) => {
 
-  try{
+    try {
 
+      await Product.findByIdAndDelete(
+        req.params.id
+      );
 
-    await Product.findByIdAndDelete(
-      req.params.id
-    );
+      res.status(200).json({
+        success: true,
+        message:
+          "Product Deleted",
+      });
 
+    } catch (error) {
 
-    res.status(200).json({
+      res.status(500).json({
+        success: false,
+        message:
+          error.message,
+      });
 
-      success:true,
-
-      message:
-      "Product Deleted"
-
-    });
-
-
-
-  }
-  catch(error){
-
-    res.status(500).json({
-
-      success:false,
-
-      message:error.message
-
-    });
-
-  }
-
-};
-
-
-
+    }
+  };
 
 
 module.exports = {
-
   addProduct,
-
   getAllProducts,
-
   getMyProducts,
-
   getProductById,
-
+  getProductTrace,
   updateProduct,
-
-  deleteProduct
-
+  deleteProduct,
+  generateTraceabilityAssets,
 };

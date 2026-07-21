@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { Edit2, Trash2, Eye, MoreVertical, Plus, Search, X, Save } from 'lucide-react';
+import { Edit2, Trash2, Eye, MoreVertical, Plus, Search, X, Save, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../contexts/ProductContext';
@@ -423,21 +423,32 @@ export default function MyProducts() {
                 <p className="text-sm text-accent-muted mb-1">Certification</p>
                 <p className="font-semibold text-emerald-600">{selectedProduct.certification}</p>
               </div>
-              <div className="flex gap-3 pt-6">
+              <div className="flex flex-wrap gap-3 pt-6">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  onClick={() => {
+                    navigate(`/trace/${selectedProduct.id || selectedProduct._id}`);
+                    setShowDetailModal(false);
+                  }}
+                  className="flex-1 min-w-[180px] px-4 py-2 border border-emerald-200 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors font-medium flex items-center justify-center gap-2"
+                >
+                  <ExternalLink size={18} />
+                  View Traceability
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   onClick={() => {
                     handleEditClick(selectedProduct);
                     setShowDetailModal(false);
                   }}
-                  className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium"
+                  className="flex-1 min-w-[140px] px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium"
                 >
                   Edit Product
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   onClick={() => setShowDetailModal(false)}
-                  className="flex-1 px-4 py-2 border border-surface-alt rounded-lg hover:bg-surface-alt transition-colors font-medium"
+                  className="flex-1 min-w-[120px] px-4 py-2 border border-surface-alt rounded-lg hover:bg-surface-alt transition-colors font-medium"
                 >
                   Close
                 </motion.button>

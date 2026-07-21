@@ -1,71 +1,200 @@
 const mongoose = require("mongoose");
 
+
 const productSchema = new mongoose.Schema(
-{
+  {
+
+    // Farmer who owns the product
     farmer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+
+    // Product Information
+
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+
+    category: {
+      type: String,
+      required: true,
+    },
+
+
+    quantity: {
+      type: Number,
+      required: true,
+    },
+
+
+    price: {
+      type: Number,
+      required: true,
+    },
+
+
+    location: {
+      type: String,
+      default: "",
+    },
+
+
+    description: {
+      type: String,
+      default: "",
+    },
+
+
+    image: {
+      type: String,
+      default: "",
+    },
+
+
+    // Farming Details
+
+    harvestDate: {
+      type: Date,
+    },
+
+
+    organicCertified: {
+      type: Boolean,
+      default: true,
+    },
+
+
+    certificationNumber: {
+      type: String,
+      default: "",
+    },
+
+
+
+    // QR Traceability
+
+    qrCode: {
+      type: String,
+      default: "",
+    },
+
+
+    traceabilityId: {
+      type: String,
+      default: "",
+    },
+
+
+
+    // Shipment Information
+
+    shipment: {
+
+      transporter: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required:true
+      },
+
+
+      updates: [
+
+        {
+          stage: {
+            type: String,
+            default: "",
+          },
+
+          status: {
+            type: String,
+            enum: ["Pending", "Picked", "In Transit", "Delivered", "Delayed", "Completed"],
+            default: "Pending",
+          },
+
+          date: {
+            type: Date,
+          },
+
+          location: {
+            type: String,
+            default: "",
+          },
+
+          description: {
+            type: String,
+            default: "",
+          },
+
+          icon: {
+            type: String,
+            default: "",
+          },
+        },
+
+      ],
+
+
+      status: {
+        type: String,
+
+        enum: [
+          "Pending",
+          "Picked",
+          "In Transit",
+          "Delivered",
+        ],
+
+        default: "Pending",
+      },
+
+
+      currentLocation: {
+        type: String,
+        default: "",
+      },
+
+
+      estimatedDelivery: {
+        type: Date,
+      },
+
     },
 
-    name:{
-        type:String,
-        required:true
-    },
 
-    category:{
-        type:String
-    },
 
-    quantity:{
-        type:Number
-    },
+    // Admin Approval
 
-    price:{
-        type:Number
-    },
+    status: {
 
-    description:{
-        type:String
-    },
+      type: String,
 
-    location:{
-        type:String
-    },
+      enum: [
+        "Pending",
+        "Approved",
+        "Rejected",
+      ],
 
-    unit:{
-        type:String,
-        default:"kg"
-    },
+      default: "Pending",
 
-    image:{
-        type:String
-    },
-
-    harvestDate:{
-        type:Date
     },
 
 
-    qrCode:{
-        type:String
-    },
+  },
 
-    traceabilityId:{
-        type:String,
-        unique:true,
-        sparse:true
-    }
+  {
+    timestamps: true,
+  }
 
-
-},
-{
-    timestamps:true
-});
+);
 
 
 module.exports =
 mongoose.model(
-    "Product",
-    productSchema
+  "Product",
+  productSchema
 );
