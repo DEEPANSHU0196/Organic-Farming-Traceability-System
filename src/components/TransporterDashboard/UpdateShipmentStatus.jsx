@@ -22,11 +22,15 @@ export default function UpdateShipmentStatus() {
           status: s.status,
           currentLocation: s.currentLocation || 'Warehouse',
           progress: s.status === 'Assigned' ? 10 : s.status === 'Picked Up' ? 20 : s.status === 'In Transit' ? 50 : s.status === 'Out for Delivery' ? 80 : s.status === 'Delivered' ? 100 : 0,
-          nextStop: s.deliveryAddress?.city || 'Destination',
+          nextStop: s.order?.buyer?.address || 'Destination',
           eta: s.eta || 'Pending',
           temperature: 'N/A',
           humidity: 'N/A',
           notes: s.notes || 'No notes',
+          farmerName: s.order?.product?.farmer?.fullName || 'Farmer',
+          farmerPhone: s.order?.product?.farmer?.phone || 'N/A',
+          buyerName: s.order?.buyer?.fullName || 'Buyer',
+          buyerPhone: s.order?.buyer?.phone || 'N/A',
         })));
       }
     } catch (error) {
@@ -73,23 +77,36 @@ export default function UpdateShipmentStatus() {
     }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (selectedShipment && updateData.status) {
-      setShipments(
-        shipments.map(s =>
-          s.id === selectedShipment.id
-            ? {
-                ...s,
-                status: updateData.status,
-                currentLocation: updateData.location || s.currentLocation,
-                notes: updateData.notes || s.notes,
-              }
-            : s
-        )
-      );
-      setShowUpdateModal(false);
-      setSelectedShipment(null);
-      setUpdateData({ status: '', location: '', notes: '', photo: null });
+      try {
+        await api.put(`/shipments/${selectedShipment.id}`, {
+          status: updateData.status,
+          currentLocation: updateData.location || selectedShipment.currentLocation,
+          notes: updateData.notes || selectedShipment.notes,
+        });
+        
+        setShipments(
+          shipments.map(s =>
+            s.id === selectedShipment.id
+              ? {
+                  ...s,
+                  status: updateData.status,
+                  currentLocation: updateData.location || s.currentLocation,
+                  notes: updateData.notes || s.notes,
+                  progress: updateData.status === 'Assigned' ? 10 : updateData.status === 'Picked Up' ? 20 : updateData.status === 'In Transit' ? 50 : updateData.status === 'Out for Delivery' ? 80 : updateData.status === 'Delivered' ? 100 : s.progress
+                }
+              : s
+          )
+        );
+        setShowUpdateModal(false);
+        setSelectedShipment(null);
+        setUpdateData({ status: '', location: '', notes: '', photo: null });
+        alert('Shipment status updated successfully!');
+      } catch (error) {
+        console.error('Error updating shipment:', error);
+        alert('Failed to update shipment status.');
+      }
     }
   };
 
@@ -175,8 +192,18 @@ export default function UpdateShipmentStatus() {
               <div className="flex items-start gap-3">
                 <Truck size={18} className="text-purple-600 mt-0.5 flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-gray-500 font-semibold">NEXT STOP</p>
-                  <p className="text-sm font-medium text-gray-800">{shipment.nextStop}</p>
+                  <p className="text-xs text-gray-500 font-semibold">PICKUP (FARMER)</p>
+                  <p className="text-sm font-medium text-gray-800">{shipment.farmerName}</p>
+                  <p className="text-xs text-gray-600">📞 {shipment.farmerPhone}</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3">
+                <MapPin size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-xs text-gray-500 font-semibold">DROPOFF (BUYER)</p>
+                  <p className="text-sm font-medium text-gray-800">{shipment.buyerName}</p>
+                  <p className="text-xs text-gray-600">📞 {shipment.buyerPhone}</p>
                 </div>
               </div>
 

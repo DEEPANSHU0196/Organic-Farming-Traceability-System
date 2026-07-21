@@ -24,3 +24,5 @@ export const updateProductById = (id, payload) => {
   return api.put(`/products/${id}`, payload);
 };
 export const deleteProductById = (id) => api.delete(`/products/${id}`);
+export const generateQRCode = (productId) => api.post(`/qr/generate/${productId}`);
+export const getQRCode = (productId) => api.get(`/qr/${productId}`);

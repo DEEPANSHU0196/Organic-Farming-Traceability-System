@@ -5,6 +5,13 @@ import { useBuyer } from '../../contexts/BuyerContext';
 export default function ShoppingCart({ onCheckout }) {
   const { cart, removeFromCart, updateCartQuantity } = useBuyer();
 
+  const renderProductImage = (image, className) => {
+    if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
+      return <img src={image} alt="Product" className={className} />;
+    }
+    return <span className={className}>{image || '🌾'}</span>;
+  };
+
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
@@ -43,8 +50,8 @@ export default function ShoppingCart({ onCheckout }) {
               className="bg-white rounded-lg shadow-md border border-surface-alt p-4 flex gap-4"
             >
               {/* Product Image */}
-              <div className="h-24 w-24 bg-gradient-to-br from-emerald-100 to-green-200 rounded-lg flex items-center justify-center text-4xl flex-shrink-0">
-                {item.image}
+              <div className="h-24 w-24 bg-gradient-to-br from-emerald-100 to-green-200 rounded-lg flex items-center justify-center text-4xl flex-shrink-0 overflow-hidden">
+                {renderProductImage(item.image, 'h-full w-full object-cover')}
               </div>
 
               {/* Product Info */}

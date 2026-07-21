@@ -84,14 +84,18 @@ const buildTraceabilityUrl = (productId) =>
 const generateTraceabilityAssets = async (product) => {
   const traceUrl = buildTraceabilityUrl(product._id);
   const qrCode = await QRCode.toDataURL(traceUrl);
+  const traceabilityId = `TRACE-${product._id}`;
 
-  product.qrCode = qrCode;
-  product.traceabilityId = `TRACE-${product._id}`;
-  await product.save();
+  // Use findByIdAndUpdate to avoid triggering full schema validation
+  await Product.findByIdAndUpdate(
+    product._id,
+    { qrCode, traceabilityId },
+    { runValidators: false }
+  );
 
   return {
     qrCode,
-    traceabilityId: product.traceabilityId,
+    traceabilityId,
     traceUrl,
   };
 };

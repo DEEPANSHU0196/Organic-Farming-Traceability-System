@@ -19,6 +19,7 @@ const shipmentRoutes = require("./routes/shipmentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const qrRoutes = require("./routes/qrRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 
 
 const getAllowedOrigins = () => {
@@ -189,7 +190,11 @@ app.use(
   qrRoutes
 );
 
-
+// Notifications
+app.use(
+  "/api/notifications",
+  notificationRoutes
+);
 
 
 

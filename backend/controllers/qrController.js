@@ -42,25 +42,21 @@ const generateProductQR = async (
         traceUrl
       );
 
-    // Save into DB
-    product.qrCode =
-      qrCode;
+    const traceabilityId = `TRACE-${product._id}`;
 
-    product.traceabilityId =
-      `TRACE-${product._id}`;
-
-    await product.save();
+    // Use findByIdAndUpdate to avoid triggering full schema validation
+    // (old products may have stale/invalid enum values in other fields)
+    await Product.findByIdAndUpdate(
+      product._id,
+      { qrCode, traceabilityId },
+      { runValidators: false }
+    );
 
     res.status(200).json({
       success: true,
-      message:
-        "QR Generated Successfully",
-
-      traceabilityId:
-        product.traceabilityId,
-
+      message: "QR Generated Successfully",
+      traceabilityId,
       traceUrl,
-
       qrCode,
     });
 

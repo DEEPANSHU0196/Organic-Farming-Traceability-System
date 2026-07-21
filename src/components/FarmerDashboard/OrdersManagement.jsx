@@ -277,6 +277,13 @@ export default function OrdersManagement() {
             </div>
 
             <div className="p-6 space-y-6">
+              {selectedOrder.status === 'Accepted' && (
+                <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
+                  <CheckCircle size={18} />
+                  <p className="text-sm font-medium">A transporter has been automatically assigned to this order and they will contact you for pickup.</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="font-bold text-primary mb-3">Order Information</h3>

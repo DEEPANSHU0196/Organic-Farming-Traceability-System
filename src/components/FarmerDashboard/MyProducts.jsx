@@ -1,8 +1,9 @@
 import { motion } from 'motion/react';
-import { Edit2, Trash2, Eye, MoreVertical, Plus, Search, X, Save, ExternalLink } from 'lucide-react';
+import { Edit2, Trash2, Eye, MoreVertical, Plus, Search, X, Save, ExternalLink, QrCode, Loader } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../contexts/ProductContext';
+import { generateQRCode } from '../../api/product';
 
 export default function MyProducts() {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export default function MyProducts() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [editFormData, setEditFormData] = useState(null);
+  const [qrGenerating, setQrGenerating] = useState(false);
   const [newProductData, setNewProductData] = useState({
     name: '',
     category: 'Wheat',
@@ -98,6 +100,35 @@ export default function MyProducts() {
   const handleEditClick = (product) => {
     setEditFormData({ ...product });
     setShowEditModal(true);
+  };
+
+  const handleGenerateQR = async (productId) => {
+    try {
+      setQrGenerating(true);
+      const response = await generateQRCode(productId);
+      
+      if (response.data.success) {
+        // Update selected product with new QR
+        const updatedProduct = {
+          ...selectedProduct,
+          qrCode: response.data.qrCode,
+          traceabilityId: response.data.traceabilityId,
+        };
+        setSelectedProduct(updatedProduct);
+        
+        // Refresh products context
+        const updatedProducts = products.map(p => 
+          (p.id === productId || p._id === productId) ? updatedProduct : p
+        );
+        // Force re-render by updating context
+        alert('QR Code generated successfully!');
+      }
+    } catch (error) {
+      console.error('Error generating QR:', error);
+      alert(`Error generating QR: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setQrGenerating(false);
+    }
   };
 
   const renderProductImage = (image, className) => {
@@ -424,6 +455,33 @@ export default function MyProducts() {
                 <p className="font-semibold text-emerald-600">{selectedProduct.certification}</p>
               </div>
               <div className="flex flex-wrap gap-3 pt-6">
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  disabled={qrGenerating || selectedProduct.qrCode}
+                  onClick={() => handleGenerateQR(selectedProduct.id || selectedProduct._id)}
+                  className={`flex-1 min-w-[140px] px-4 py-2 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${
+                    selectedProduct.qrCode
+                      ? 'bg-green-100 text-green-700 cursor-not-allowed'
+                      : 'bg-blue-500 text-white hover:bg-blue-600'
+                  } ${qrGenerating ? 'opacity-50' : ''}`}
+                >
+                  {qrGenerating ? (
+                    <>
+                      <Loader size={18} className="animate-spin" />
+                      Generating...
+                    </>
+                  ) : selectedProduct.qrCode ? (
+                    <>
+                      <QrCode size={18} />
+                      QR Generated
+                    </>
+                  ) : (
+                    <>
+                      <QrCode size={18} />
+                      Generate QR
+                    </>
+                  )}
+                </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   onClick={() => {

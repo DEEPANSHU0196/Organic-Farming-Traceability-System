@@ -16,6 +16,8 @@ const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const shipmentRoutes = require("./routes/shipmentRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const qrRoutes = require("./routes/qrRoutes");
+const reviewRoutes = require("./routes/reviewRoutes");
 
 
 // Middleware
@@ -75,6 +77,10 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/shipments", shipmentRoutes);
 
 app.use("/api/admin", adminRoutes);
+
+app.use("/api/qr", qrRoutes);
+
+app.use("/api/reviews", reviewRoutes);
 
 
 

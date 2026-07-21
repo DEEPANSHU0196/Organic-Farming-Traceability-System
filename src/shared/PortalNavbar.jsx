@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Menu, Bell, Search, User, Settings, LogOut, X, ChevronDown, Leaf } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationCenter from '../components/TransporterDashboard/NotificationCenter';
 
 const ROLE_CONFIG = {
   farmer: {
@@ -138,7 +139,10 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
       <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
 
         {/* Notifications */}
-        <div className="relative" ref={notifRef}>
+        {role === 'transporter' ? (
+          <NotificationCenter />
+        ) : (
+          <div className="relative" ref={notifRef}>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
@@ -204,7 +208,8 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
+          </div>
+        )}
 
         {/* Divider */}
         <div className="w-px h-6 bg-slate-200 mx-1" />

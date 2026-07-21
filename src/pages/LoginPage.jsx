@@ -64,6 +64,7 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [errors, setErrors] = useState({});
   const [loginSuccess, setLoginSuccess] = useState(false);
   const [loginError, setLoginError] = useState('');
@@ -463,16 +464,25 @@ export default function LoginPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Password</label>
-                      <input
-                        key={`register-password-${selectedRole || 'default'}`}
-                        type="password"
-                        value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
-                        placeholder="Create a password"
-                        autoComplete="new-password"
-                        name="registerPassword"
-                        className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none bg-slate-50 focus:bg-white focus:border-slate-400"
-                      />
+                      <div className="relative">
+                        <input
+                          key={`register-password-${selectedRole || 'default'}`}
+                          type={showRegisterPassword ? 'text' : 'password'}
+                          value={registerPassword}
+                          onChange={(e) => setRegisterPassword(e.target.value)}
+                          placeholder="Create a password"
+                          autoComplete="new-password"
+                          name="registerPassword"
+                          className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none bg-slate-50 focus:bg-white focus:border-slate-400 pr-12"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowRegisterPassword(!showRegisterPassword)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                          {showRegisterPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">Account Type</label>

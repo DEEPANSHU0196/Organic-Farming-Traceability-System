@@ -1,5 +1,8 @@
 const Order = require("../models/Order");
 const Product = require("../models/Product");
+const User = require("../models/User");
+const Shipment = require("../models/Shipment");
+const Notification = require("../models/Notification");
 const { buildFarmerOrderView } = require("../utils/orderUtils");
 
 const createOrder = async (req, res) => {
@@ -78,6 +81,49 @@ const updateFarmerOrderStatus = async (req, res) => {
 
     order.status = status;
     await order.save();
+
+    // Auto-create shipment and assign a transporter when accepted
+    if (status === 'Accepted') {
+      const transporter = await User.findOne({ role: 'transporter' });
+      if (transporter) {
+        // Check if shipment already exists to avoid duplicates
+        const existingShipment = await Shipment.findOne({ order: order._id });
+        if (!existingShipment) {
+          const shipment = await Shipment.create({
+            order: order._id,
+            transporter: transporter._id,
+            status: 'Assigned',
+            currentLocation: product.location || 'Farm'
+          });
+
+          // Also set the transporter in the product's shipment traceability
+          product.shipment.transporter = transporter._id;
+          product.shipment.status = 'Pending';
+          product.shipment.updates.push({
+            stage: 'Order Accepted',
+            status: 'Pending',
+            date: new Date(),
+            location: product.location || 'Farm',
+            description: 'Transporter assigned: ' + transporter.fullName,
+            icon: 'CheckCircle'
+          });
+          await product.save({ runValidators: false });
+
+          // Send notification to transporter
+          await Notification.create({
+            recipient: transporter._id,
+            type: 'new_delivery',
+            title: '🚚 New Delivery Assignment',
+            message: `You have a new delivery to pick up: ${product.productName} from ${product.location}. Buyer: ${order.buyer.fullName}`,
+            data: {
+              shipmentId: shipment._id,
+              orderId: order._id,
+              productId: product._id
+            }
+          });
+        }
+      }
+    }
 
     res.status(200).json({ success: true, order: buildFarmerOrderView(await order.populate(["buyer", "product"])) });
   } catch (error) {

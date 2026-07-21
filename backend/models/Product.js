@@ -112,7 +112,8 @@ const productSchema = new mongoose.Schema(
 
           status: {
             type: String,
-            enum: ["Pending", "Picked", "In Transit", "Delivered", "Delayed", "Completed"],
+            enum: ["Pending", "Picked", "In Transit", "Delivered", "Delayed", "Completed", "In Progress",
+                   "pending", "picked", "in transit", "delivered", "delayed", "completed"],
             default: "Pending",
           },
 
@@ -141,14 +142,10 @@ const productSchema = new mongoose.Schema(
 
       status: {
         type: String,
-
         enum: [
-          "Pending",
-          "Picked",
-          "In Transit",
-          "Delivered",
+          "Pending", "Picked", "In Transit", "Delivered",
+          "pending", "picked", "in transit", "delivered",
         ],
-
         default: "Pending",
       },
 
@@ -170,17 +167,12 @@ const productSchema = new mongoose.Schema(
     // Admin Approval
 
     status: {
-
       type: String,
-
       enum: [
-        "Pending",
-        "Approved",
-        "Rejected",
+        "Pending", "Approved", "Rejected",
+        "pending", "approved", "rejected",
       ],
-
       default: "Pending",
-
     },
 
 

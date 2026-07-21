@@ -5,6 +5,13 @@ import { useBuyer } from '../../contexts/BuyerContext';
 export default function OrderTracking() {
   const { orders } = useBuyer();
 
+  const renderProductImage = (image, className) => {
+    if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
+      return <img src={image} alt="Product" className={className} />;
+    }
+    return <span className={className}>{image || '🌾'}</span>;
+  };
+
   const getStatusIcon = (status) => {
     switch (status) {
       case 'Confirmed':
@@ -166,7 +173,9 @@ export default function OrderTracking() {
                   {order.items.map(item => (
                     <div key={item.id} className="flex items-center justify-between bg-surface-alt p-3 rounded-lg">
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl">{item.image}</span>
+                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-green-200 rounded-lg flex-shrink-0 overflow-hidden">
+                          {renderProductImage(item.image, 'h-full w-full object-cover')}
+                        </div>
                         <div>
                           <p className="font-semibold text-primary">{item.name}</p>
                           <p className="text-xs text-accent-muted">

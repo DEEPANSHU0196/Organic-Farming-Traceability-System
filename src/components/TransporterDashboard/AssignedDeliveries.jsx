@@ -1,37 +1,54 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { MapPin, Phone, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { MapPin, Phone, Clock, CheckCircle, XCircle, AlertCircle, Package } from 'lucide-react';
 import { getMyShipments, updateShipment } from '../../api/shipment';
 
 export default function AssignedDeliveries() {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchDeliveries = async () => {
       try {
+        setLoading(true);
+        setError('');
         const response = await getMyShipments();
         if (response?.data?.success) {
-          // Normalize API shipments to match UI fields
-          const formatted = (response.data.shipments || []).map(ship => ({
-            id: ship._id || ship.id,
-            orderId: ship.trackingId || `TRK-${ship._id?.substring(0, 8)}`,
-            farmer: 'Verified Farmer',
-            buyer: 'Verified Buyer',
-            pickupLocation: 'Farmer Coop, Jaipur',
-            deliveryLocation: ship.currentLocation || 'Distribution Hub, New Delhi',
-            product: 'Organic Harvest Produce',
-            priority: 'Medium',
-            assignedTime: new Date(ship.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            deadline: 'Within 24 Hours',
-            status: ship.status || 'New',
-            distance: '120 km',
-            phone: '+91 99999 88888',
-          }));
+          // Use real shipment data instead of hardcoded values
+          const formatted = (response.data.shipments || []).map(ship => {
+            const buyer = ship.buyer || {};
+            const farmer = ship.farmer || {};
+            const order = ship.order || {};
+            
+            return {
+              id: ship._id || ship.id,
+              orderId: ship.trackingId || `TRK-${ship._id?.substring(0, 8)}`,
+              farmerName: farmer.fullName || farmer.name || 'Farmer',
+              farmerPhone: farmer.phone || '+91 98765 43210',
+              farmerLocation: ship.pickupLocation || farmer.location || 'Farm Location',
+              buyerName: buyer.fullName || buyer.name || 'Buyer',
+              buyerPhone: buyer.phone || '+91 99999 88888',
+              deliveryLocation: ship.currentLocation || buyer.address || 'Delivery Location',
+              productName: order.productName || ship.productName || 'Organic Produce',
+              quantity: order.quantity || ship.quantity || '100',
+              unit: order.unit || ship.unit || 'kg',
+              priority: ship.priority || 'Medium',
+              assignedTime: new Date(ship.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              deadline: ship.estimatedDelivery ? new Date(ship.estimatedDelivery).toLocaleDateString() : 'Within 24 Hours',
+              status: ship.status || 'Pending',
+              distance: ship.distanceTravelledKm || '120',
+              createdAt: ship.createdAt,
+              updates: ship.updates || [],
+            };
+          });
           setDeliveries(formatted);
+        } else {
+          setError('No shipments found');
         }
       } catch (error) {
         console.error('Failed to load shipments:', error);
+        setError('Unable to load deliveries. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -41,9 +58,9 @@ export default function AssignedDeliveries() {
 
   const handleAccept = async (id) => {
     try {
-      await updateShipment(id, { status: 'Accepted' });
+      await updateShipment(id, { status: 'Picked' });
       setDeliveries(
-        deliveries.map(d => (d.id === id ? { ...d, status: 'Accepted' } : d))
+        deliveries.map(d => (d.id === id ? { ...d, status: 'Picked' } : d))
       );
     } catch (err) {
       console.error('Failed to accept shipment:', err);
@@ -76,12 +93,16 @@ export default function AssignedDeliveries() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Accepted':
+      case 'Picked':
+        return 'bg-blue-50 border-l-4 border-blue-500';
+      case 'In Transit':
+        return 'bg-orange-50 border-l-4 border-orange-500';
+      case 'Delivered':
         return 'bg-green-50 border-l-4 border-green-500';
       case 'Rejected':
         return 'bg-red-50 border-l-4 border-red-500';
-      case 'New':
-        return 'bg-blue-50 border-l-4 border-blue-500';
+      case 'Pending':
+        return 'bg-gray-50 border-l-4 border-gray-500';
       default:
         return 'bg-gray-50 border-l-4 border-gray-500';
     }
@@ -96,8 +117,36 @@ export default function AssignedDeliveries() {
         transition={{ duration: 0.4 }}
       >
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Assigned Deliveries</h1>
-        <p className="text-gray-600">Review and accept/reject delivery assignments</p>
+        <p className="text-gray-600">Real-time delivery tracking • {deliveries.length} shipment(s)</p>
       </motion.div>
+
+      {/* Error Alert */}
+      {error && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3"
+        >
+          <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+          <p className="text-amber-700">{error}</p>
+        </motion.div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && deliveries.length === 0 && !error && (
+        <div className="text-center py-12 bg-gray-50 rounded-xl">
+          <Package size={48} className="mx-auto text-gray-400 mb-4" />
+          <p className="text-gray-600 text-lg font-medium">No deliveries assigned yet</p>
+          <p className="text-gray-500 text-sm">Check back soon for new delivery assignments</p>
+        </div>
+      )}
 
       {/* Deliveries List */}
       <div className="space-y-4">
@@ -118,10 +167,10 @@ export default function AssignedDeliveries() {
                     {delivery.priority} Priority
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">{delivery.product}</p>
+                <p className="text-sm text-gray-600">{delivery.productName} • {delivery.quantity} {delivery.unit}</p>
               </div>
               <div className="text-right">
-                <p className="text-sm text-gray-600">Distance: <span className="font-semibold text-gray-800">{delivery.distance}</span></p>
+                <p className="text-sm text-gray-600">Distance: <span className="font-semibold text-gray-800">~{delivery.distance} km</span></p>
                 <p className="text-xs text-gray-500 mt-1">Assigned: {delivery.assignedTime}</p>
               </div>
             </div>
@@ -131,24 +180,26 @@ export default function AssignedDeliveries() {
               {/* Pickup */}
               <div className="flex items-start gap-3">
                 <MapPin size={20} className="text-green-600 mt-1 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 font-semibold">PICKUP</p>
-                  <p className="text-sm font-medium text-gray-800">{delivery.pickupLocation}</p>
-                  <p className="text-xs text-gray-600 mt-1">{delivery.farmer}</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 font-semibold">PICKUP FROM</p>
+                  <p className="text-sm font-medium text-gray-800">{delivery.farmerLocation}</p>
+                  <p className="text-xs text-gray-600 mt-1"><strong>{delivery.farmerName}</strong></p>
+                  <p className="text-xs text-blue-600 mt-1">{delivery.farmerPhone}</p>
                 </div>
               </div>
 
               {/* Delivery */}
               <div className="flex items-start gap-3">
                 <MapPin size={20} className="text-blue-600 mt-1 flex-shrink-0" />
-                <div className="flex-1">
-                  <p className="text-xs text-gray-500 font-semibold">DELIVERY</p>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 font-semibold">DELIVERY TO</p>
                   <p className="text-sm font-medium text-gray-800">{delivery.deliveryLocation}</p>
-                  <p className="text-xs text-gray-600 mt-1">{delivery.buyer}</p>
+                  <p className="text-xs text-gray-600 mt-1"><strong>{delivery.buyerName}</strong></p>
+                  <p className="text-xs text-blue-600 mt-1">{delivery.buyerPhone}</p>
                 </div>
               </div>
 
-              {/* Deadline & Contact */}
+              {/* Deadline & Status */}
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Clock size={16} className="text-orange-600" />
@@ -157,15 +208,22 @@ export default function AssignedDeliveries() {
                     <p className="text-sm font-medium text-gray-800">{delivery.deadline}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Phone size={16} className="text-purple-600" />
-                  <p className="text-sm text-gray-700">{delivery.phone}</p>
+                <div className="text-sm text-gray-600">
+                  <p className="text-xs text-gray-500 font-semibold">CURRENT STATUS</p>
+                  <p className={`font-medium mt-1 ${
+                    delivery.status === 'Picked' ? 'text-blue-700' :
+                    delivery.status === 'In Transit' ? 'text-orange-700' :
+                    delivery.status === 'Delivered' ? 'text-green-700' :
+                    'text-gray-700'
+                  }`}>
+                    {delivery.status}
+                  </p>
                 </div>
               </div>
             </div>
 
             {/* Actions */}
-            {delivery.status === 'New' ? (
+            {['Pending'].includes(delivery.status) ? (
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}
@@ -183,17 +241,28 @@ export default function AssignedDeliveries() {
                   className="px-6 py-2 bg-green-100 text-green-700 hover:bg-green-200 rounded-lg font-semibold transition-colors flex items-center gap-2"
                 >
                   <CheckCircle size={18} />
-                  Accept
+                  Accept & Pick Up
                 </motion.button>
               </div>
             ) : (
               <div className="flex justify-end">
-                <span className={`px-4 py-2 rounded-lg font-semibold text-sm ${
-                  delivery.status === 'Accepted'
+                <span className={`px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 ${
+                  delivery.status === 'Picked'
+                    ? 'bg-blue-100 text-blue-800'
+                    : delivery.status === 'In Transit'
+                    ? 'bg-orange-100 text-orange-800'
+                    : delivery.status === 'Delivered'
                     ? 'bg-green-200 text-green-800'
                     : 'bg-red-200 text-red-800'
                 }`}>
-                  {delivery.status === 'Accepted' ? '✓ Accepted' : '✗ Rejected'}
+                  {delivery.status === 'Picked' && '📦'}
+                  {delivery.status === 'In Transit' && '🚚'}
+                  {delivery.status === 'Delivered' && '✓'}
+                  {delivery.status === 'Rejected' && '✗'}
+                  {delivery.status === 'Picked' ? 'Picked Up' :
+                   delivery.status === 'In Transit' ? 'In Transit' :
+                   delivery.status === 'Delivered' ? 'Delivered' :
+                   'Rejected'}
                 </span>
               </div>
             )}

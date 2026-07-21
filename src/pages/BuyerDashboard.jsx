@@ -20,6 +20,7 @@ import ProductDetails from '../components/BuyerPortal/ProductDetails';
 const NAV_ITEMS = [
   { id: 'overview',  label: 'Dashboard',       icon: LayoutDashboard },
   { id: 'browse',    label: 'Browse Products',  icon: Search },
+  { id: 'cart',      label: 'Shopping Cart',    icon: ShoppingBag },
   { id: 'orders',    label: 'Orders',           icon: ShoppingBag },
   { id: 'wishlist',  label: 'Wishlist',         icon: Heart },
   { id: 'payments',  label: 'Payments',         icon: CreditCard },
@@ -44,10 +45,15 @@ export default function BuyerDashboard() {
     navigate('/');
   };
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (cart.length > 0) {
-      placeOrder({ deliveryAddress: '123 Main St, New Delhi', paymentMethod: 'COD' });
-      handleSectionChange('orders');
+      try {
+        await placeOrder({ notes: 'Please deliver safely' });
+        alert('Order placed successfully! The farmer has been notified.');
+        handleSectionChange('orders');
+      } catch (error) {
+        alert('Failed to place order. Please try again.');
+      }
     }
   };
 
@@ -55,6 +61,7 @@ export default function BuyerDashboard() {
     switch (activeSection) {
       case 'overview':  return <BuyerDashboardOverview onNavigate={handleSectionChange} />;
       case 'browse':    return <BrowseProducts onProductSelect={setSelectedProduct} />;
+      case 'cart':      return <ShoppingCart onCheckout={handleCheckout} />;
       case 'orders':    return <OrderTracking />;
       case 'wishlist':  return <BuyerWishlist onBrowse={() => handleSectionChange('browse')} />;
       case 'payments':  return <BuyerPayments />;

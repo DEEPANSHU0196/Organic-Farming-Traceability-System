@@ -12,6 +12,7 @@ import DriverManagement from '../components/TransporterDashboard/DriverManagemen
 import RouteTracking from '../components/TransporterDashboard/RouteTracking';
 import ReportsSection from '../components/TransporterDashboard/ReportsSection';
 import TransporterSettings from '../components/TransporterDashboard/TransporterSettings';
+import NotificationCenter from '../components/TransporterDashboard/NotificationCenter';
 
 const NAV_ITEMS = [
   { id: 'overview',   label: 'Dashboard',  icon: LayoutDashboard },

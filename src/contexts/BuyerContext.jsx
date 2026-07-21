@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchAllProducts } from '../api/product';
 import { fetchAllReviews, addReview as apiAddReview, deleteReview as apiDeleteReview } from '../api/review';
+import { createOrder, fetchBuyerOrders } from '../api/order';
 import { useAuth } from './AuthContext';
 
 const BuyerContext = createContext();
@@ -77,9 +78,10 @@ export const BuyerProvider = ({ children }) => {
       setError('');
 
       try {
-        const [productsRes, reviewsRes] = await Promise.all([
+        const [productsRes, reviewsRes, ordersRes] = await Promise.all([
           fetchAllProducts(),
-          fetchAllReviews()
+          fetchAllReviews(),
+          fetchBuyerOrders().catch(() => ({ data: { orders: [] } }))
         ]);
         
         const apiProducts = Array.isArray(productsRes?.data?.products) ? productsRes.data.products : [];
@@ -87,6 +89,24 @@ export const BuyerProvider = ({ children }) => {
         
         if (reviewsRes?.data?.success) {
           setReviews(reviewsRes.data.reviews || []);
+        }
+        if (ordersRes?.data?.success) {
+          // Format API orders to match local UI structure
+          const apiOrders = (ordersRes.data.orders || []).map(o => ({
+            id: o._id,
+            status: o.status || 'Pending',
+            createdAt: o.createdAt,
+            deliveryDate: o.createdAt, // Just dummy date for now
+            items: [{
+              ...o.product,
+              id: o.product._id,
+              name: o.product.productName,
+              price: o.product.price,
+              quantity: o.quantity
+            }],
+            totalAmount: (o.product?.price || 0) * (o.quantity || 1)
+          }));
+          setOrders(apiOrders);
         }
       } catch (err) {
         console.error('Failed to load buyer data:', err);
@@ -157,19 +177,41 @@ export const BuyerProvider = ({ children }) => {
     setCart([]);
   };
 
-  const placeOrder = (orderData) => {
-    const newOrder = {
-      id: `ORD-${Date.now()}`,
-      ...orderData,
-      status: 'Confirmed',
-      createdAt: new Date().toISOString(),
-      deliveryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      items: cart,
-      totalAmount: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-    };
-    setOrders([...orders, newOrder]);
-    setCart([]);
-    return newOrder;
+  const placeOrder = async (orderData) => {
+    try {
+      // Create an order for each item in the cart via API
+      const orderPromises = cart.map(item => 
+        createOrder({
+          product: item.id,
+          quantity: item.quantity,
+          ...orderData
+        })
+      );
+      
+      const responses = await Promise.all(orderPromises);
+      
+      const newOrders = responses.map((res, idx) => {
+        const o = res.data.order;
+        const cartItem = cart[idx];
+        return {
+          id: o._id,
+          status: o.status || 'Confirmed',
+          createdAt: o.createdAt,
+          deliveryDate: o.createdAt,
+          items: [{
+            ...cartItem
+          }],
+          totalAmount: cartItem.price * cartItem.quantity
+        };
+      });
+
+      setOrders([...orders, ...newOrders]);
+      setCart([]);
+      return newOrders;
+    } catch (err) {
+      console.error('Failed to place order:', err);
+      throw err;
+    }
   };
 
   const updateOrderStatus = (orderId, status) => {
