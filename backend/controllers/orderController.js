@@ -137,44 +137,45 @@ const updateFarmerOrderStatus = async (req, res) => {
     if (requestedStatus === "Accepted by Farmer") {
       product.quantity = Math.max(0, Number(product.quantity || 0) - Number(order.quantity));
       await product.save({ runValidators: false });
-      const transporter = await User.findOne({ role: 'transporter' });
-      if (transporter) {
+      // Create open market shipment request and notify all transporters
+      const transporters = await User.find({ role: 'transporter' });
+      if (transporters && transporters.length > 0) {
         // Check if shipment already exists to avoid duplicates
         const existingShipment = await Shipment.findOne({ order: order._id });
         if (!existingShipment) {
           const shipment = await Shipment.create({
             order: order._id,
-            transporter: transporter._id,
+            transporter: null, // Open for claiming
             trackingId: `TRK-${order._id.toString().slice(-8).toUpperCase()}`,
-            status: 'Awaiting Driver Assignment',
+            status: 'Pending Acceptance',
             currentLocation: product.location || 'Farm'
           });
 
-          // Also set the transporter in the product's shipment traceability
-          product.shipment.transporter = transporter._id;
+          // Also set the status in the product's shipment traceability
           product.shipment.status = 'Pending';
           product.shipment.updates.push({
             stage: 'Order Accepted',
             status: 'Pending',
             date: new Date(),
             location: product.location || 'Farm',
-            description: 'Transporter assigned: ' + transporter.fullName,
+            description: 'Awaiting Transporter Acceptance',
             icon: 'CheckCircle'
           });
           await product.save({ runValidators: false });
 
-          // Send notification to transporter
-          await Notification.create({
+          // Broadcast notification to all transporters
+          const notifications = transporters.map(transporter => ({
             recipient: transporter._id,
             type: 'shipment_request',
-            title: 'New shipment request',
-            message: `A shipment request is ready for ${product.name || product.productName || 'produce'} from ${product.location || 'the farm'}. Buyer: ${buyer?.fullName || 'Buyer'}.`,
+            title: 'New delivery request available',
+            message: `A delivery request is available for ${product.name || product.productName || 'produce'} from ${product.location || 'the farm'}. Buyer: ${buyer?.fullName || 'Buyer'}.`,
             data: {
               shipmentId: shipment._id,
               orderId: order._id,
               productId: product._id
             }
-          });
+          }));
+          await Notification.insertMany(notifications);
         }
       }
     }

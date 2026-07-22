@@ -6,6 +6,8 @@ const {
   getMyShipments,
   updateShipment,
   assignDriver,
+  getAvailableShipments,
+  acceptShipmentRequest,
 } = require("../controllers/shipmentController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -24,6 +26,13 @@ router.get(
   getMyShipments
 );
 
+// Get available open requests
+router.get(
+  "/available",
+  protect,
+  getAvailableShipments
+);
+
 // Update shipment
 router.put(
   "/:id",
@@ -35,6 +44,12 @@ router.put(
   "/:id/assign-driver",
   protect,
   assignDriver
+);
+
+router.put(
+  "/:id/accept",
+  protect,
+  acceptShipmentRequest
 );
 
 module.exports = router;

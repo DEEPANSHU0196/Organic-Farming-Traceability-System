@@ -22,6 +22,7 @@ const notificationSchema = new mongoose.Schema(
         "delivery_rejected",
         "delivery_completed",
         "order_update",
+        "shipment_claimed",
       ],
       default: "order_update",
     },

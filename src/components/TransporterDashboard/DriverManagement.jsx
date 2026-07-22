@@ -1,8 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Users, Plus, Edit2, Trash2, Phone, Star } from 'lucide-react';
-
-const initialDrivers = [];
 
 const statusColors = {
   Available: { bg: '#dcfce7', text: '#16a34a' },
@@ -12,7 +10,22 @@ const statusColors = {
 };
 
 export default function DriverManagement() {
-  const [drivers, setDrivers] = useState(initialDrivers);
+  const [drivers, setDrivers] = useState(() => {
+    const saved = localStorage.getItem('transporter_drivers');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('transporter_drivers', JSON.stringify(drivers));
+  }, [drivers]);
+
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ name: '', phone: '', license: '', vehicle: '' });

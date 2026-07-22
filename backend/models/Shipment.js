@@ -36,6 +36,7 @@ const shipmentSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: [
+        "Pending Acceptance",
         "Awaiting Driver Assignment",
         "Driver Assigned",
         "Picked Up from Farm",
@@ -47,7 +48,7 @@ const shipmentSchema = new mongoose.Schema(
         "Picked",
         "Completed",
       ],
-      default: "Awaiting Driver Assignment",
+      default: "Pending Acceptance",
     },
 
     updates: [

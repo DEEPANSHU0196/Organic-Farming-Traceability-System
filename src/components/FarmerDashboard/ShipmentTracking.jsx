@@ -1,37 +1,66 @@
 import { motion } from 'motion/react';
 import { CheckCircle2, Truck, Package, MapPin, Eye, X } from 'lucide-react';
-import { useState } from 'react';
-
-const shipments = [
-  {
-    id: '#SH001',
-    order: '#OD001',
-    status: 'In Transit',
-    progress: 75,
-    currentStep: 3,
-    steps: ['Order Received', 'Packed', 'Picked Up', 'In Transit', 'Delivered'],
-  },
-  {
-    id: '#SH002',
-    order: '#OD002',
-    status: 'Delivered',
-    progress: 100,
-    currentStep: 4,
-    steps: ['Order Received', 'Packed', 'Picked Up', 'In Transit', 'Delivered'],
-  },
-  {
-    id: '#SH003',
-    order: '#OD004',
-    status: 'Packed',
-    progress: 40,
-    currentStep: 1,
-    steps: ['Order Received', 'Packed', 'Picked Up', 'In Transit', 'Delivered'],
-  },
-];
+import { useState, useEffect } from 'react';
+import { getMyShipments, updateShipment } from '../../api/shipment';
 
 export default function ShipmentTracking() {
+  const [shipments, setShipments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedShipment, setSelectedShipment] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
+
+  const fetchShipments = async () => {
+    try {
+      const response = await getMyShipments();
+      const fetched = response?.data?.shipments || [];
+      const mapped = fetched.map(ship => {
+        const steps = ['Pending Farmer Approval', 'Accepted by Farmer', 'Driver Assigned', 'Picked Up from Farm', 'In Transit', 'Out for Delivery', 'Delivered'];
+        let currentStatus = ship.status;
+        if (currentStatus === 'Awaiting Driver Assignment') currentStatus = 'Accepted by Farmer';
+        if (currentStatus === 'Picked') currentStatus = 'Picked Up from Farm';
+        
+        const currentStep = steps.indexOf(currentStatus) >= 0 ? steps.indexOf(currentStatus) : 1;
+        const progress = Math.min(100, Math.max(0, Math.round((currentStep / (steps.length - 1)) * 100)));
+        
+        return {
+          id: ship.trackingId || `TRK-${ship._id?.substring(0, 8)}`,
+          _id: ship._id,
+          order: ship.order?._id,
+          status: currentStatus,
+          progress,
+          currentStep,
+          steps,
+          driverName: ship.driverName,
+          driverContactNumber: ship.driverContactNumber,
+          vehicleNumber: ship.vehicleNumber,
+          estimatedDeliveryDate: ship.estimatedDeliveryDate,
+          currentLocation: ship.currentLocation,
+          buyerName: ship.order?.buyer?.fullName,
+          deliveryLocation: ship.order?.buyer?.address,
+          productName: ship.order?.product?.name || ship.order?.product?.productName,
+          createdAt: ship.createdAt
+        };
+      });
+      setShipments(mapped);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to load shipments:", err);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchShipments();
+  }, []);
+
+  const handleStatusUpdate = async (id, newStatus) => {
+    try {
+      await updateShipment(id, { status: newStatus });
+      fetchShipments(); // Refresh to get updated status and timeline
+    } catch (err) {
+      console.error(`Failed to update shipment status to ${newStatus}:`, err);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -41,6 +70,16 @@ export default function ShipmentTracking() {
       </div>
 
       {/* Shipments */}
+      {loading ? (
+        <div className="flex justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+        </div>
+      ) : shipments.length === 0 ? (
+        <div className="text-center py-16 bg-white rounded-lg border border-surface-alt">
+          <Truck size={48} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-accent-muted text-lg">No active shipments</p>
+        </div>
+      ) : (
       <div className="space-y-6">
         {shipments.map((shipment, idx) => (
           <motion.div
@@ -121,33 +160,52 @@ export default function ShipmentTracking() {
               ))}
             </div>
 
+            <div className="flex gap-3 justify-end mt-4">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     onClick={() => {
                       setSelectedShipment(shipment);
                       setShowDetailModal(true);
                     }}
-                    className="px-3 py-1 bg-emerald-500 text-white rounded text-xs font-medium hover:bg-emerald-600 transition-colors flex items-center gap-1"
+                    className="px-4 py-2 bg-emerald-500 text-white rounded-lg text-sm font-medium hover:bg-emerald-600 transition-colors flex items-center gap-2"
                   >
-                    <Eye size={14} />
+                    <Eye size={16} />
                     Details
                   </motion.button>
+                  {shipment.status === 'Driver Assigned' && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => handleStatusUpdate(shipment._id, 'Picked Up from Farm')}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <CheckCircle2 size={16} />
+                      Confirm Handover to Driver
+                    </motion.button>
+                  )}
+            </div>
             <div className="mt-6 pt-6 border-t border-surface-alt grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                { icon: '📦', label: 'Current Location', value: 'Delhi Hub' },
-                { icon: '📞', label: 'Carrier', value: 'FastFreight Co.' },
-                { icon: '🚚', label: 'Estimated Delivery', value: '2025-12-20' },
-                { icon: '📍', label: 'Destination', value: 'Jaipur, Raj.' },
-              ].map((detail, idx) => (
-                <div key={idx}>
-                  <p className="text-sm text-accent-muted mb-1">{detail.label}</p>
-                  <p className="font-medium text-primary">{detail.value}</p>
-                </div>
-              ))}
+              <div>
+                <p className="text-sm text-accent-muted mb-1">📦 Current Location</p>
+                <p className="font-medium text-primary">{shipment.currentLocation || 'Farm'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-accent-muted mb-1">📞 Driver</p>
+                <p className="font-medium text-primary">{shipment.driverName || 'Awaiting'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-accent-muted mb-1">🚚 Delivery Date</p>
+                <p className="font-medium text-primary">{shipment.estimatedDeliveryDate ? new Date(shipment.estimatedDeliveryDate).toLocaleDateString() : 'Pending'}</p>
+              </div>
+              <div>
+                <p className="text-sm text-accent-muted mb-1">📍 Destination</p>
+                <p className="font-medium text-primary truncate" title={shipment.deliveryLocation}>{shipment.deliveryLocation || 'Buyer Address'}</p>
+              </div>
             </div>
           </motion.div>
         ))}
       </div>
+      )}
       {/* Shipment Detail Modal */}
       {showDetailModal && selectedShipment && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -199,12 +257,17 @@ export default function ShipmentTracking() {
                   <h3 className="font-bold text-primary mb-3">Tracking Details</h3>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-xs text-accent-muted">Carrier</p>
-                      <p className="font-semibold text-primary">FastFreight Co.</p>
+                      <p className="text-xs text-accent-muted">Driver</p>
+                      <p className="font-semibold text-primary">{selectedShipment.driverName || 'Not Assigned'}</p>
+                      {selectedShipment.driverContactNumber && <p className="text-xs text-accent-muted mt-1">{selectedShipment.driverContactNumber}</p>}
                     </div>
                     <div>
-                      <p className="text-xs text-accent-muted">Tracking Number</p>
-                      <p className="font-mono text-sm text-primary">TRK-2025-98765-4321</p>
+                      <p className="text-xs text-accent-muted">Vehicle Number</p>
+                      <p className="font-mono text-sm text-primary">{selectedShipment.vehicleNumber || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-accent-muted">Tracking ID</p>
+                      <p className="font-mono text-sm text-primary">{selectedShipment.id}</p>
                     </div>
                     <div>
                       <p className="text-xs text-accent-muted">Progress</p>
@@ -259,11 +322,7 @@ export default function ShipmentTracking() {
                       <div className="pt-2">
                         <p className="font-semibold text-primary">{step}</p>
                         <p className="text-xs text-accent-muted">
-                          {idx === 0 && 'Initiated on 2025-12-15'}
-                          {idx === 1 && 'Completed on 2025-12-16'}
-                          {idx === 2 && 'Completed on 2025-12-16'}
-                          {idx === 3 && idx <= selectedShipment.currentStep ? 'In progress' : 'Pending'}
-                          {idx === 4 && idx <= selectedShipment.currentStep ? 'Completed' : 'Pending'}
+                          {idx <= selectedShipment.currentStep ? 'Completed' : 'Pending'}
                         </p>
                       </div>
                     </motion.div>
@@ -275,11 +334,11 @@ export default function ShipmentTracking() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
                 <div>
                   <p className="text-sm text-accent-muted mb-1">📍 Current Location</p>
-                  <p className="font-semibold text-primary">Delhi Hub, Delhi</p>
+                  <p className="font-semibold text-primary">{selectedShipment.currentLocation || 'Farm'}</p>
                 </div>
                 <div>
                   <p className="text-sm text-accent-muted mb-1">🎯 Destination</p>
-                  <p className="font-semibold text-primary">Jaipur, Rajasthan</p>
+                  <p className="font-semibold text-primary truncate">{selectedShipment.deliveryLocation || 'Buyer Address'}</p>
                 </div>
               </div>
 

@@ -12,7 +12,7 @@ import OrdersManagement from '../components/FarmerDashboard/OrdersManagement';
 import PaymentsSection from '../components/FarmerDashboard/PaymentsSection';
 import ReviewsRatings from '../components/FarmerDashboard/ReviewsRatings';
 import FarmerSettings from '../components/FarmerDashboard/FarmerSettings';
-import FarmerShipmentTracking from '../components/FarmerDashboard/FarmerShipmentTracking';
+import ShipmentTracking from '../components/FarmerDashboard/ShipmentTracking';
 
 const NAV_ITEMS = [
   { id: 'overview',     label: 'Dashboard',    icon: LayoutDashboard },
@@ -45,7 +45,7 @@ export default function FarmerDashboard() {
       case 'my-products': return <MyProducts />;
       case 'add-product': return <AddProductForm />;
       case 'orders':      return <OrdersManagement />;
-      case 'shipments':   return <FarmerShipmentTracking />;
+      case 'shipments':   return <ShipmentTracking />;
       case 'payments':    return <PaymentsSection />;
       case 'reviews':     return <ReviewsRatings />;
       case 'settings':    return <FarmerSettings />;

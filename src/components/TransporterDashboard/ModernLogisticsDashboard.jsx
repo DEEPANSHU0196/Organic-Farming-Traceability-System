@@ -161,14 +161,17 @@ export default function ModernLogisticsDashboard() {
     },
   ];
 
-  const recentDeliveries = shipments.slice(0, 5).map(ship => ({
-    id: ship._id || ship.id,
-    order: ship.trackingId || `TRK-${ship._id?.substring(0, 8)}`,
-    location: ship.currentLocation || 'Distribution Hub, Delhi',
-    status: ship.status || 'Assigned',
-    eta: ship.status === 'Completed' ? 'Done' : 'ETA 24h',
-    distance: '145 km',
-  }));
+  const recentDeliveries = shipments.slice(0, 5).map(ship => {
+    const destination = ship.order?.buyer?.address || 'Destination';
+    return {
+      id: ship._id || ship.id,
+      order: ship.trackingId || `TRK-${ship._id?.substring(0, 8)}`,
+      location: destination.length > 25 ? destination.substring(0, 25) + '...' : destination,
+      status: ship.status || 'Assigned',
+      eta: ship.status === 'Completed' || ship.status === 'Delivered' ? 'Done' : (ship.estimatedDeliveryDate ? new Date(ship.estimatedDeliveryDate).toLocaleDateString() : 'Pending'),
+      distance: ship.distanceTravelledKm ? `${ship.distanceTravelledKm} km` : '145 km',
+    };
+  });
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -200,74 +203,6 @@ export default function ModernLogisticsDashboard() {
 
   return (
     <div className="w-full h-full bg-slate-50">
-      {/* Top Navbar */}
-      <motion.div
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-        className="sticky top-0 z-30 bg-white border-b border-slate-200 shadow-sm"
-      >
-        <div className="px-6 py-4 flex items-center justify-between gap-4">
-          {/* Menu Button for Mobile */}
-          <motion.button
-            onClick={toggleSidebar}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="md:hidden p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-          >
-            <Menu size={20} />
-          </motion.button>
-
-          {/* Search Bar */}
-          <div className="flex-1 max-w-md">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 text-slate-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search deliveries, orders..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:bg-white transition-all text-sm"
-              />
-            </div>
-          </div>
-
-          {/* Right Icons */}
-          <div className="flex items-center gap-3">
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <Bell size={20} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <Settings size={20} />
-            </motion.button>
-
-            {/* User Profile */}
-            <motion.div
-              whileHover={{ scale: 1.02 }}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-slate-100 rounded-lg cursor-pointer transition-colors ml-2"
-            >
-              <div className="w-8 h-8 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center text-white text-sm font-semibold">
-                {initials}
-              </div>
-              <div className="hidden sm:block text-sm">
-                <p className="font-semibold text-slate-800">{displayName}</p>
-                <p className="text-xs text-slate-500">Transporter</p>
-              </div>
-            </motion.div>
-          </div>
-        </div>
-      </motion.div>
-
       {/* Main Content */}
       <div className="p-6 space-y-6 overflow-auto">
         {/* Header */}

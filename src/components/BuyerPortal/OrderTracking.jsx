@@ -1,9 +1,10 @@
 import { motion } from 'motion/react';
 import { Package, Truck, Check, Clock, MapPin, Calendar } from 'lucide-react';
 import { useBuyer } from '../../contexts/BuyerContext';
+import { updateShipment } from '../../api/shipment';
 
 export default function OrderTracking() {
-  const { orders = [], shipments = [] } = useBuyer();
+  const { orders = [], shipments = [], refreshData } = useBuyer();
 
   const getShipment = (orderId) => shipments.find((shipment) => shipment.order?._id === orderId || shipment.order === orderId);
   const getCurrentStatus = (order) => getShipment(order.id)?.status || order.status || 'Pending Farmer Approval';
@@ -62,6 +63,17 @@ export default function OrderTracking() {
       'Delivered': 100,
     };
     return statusMap[status] || 0;
+  };
+
+  const handleConfirmReceipt = async (orderId) => {
+    const shipment = getShipment(orderId);
+    if (!shipment) return;
+    try {
+      await updateShipment(shipment._id, { status: 'Delivered' });
+      if (refreshData) refreshData();
+    } catch (err) {
+      console.error('Failed to confirm receipt:', err);
+    }
   };
 
   if (orders.length === 0) {
@@ -139,6 +151,20 @@ export default function OrderTracking() {
                   />
                 </div>
               </div>
+
+              {getCurrentStatus(order) === 'Out for Delivery' && (
+                <div className="flex justify-end">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleConfirmReceipt(order.id)}
+                    className="px-6 py-3 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-sm"
+                  >
+                    <Check size={20} />
+                    Confirm Receipt (Mark Delivered)
+                  </motion.button>
+                </div>
+              )}
 
               {/* Status Timeline */}
               <div className="space-y-4">

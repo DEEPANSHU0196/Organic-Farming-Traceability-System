@@ -67,47 +67,48 @@ export const BuyerProvider = ({ children }) => {
     }));
   }, [user]);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError('');
-      try {
-        const [productsRes, reviewsRes, ordersRes, shipmentsRes] = await Promise.all([
-          fetchAllProducts(),
-          fetchAllReviews(),
-          fetchBuyerOrders().catch(() => ({ data: { orders: [] } })),
-          getMyShipments().catch(() => ({ data: { shipments: [] } })),
-        ]);
-        const apiProducts = Array.isArray(productsRes?.data?.products) ? productsRes.data.products : [];
-        setAvailableProducts(apiProducts.map(normalizeProduct));
-        if (reviewsRes?.data?.success) setReviews(reviewsRes.data.reviews || []);
-        if (ordersRes?.data?.success) {
-          setOrders((ordersRes.data.orders || []).map((order) => ({
-            id: order._id,
-            status: order.status || 'Pending',
-            createdAt: order.createdAt,
-            deliveryDate: order.createdAt,
-            items: [{
-              ...order.product,
-              id: order.product?._id,
-              name: order.product?.productName,
-              price: order.product?.price,
-              quantity: order.quantity,
-            }],
-            totalAmount: (order.product?.price || 0) * (order.quantity || 1),
-          })));
-        }
-        setShipments(Array.isArray(shipmentsRes?.data?.shipments) ? shipmentsRes.data.shipments : []);
-      } catch (err) {
-        console.error('Failed to load buyer data:', err);
-        setError(err?.response?.data?.message || 'Unable to load data right now.');
-        setAvailableProducts([]);
-        setReviews([]);
-        setShipments([]);
-      } finally {
-        setLoading(false);
+  const loadData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [productsRes, reviewsRes, ordersRes, shipmentsRes] = await Promise.all([
+        fetchAllProducts(),
+        fetchAllReviews(),
+        fetchBuyerOrders().catch(() => ({ data: { orders: [] } })),
+        getMyShipments().catch(() => ({ data: { shipments: [] } })),
+      ]);
+      const apiProducts = Array.isArray(productsRes?.data?.products) ? productsRes.data.products : [];
+      setAvailableProducts(apiProducts.map(normalizeProduct));
+      if (reviewsRes?.data?.success) setReviews(reviewsRes.data.reviews || []);
+      if (ordersRes?.data?.success) {
+        setOrders((ordersRes.data.orders || []).map((order) => ({
+          id: order._id,
+          status: order.status || 'Pending',
+          createdAt: order.createdAt,
+          deliveryDate: order.createdAt,
+          items: [{
+            ...order.product,
+            id: order.product?._id,
+            name: order.product?.productName,
+            price: order.product?.price,
+            quantity: order.quantity,
+          }],
+          totalAmount: (order.product?.price || 0) * (order.quantity || 1),
+        })));
       }
-    };
+      setShipments(Array.isArray(shipmentsRes?.data?.shipments) ? shipmentsRes.data.shipments : []);
+    } catch (err) {
+      console.error('Failed to load buyer data:', err);
+      setError(err?.response?.data?.message || 'Unable to load data right now.');
+      setAvailableProducts([]);
+      setReviews([]);
+      setShipments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (!authLoading) loadData();
   }, [authLoading]);
 
@@ -174,7 +175,7 @@ export const BuyerProvider = ({ children }) => {
   const isInWishlist = (productId) => wishlist.some((item) => item.id === productId);
 
   return (
-    <BuyerContext.Provider value={{ availableProducts, cart, orders, shipments, reviews, wishlist, buyerProfile, loading, error, addToCart, removeFromCart, updateCartQuantity, clearCart, placeOrder, updateOrderStatus, addReview, removeReview, getProductReviews, updateBuyerProfile, searchProducts, filterProducts, toggleWishlist, isInWishlist }}>
+    <BuyerContext.Provider value={{ availableProducts, cart, orders, shipments, reviews, wishlist, buyerProfile, loading, error, addToCart, removeFromCart, updateCartQuantity, clearCart, placeOrder, updateOrderStatus, addReview, removeReview, getProductReviews, updateBuyerProfile, searchProducts, filterProducts, toggleWishlist, isInWishlist, refreshData: loadData }}>
       {children}
     </BuyerContext.Provider>
   );

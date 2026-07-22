@@ -1,8 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Truck, Plus, Edit2, Trash2, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
-
-const initialVehicles = [];
 
 const statusStyles = {
   Active: { bg: '#dcfce7', text: '#16a34a', icon: CheckCircle },
@@ -12,7 +10,22 @@ const statusStyles = {
 };
 
 export default function VehicleManagement() {
-  const [vehicles, setVehicles] = useState(initialVehicles);
+  const [vehicles, setVehicles] = useState(() => {
+    const saved = localStorage.getItem('transporter_vehicles');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem('transporter_vehicles', JSON.stringify(vehicles));
+  }, [vehicles]);
+
   const [showForm, setShowForm] = useState(false);
   const [search, setSearch] = useState('');
   const [newVehicle, setNewVehicle] = useState({ regNo: '', type: 'Tempo', capacity: '', driver: '', fuel: 'Diesel' });
