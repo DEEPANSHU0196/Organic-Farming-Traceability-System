@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Phone, Clock, CheckCircle, XCircle, AlertCircle, Package } from 'lucide-react';
-import { getMyShipments, updateShipment } from '../../api/shipment';
+import { getMyShipments, updateShipment, assignDriver } from '../../api/shipment';
 
 export default function AssignedDeliveries() {
   const [deliveries, setDeliveries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [assignmentDrafts, setAssignmentDrafts] = useState({});
 
   useEffect(() => {
     const fetchDeliveries = async () => {
@@ -36,7 +37,11 @@ export default function AssignedDeliveries() {
               priority: ship.priority || 'Medium',
               assignedTime: new Date(ship.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
               deadline: ship.estimatedDelivery ? new Date(ship.estimatedDelivery).toLocaleDateString() : 'Within 24 Hours',
-              status: ship.status || 'Pending',
+              status: ship.status || 'Awaiting Driver Assignment',
+              driverName: ship.driverName || '',
+              driverContactNumber: ship.driverContactNumber || '',
+              vehicleNumber: ship.vehicleNumber || '',
+              estimatedDeliveryDate: ship.estimatedDeliveryDate || '',
               distance: ship.distanceTravelledKm || '120',
               createdAt: ship.createdAt,
               updates: ship.updates || [],
@@ -76,6 +81,29 @@ export default function AssignedDeliveries() {
     } catch (err) {
       console.error('Failed to reject shipment:', err);
     }
+  };
+
+  const handleAssignDriver = async (id) => {
+    try {
+      const response = await assignDriver(id, assignmentDrafts[id] || {});
+      const updated = response?.data?.shipment;
+      setDeliveries((current) => current.map((delivery) => delivery.id === id
+        ? {
+          ...delivery,
+          status: updated?.status || 'Driver Assigned',
+          driverName: updated?.driverName || assignmentDrafts[id]?.driverName || '',
+          driverContactNumber: updated?.driverContactNumber || assignmentDrafts[id]?.driverContactNumber || '',
+          vehicleNumber: updated?.vehicleNumber || assignmentDrafts[id]?.vehicleNumber || '',
+          estimatedDeliveryDate: updated?.estimatedDeliveryDate || assignmentDrafts[id]?.estimatedDeliveryDate || '',
+        }
+        : delivery));
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Unable to assign this driver.');
+    }
+  };
+
+  const updateDraft = (id, field, value) => {
+    setAssignmentDrafts((current) => ({ ...current, [id]: { ...current[id], [field]: value } }));
   };
 
   const getPriorityColor = (priority) => {
@@ -222,8 +250,53 @@ export default function AssignedDeliveries() {
               </div>
             </div>
 
+            {delivery.status !== 'Awaiting Driver Assignment' && delivery.driverName && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4 rounded-lg bg-white/70 border border-gray-200 p-4">
+                <div>
+                  <p className="text-xs text-gray-500 font-semibold">DRIVER</p>
+                  <p className="text-sm font-semibold text-gray-800">{delivery.driverName}</p>
+                  <p className="text-xs text-blue-600">{delivery.driverContactNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-semibold">VEHICLE</p>
+                  <p className="text-sm font-semibold text-gray-800">{delivery.vehicleNumber}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500 font-semibold">ESTIMATED DELIVERY</p>
+                  <p className="text-sm font-semibold text-gray-800">
+                    {delivery.estimatedDeliveryDate
+                      ? new Date(delivery.estimatedDeliveryDate).toLocaleDateString()
+                      : 'Not provided'}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Actions */}
-            {['Pending'].includes(delivery.status) ? (
+            {delivery.status === 'Awaiting Driver Assignment' ? (
+              <div className="grid grid-cols-1 md:grid-cols-5 gap-2 items-end">
+                {[
+                  ['driverName', 'Driver Name', 'text'],
+                  ['driverContactNumber', 'Driver Contact', 'tel'],
+                  ['vehicleNumber', 'Vehicle Number', 'text'],
+                  ['estimatedDeliveryDate', 'Estimated Delivery', 'date'],
+                ].map(([field, label, type]) => (
+                  <label key={field} className="text-xs text-gray-600">
+                    {label}
+                    <input
+                      required
+                      type={type}
+                      value={assignmentDrafts[delivery.id]?.[field] || ''}
+                      onChange={(event) => updateDraft(delivery.id, field, event.target.value)}
+                      className="mt-1 w-full rounded border border-gray-300 px-2 py-2 text-sm"
+                    />
+                  </label>
+                ))}
+                <button type="button" onClick={() => handleAssignDriver(delivery.id)} className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold">
+                  Assign Driver
+                </button>
+              </div>
+            ) : ['Pending'].includes(delivery.status) ? (
               <div className="flex gap-3 justify-end">
                 <motion.button
                   whileHover={{ scale: 1.02 }}

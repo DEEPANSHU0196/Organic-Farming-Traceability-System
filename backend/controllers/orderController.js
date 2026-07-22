@@ -7,9 +7,34 @@ const { buildFarmerOrderView } = require("../utils/orderUtils");
 
 const createOrder = async (req, res) => {
   try {
+    const { product: productId, quantity, notes } = req.body;
+    const product = await Product.findById(productId).populate("farmer", "fullName email");
+    const requestedQuantity = Number(quantity);
+
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+    if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
+      return res.status(400).json({ success: false, message: "Quantity must be a positive whole number" });
+    }
+    if (requestedQuantity > Number(product.quantity || 0)) {
+      return res.status(400).json({ success: false, message: "Requested quantity is not available" });
+    }
+
     const order = await Order.create({
-      ...req.body,
+      product: product._id,
+      quantity: requestedQuantity,
       buyer: req.user._id,
+      notes,
+      status: "Pending Farmer Approval",
+    });
+
+    await Notification.create({
+      recipient: product.farmer._id,
+      type: "new_order",
+      title: "New order awaiting approval",
+      message: `${req.user.fullName || "A buyer"} placed an order for ${requestedQuantity} unit(s) of ${product.name || product.productName || "your product"}.`,
+      data: { orderId: order._id, productId: product._id },
     });
 
     res.status(201).json({
@@ -28,7 +53,7 @@ const getMyOrders = async (req, res) => {
   try {
     const orders = await Order.find({
       buyer: req.user._id,
-    }).populate("product").populate("buyer");
+    }).populate("product").populate("buyer").sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -49,7 +74,7 @@ const getFarmerOrders = async (req, res) => {
 
     const orders = await Order.find({ product: { $in: productIds } })
       .populate("buyer", "fullName email phone address")
-      .populate("product", "productName price unit location")
+      .populate("product", "name productName price unit location")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -67,7 +92,12 @@ const getFarmerOrders = async (req, res) => {
 const updateFarmerOrderStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
+    const { status, rejectionReason } = req.body;
+    const requestedStatus = status === "Accepted" ? "Accepted by Farmer" : status === "Rejected" ? "Rejected by Farmer" : status;
+
+    if (!["Accepted by Farmer", "Rejected by Farmer"].includes(requestedStatus)) {
+      return res.status(400).json({ success: false, message: "Status must be Accepted by Farmer or Rejected by Farmer" });
+    }
 
     const order = await Order.findById(id);
     if (!order) {
@@ -79,11 +109,34 @@ const updateFarmerOrderStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: "You can only manage your own orders" });
     }
 
-    order.status = status;
+    if (order.status !== "Pending Farmer Approval" && order.status !== "Pending") {
+      return res.status(409).json({ success: false, message: "This order has already been reviewed" });
+    }
+
+    if (requestedStatus === "Accepted by Farmer" && Number(order.quantity) > Number(product.quantity || 0)) {
+      return res.status(400).json({ success: false, message: "Product quantity is no longer available" });
+    }
+
+    order.status = requestedStatus;
+    order.rejectionReason = requestedStatus === "Rejected by Farmer" ? (rejectionReason || "Product is unavailable") : "";
     await order.save();
 
-    // Auto-create shipment and assign a transporter when accepted
-    if (status === 'Accepted') {
+    const buyer = await User.findById(order.buyer).select("fullName");
+
+    if (requestedStatus === "Rejected by Farmer") {
+      await Notification.create({
+        recipient: order.buyer,
+        type: "order_rejected",
+        title: "Order rejected by farmer",
+        message: `Your order for ${product.name || product.productName || "the product"} was rejected. Reason: ${order.rejectionReason}`,
+        data: { orderId: order._id, productId: product._id },
+      });
+    }
+
+    // Create one shipment request after acceptance and notify the transporter.
+    if (requestedStatus === "Accepted by Farmer") {
+      product.quantity = Math.max(0, Number(product.quantity || 0) - Number(order.quantity));
+      await product.save({ runValidators: false });
       const transporter = await User.findOne({ role: 'transporter' });
       if (transporter) {
         // Check if shipment already exists to avoid duplicates
@@ -92,7 +145,8 @@ const updateFarmerOrderStatus = async (req, res) => {
           const shipment = await Shipment.create({
             order: order._id,
             transporter: transporter._id,
-            status: 'Assigned',
+            trackingId: `TRK-${order._id.toString().slice(-8).toUpperCase()}`,
+            status: 'Awaiting Driver Assignment',
             currentLocation: product.location || 'Farm'
           });
 
@@ -112,9 +166,9 @@ const updateFarmerOrderStatus = async (req, res) => {
           // Send notification to transporter
           await Notification.create({
             recipient: transporter._id,
-            type: 'new_delivery',
-            title: '🚚 New Delivery Assignment',
-            message: `You have a new delivery to pick up: ${product.productName} from ${product.location}. Buyer: ${order.buyer.fullName}`,
+            type: 'shipment_request',
+            title: 'New shipment request',
+            message: `A shipment request is ready for ${product.name || product.productName || 'produce'} from ${product.location || 'the farm'}. Buyer: ${buyer?.fullName || 'Buyer'}.`,
             data: {
               shipmentId: shipment._id,
               orderId: order._id,
@@ -123,6 +177,16 @@ const updateFarmerOrderStatus = async (req, res) => {
           });
         }
       }
+    }
+
+    if (requestedStatus === "Accepted by Farmer") {
+      await Notification.create({
+        recipient: order.buyer,
+        type: "order_accepted",
+        title: "Order accepted by farmer",
+        message: "Your order has been accepted and is waiting for shipment assignment.",
+        data: { orderId: order._id, productId: product._id },
+      });
     }
 
     res.status(200).json({ success: true, order: buildFarmerOrderView(await order.populate(["buyer", "product"])) });

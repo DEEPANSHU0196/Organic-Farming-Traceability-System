@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { fetchAllProducts } from '../api/product';
 import { fetchAllReviews, addReview as apiAddReview, deleteReview as apiDeleteReview } from '../api/review';
 import { createOrder, fetchBuyerOrders } from '../api/order';
+import { getMyShipments } from '../api/shipment';
 import { useAuth } from './AuthContext';
 
 const BuyerContext = createContext();
@@ -34,32 +35,26 @@ const normalizeProduct = (product) => {
 export const BuyerProvider = ({ children }) => {
   const { user, loading: authLoading } = useAuth();
   const [availableProducts, setAvailableProducts] = useState([]);
-
-  // Lazy initializers — read from localStorage on first render, before any effect fires.
-  // This prevents the save-effect from overwriting stored data before the load-effect reads it.
+  const [shipments, setShipments] = useState([]);
   const [cart, setCart] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('buyerCart') || '[]'); }
-    catch { return []; }
+    try { return JSON.parse(localStorage.getItem('buyerCart') || '[]'); } catch { return []; }
   });
   const [orders, setOrders] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('buyerOrders') || '[]'); }
-    catch { return []; }
+    try { return JSON.parse(localStorage.getItem('buyerOrders') || '[]'); } catch { return []; }
   });
   const [wishlist, setWishlist] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('buyerWishlist') || '[]'); }
-    catch { return []; }
+    try { return JSON.parse(localStorage.getItem('buyerWishlist') || '[]'); } catch { return []; }
   });
   const [reviews, setReviews] = useState([]);
   const [buyerProfile, setBuyerProfile] = useState(() => {
     try {
       const saved = localStorage.getItem('buyerProfile');
       if (saved) return JSON.parse(saved);
-    } catch { /* ignore */ }
+    } catch { /* Ignore invalid saved profile data. */ }
     return { name: '', email: '', phone: '', address: '', savedAddresses: [] };
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
 
   useEffect(() => {
     if (!user) return;
@@ -76,267 +71,110 @@ export const BuyerProvider = ({ children }) => {
     const loadData = async () => {
       setLoading(true);
       setError('');
-
       try {
-        const [productsRes, reviewsRes, ordersRes] = await Promise.all([
+        const [productsRes, reviewsRes, ordersRes, shipmentsRes] = await Promise.all([
           fetchAllProducts(),
           fetchAllReviews(),
-          fetchBuyerOrders().catch(() => ({ data: { orders: [] } }))
+          fetchBuyerOrders().catch(() => ({ data: { orders: [] } })),
+          getMyShipments().catch(() => ({ data: { shipments: [] } })),
         ]);
-        
         const apiProducts = Array.isArray(productsRes?.data?.products) ? productsRes.data.products : [];
         setAvailableProducts(apiProducts.map(normalizeProduct));
-        
-        if (reviewsRes?.data?.success) {
-          setReviews(reviewsRes.data.reviews || []);
-        }
+        if (reviewsRes?.data?.success) setReviews(reviewsRes.data.reviews || []);
         if (ordersRes?.data?.success) {
-          // Format API orders to match local UI structure
-          const apiOrders = (ordersRes.data.orders || []).map(o => ({
-            id: o._id,
-            status: o.status || 'Pending',
-            createdAt: o.createdAt,
-            deliveryDate: o.createdAt, // Just dummy date for now
+          setOrders((ordersRes.data.orders || []).map((order) => ({
+            id: order._id,
+            status: order.status || 'Pending',
+            createdAt: order.createdAt,
+            deliveryDate: order.createdAt,
             items: [{
-              ...o.product,
-              id: o.product._id,
-              name: o.product.productName,
-              price: o.product.price,
-              quantity: o.quantity
+              ...order.product,
+              id: order.product?._id,
+              name: order.product?.productName,
+              price: order.product?.price,
+              quantity: order.quantity,
             }],
-            totalAmount: (o.product?.price || 0) * (o.quantity || 1)
-          }));
-          setOrders(apiOrders);
+            totalAmount: (order.product?.price || 0) * (order.quantity || 1),
+          })));
         }
+        setShipments(Array.isArray(shipmentsRes?.data?.shipments) ? shipmentsRes.data.shipments : []);
       } catch (err) {
         console.error('Failed to load buyer data:', err);
         setError(err?.response?.data?.message || 'Unable to load data right now.');
         setAvailableProducts([]);
         setReviews([]);
+        setShipments([]);
       } finally {
         setLoading(false);
       }
     };
-
-    // Don't fetch until AuthContext has finished its initialization effect.
-    // authLoading is true on the very first render; once it turns false the
-    // token is confirmed in localStorage and the interceptor will attach it.
-    if (!authLoading) {
-      loadData();
-    }
+    if (!authLoading) loadData();
   }, [authLoading]);
 
-  useEffect(() => {
-    localStorage.setItem('buyerCart', JSON.stringify(cart));
-  }, [cart]);
-
-  useEffect(() => {
-    localStorage.setItem('buyerOrders', JSON.stringify(orders));
-  }, [orders]);
-
-  // Reviews are stored on server, don't persist them via localStorage here anymore
-
-  useEffect(() => {
-    localStorage.setItem('buyerProfile', JSON.stringify(buyerProfile));
-  }, [buyerProfile]);
-
-  useEffect(() => {
-    localStorage.setItem('buyerWishlist', JSON.stringify(wishlist));
-  }, [wishlist]);
+  useEffect(() => { localStorage.setItem('buyerCart', JSON.stringify(cart)); }, [cart]);
+  useEffect(() => { localStorage.setItem('buyerOrders', JSON.stringify(orders)); }, [orders]);
+  useEffect(() => { localStorage.setItem('buyerProfile', JSON.stringify(buyerProfile)); }, [buyerProfile]);
+  useEffect(() => { localStorage.setItem('buyerWishlist', JSON.stringify(wishlist)); }, [wishlist]);
 
   const addToCart = (product, quantity) => {
-    const existingItem = cart.find((item) => item.id === product.id);
-    if (existingItem) {
-      setCart(cart.map((item) =>
-        item.id === product.id
-          ? { ...item, quantity: item.quantity + quantity }
-          : item
-      ));
-    } else {
-      setCart([...cart, { ...product, quantity }]);
-    }
+    setCart((currentCart) => {
+      const existingItem = currentCart.find((item) => item.id === product.id);
+      if (existingItem) {
+        return currentCart.map((item) => item.id === product.id
+          ? { ...item, quantity: item.quantity + quantity } : item);
+      }
+      return [...currentCart, { ...product, quantity }];
+    });
   };
-
-  const removeFromCart = (productId) => {
-    setCart(cart.filter((item) => item.id !== productId));
-  };
-
+  const removeFromCart = (productId) => setCart((currentCart) => currentCart.filter((item) => item.id !== productId));
   const updateCartQuantity = (productId, quantity) => {
-    if (quantity <= 0) {
-      removeFromCart(productId);
-    } else {
-      setCart(cart.map((item) =>
-        item.id === productId
-          ? { ...item, quantity }
-          : item
-      ));
-    }
+    if (quantity <= 0) return removeFromCart(productId);
+    setCart((currentCart) => currentCart.map((item) => item.id === productId ? { ...item, quantity } : item));
   };
-
-  const clearCart = () => {
-    setCart([]);
-  };
+  const clearCart = () => setCart([]);
 
   const placeOrder = async (orderData) => {
-    try {
-      // Create an order for each item in the cart via API
-      const orderPromises = cart.map(item => 
-        createOrder({
-          product: item.id,
-          quantity: item.quantity,
-          ...orderData
-        })
-      );
-      
-      const responses = await Promise.all(orderPromises);
-      
-      const newOrders = responses.map((res, idx) => {
-        const o = res.data.order;
-        const cartItem = cart[idx];
-        return {
-          id: o._id,
-          status: o.status || 'Confirmed',
-          createdAt: o.createdAt,
-          deliveryDate: o.createdAt,
-          items: [{
-            ...cartItem
-          }],
-          totalAmount: cartItem.price * cartItem.quantity
-        };
-      });
-
-      setOrders([...orders, ...newOrders]);
-      setCart([]);
-      return newOrders;
-    } catch (err) {
-      console.error('Failed to place order:', err);
-      throw err;
-    }
+    const responses = await Promise.all(cart.map((item) => createOrder({ product: item.id, quantity: item.quantity, ...orderData })));
+    const newOrders = responses.map((response, index) => {
+      const order = response.data.order;
+      const cartItem = cart[index];
+      return {
+        id: order._id,
+        status: order.status || 'Confirmed',
+        createdAt: order.createdAt,
+        deliveryDate: order.createdAt,
+        items: [{ ...cartItem }],
+        totalAmount: cartItem.price * cartItem.quantity,
+      };
+    });
+    setOrders((currentOrders) => [...currentOrders, ...newOrders]);
+    clearCart();
+    return newOrders;
   };
-
-  const updateOrderStatus = (orderId, status) => {
-    setOrders(orders.map((order) =>
-      order.id === orderId
-        ? { ...order, status }
-        : order
-    ));
-  };
+  const updateOrderStatus = (orderId, status) => setOrders((currentOrders) => currentOrders.map((order) => order.id === orderId ? { ...order, status } : order));
 
   const addReview = async (productId, reviewData) => {
-    try {
-      const payload = {
-        productId,
-        ...reviewData
-      };
-      const response = await apiAddReview(payload);
-      const newReview = response.data.review;
-      
-      setReviews([...reviews, newReview]);
-
-      // Update local product rating stats immediately
-      setAvailableProducts(availableProducts.map((product) => {
-        if (product.id === productId) {
-          const productReviews = reviews.filter((r) => r.product === productId).concat([newReview]);
-          const avgRating = productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length;
-          return { ...product, rating: avgRating, reviews: productReviews.length };
-        }
-        return product;
-      }));
-      return newReview;
-    } catch (error) {
-      console.error('Failed to add review:', error);
-      throw error;
-    }
+    const response = await apiAddReview({ productId, ...reviewData });
+    const newReview = response.data.review;
+    setReviews((currentReviews) => [...currentReviews, newReview]);
+    return newReview;
   };
-
-  const removeReview = async (reviewId, productId) => {
-    try {
-      await apiDeleteReview(reviewId);
-      const updatedReviews = reviews.filter((r) => r._id !== reviewId && r.id !== reviewId);
-      setReviews(updatedReviews);
-
-      // Update local product rating stats immediately
-      setAvailableProducts(availableProducts.map((product) => {
-        if (product.id === productId) {
-          const productReviews = updatedReviews.filter((r) => r.product === productId);
-          const avgRating = productReviews.length > 0 
-            ? productReviews.reduce((sum, r) => sum + r.rating, 0) / productReviews.length 
-            : 0;
-          return { ...product, rating: avgRating, reviews: productReviews.length };
-        }
-        return product;
-      }));
-    } catch (error) {
-      console.error('Failed to remove review:', error);
-      throw error;
-    }
+  const removeReview = async (reviewId) => {
+    await apiDeleteReview(reviewId);
+    setReviews((currentReviews) => currentReviews.filter((review) => review._id !== reviewId && review.id !== reviewId));
   };
-
-  const getProductReviews = (productId) => {
-    return reviews.filter((review) => review.product === productId || review.productId === productId);
-  };
-
-  const updateBuyerProfile = (profileData) => {
-    setBuyerProfile(profileData);
-  };
-
+  const getProductReviews = (productId) => reviews.filter((review) => review.product === productId || review.productId === productId);
+  const updateBuyerProfile = (profileData) => setBuyerProfile(profileData);
   const searchProducts = (query) => {
-    return availableProducts.filter((product) =>
-      product.name.toLowerCase().includes(query.toLowerCase()) ||
-      product.category.toLowerCase().includes(query.toLowerCase()) ||
-      product.description.toLowerCase().includes(query.toLowerCase())
-    );
+    const normalizedQuery = query.toLowerCase();
+    return availableProducts.filter((product) => product.name.toLowerCase().includes(normalizedQuery) || product.category.toLowerCase().includes(normalizedQuery) || product.description.toLowerCase().includes(normalizedQuery));
   };
-
-  const filterProducts = (category, maxPrice, minRating) => {
-    return availableProducts.filter((product) => {
-      const categoryMatch = !category || product.category === category;
-      const priceMatch = !maxPrice || product.price <= maxPrice;
-      const ratingMatch = !minRating || product.rating >= minRating;
-      return categoryMatch && priceMatch && ratingMatch;
-    });
-  };
-
-  const toggleWishlist = (product) => {
-    setWishlist((prev) => {
-      if (prev.find((item) => item.id === product.id)) {
-        return prev.filter((item) => item.id !== product.id);
-      }
-      return [...prev, product];
-    });
-  };
-
-  const isInWishlist = (productId) => {
-    return wishlist.some((item) => item.id === productId);
-  };
+  const filterProducts = (category, maxPrice, minRating) => availableProducts.filter((product) => (!category || product.category === category) && (!maxPrice || product.price <= maxPrice) && (!minRating || product.rating >= minRating));
+  const toggleWishlist = (product) => setWishlist((currentWishlist) => currentWishlist.some((item) => item.id === product.id) ? currentWishlist.filter((item) => item.id !== product.id) : [...currentWishlist, product]);
+  const isInWishlist = (productId) => wishlist.some((item) => item.id === productId);
 
   return (
-    <BuyerContext.Provider
-      value={{
-        availableProducts,
-        cart,
-        orders,
-        reviews,
-        wishlist,
-        buyerProfile,
-        loading,
-        error,
-        addToCart,
-        removeFromCart,
-        updateCartQuantity,
-        clearCart,
-        placeOrder,
-        updateOrderStatus,
-        addReview,
-        removeReview,
-        getProductReviews,
-        updateBuyerProfile,
-        searchProducts,
-        filterProducts,
-        toggleWishlist,
-        isInWishlist,
-      }}
-    >
+    <BuyerContext.Provider value={{ availableProducts, cart, orders, shipments, reviews, wishlist, buyerProfile, loading, error, addToCart, removeFromCart, updateCartQuantity, clearCart, placeOrder, updateOrderStatus, addReview, removeReview, getProductReviews, updateBuyerProfile, searchProducts, filterProducts, toggleWishlist, isInWishlist }}>
       {children}
     </BuyerContext.Provider>
   );
@@ -344,8 +182,6 @@ export const BuyerProvider = ({ children }) => {
 
 export const useBuyer = () => {
   const context = useContext(BuyerContext);
-  if (!context) {
-    throw new Error('useBuyer must be used within BuyerProvider');
-  }
+  if (!context) throw new Error('useBuyer must be used within BuyerProvider');
   return context;
 };

@@ -1,15 +1,64 @@
 const Shipment = require("../models/Shipment");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
+const Notification = require("../models/Notification");
+
+const SHIPMENT_STATUSES = [
+  "Awaiting Driver Assignment",
+  "Driver Assigned",
+  "Picked Up from Farm",
+  "In Transit",
+  "Out for Delivery",
+  "Delivered",
+  "Rejected",
+];
+
+const shipmentPopulate = [
+  { path: "transporter", select: "fullName email phone" },
+  {
+    path: "order",
+    populate: [
+      { path: "buyer", select: "fullName email phone address" },
+      { path: "product", populate: { path: "farmer", select: "fullName email phone address" } },
+    ],
+  },
+];
+
+const notifyParticipants = async (shipment, type, title, message) => {
+  const recipients = [shipment.order?.buyer?._id, shipment.order?.product?.farmer?._id].filter(Boolean);
+  if (recipients.length) {
+    await Notification.insertMany(recipients.map((recipient) => ({
+      recipient,
+      type,
+      title,
+      message,
+      data: { shipmentId: shipment._id, orderId: shipment.order?._id, productId: shipment.order?.product?._id },
+    })));
+  }
+};
 
 const createShipment = async (req, res) => {
   try {
-    const shipment = await Shipment.create(req.body);
+    if (req.user.role !== "transporter") {
+      return res.status(403).json({ success: false, message: "Only transporters can create shipments" });
+    }
+    const order = await Order.findById(req.body.order).populate("product");
+    if (!order || order.status !== "Accepted by Farmer") {
+      return res.status(400).json({ success: false, message: "Only accepted orders can be assigned for shipment" });
+    }
+    const shipment = await Shipment.findOneAndUpdate(
+      { order: order._id },
+      { $setOnInsert: {
+        order: order._id,
+        transporter: req.user._id,
+        trackingId: `TRK-${order._id.toString().slice(-8).toUpperCase()}`,
+        currentLocation: order.product?.location || "Farm",
+        status: "Awaiting Driver Assignment",
+      } },
+      { new: true, upsert: true }
+    ).populate(shipmentPopulate);
 
-    res.status(201).json({
-      success: true,
-      shipment,
-    });
+    res.status(201).json({ success: true, shipment });
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -19,15 +68,15 @@ const createShipment = async (req, res) => {
 };
 const getMyShipments = async (req, res) => {
   try {
-    const shipments = await Shipment.find({ transporter: req.user._id })
-      .populate({
-        path: 'order',
-        populate: [
-          { path: 'buyer', select: 'fullName email phone address' },
-          { path: 'product', populate: { path: 'farmer', select: 'fullName email phone address' } }
-        ]
-      })
-      .sort({ createdAt: -1 });
+    let filter = { transporter: req.user._id };
+    if (req.user.role === "buyer") {
+      filter = { order: { $in: await Order.find({ buyer: req.user._id }).distinct("_id") } };
+    } else if (req.user.role === "farmer") {
+      const productIds = await Product.find({ farmer: req.user._id }).distinct("_id");
+      filter = { order: { $in: await Order.find({ product: { $in: productIds } }).distinct("_id") } };
+    }
+
+    const shipments = await Shipment.find(filter).populate(shipmentPopulate).sort({ updatedAt: -1 });
 
     res.status(200).json({
       success: true,
@@ -43,17 +92,27 @@ const getMyShipments = async (req, res) => {
 
 const updateShipment = async (req, res) => {
   try {
-    const shipment = await Shipment.findByIdAndUpdate(
-      req.params.id,
+    if (req.user.role !== "transporter") {
+      return res.status(403).json({ success: false, message: "Only transporters can update shipment status" });
+    }
+    if (!SHIPMENT_STATUSES.includes(req.body.status)) {
+      return res.status(400).json({ success: false, message: "Invalid shipment status" });
+    }
+    const shipment = await Shipment.findOneAndUpdate(
+      { _id: req.params.id, transporter: req.user._id },
       req.body,
       { new: true }
-    ).populate('order');
+    ).populate(shipmentPopulate);
+
+    if (!shipment) {
+      return res.status(404).json({ success: false, message: "Shipment not found" });
+    }
 
     // Sync with product traceability timeline
     if (shipment && shipment.order) {
-      const order = await Order.findById(shipment.order);
+      const order = shipment.order;
       if (order) {
-        const product = await Product.findById(order.product);
+        const product = await Product.findById(order.product?._id || order.product);
         if (product) {
           product.shipment.status = shipment.status;
           product.shipment.currentLocation = shipment.currentLocation || req.body.location || product.shipment.currentLocation;
@@ -82,6 +141,19 @@ const updateShipment = async (req, res) => {
       }
     }
 
+    const buyerId = shipment.order?.buyer?._id || shipment.order?.buyer;
+    const farmerId = shipment.order?.product?.farmer?._id || shipment.order?.product?.farmer;
+    await Notification.insertMany([buyerId, farmerId].filter(Boolean).map((recipient) => ({
+      recipient,
+      type: "shipment_status_updated",
+      title: "Shipment status updated",
+      message: `Shipment ${shipment.trackingId || ""} is now ${shipment.status}${req.body.currentLocation ? ` at ${req.body.currentLocation}` : ""}.`,
+      data: { shipmentId: shipment._id, orderId: shipment.order?._id, productId: shipment.order?.product?._id },
+    })));
+    if (shipment.status === "Delivered") {
+      await Order.findByIdAndUpdate(shipment.order._id, { status: "Completed" });
+    }
+
     res.status(200).json({
       success: true,
       shipment,
@@ -94,8 +166,43 @@ const updateShipment = async (req, res) => {
   }
 };
 
+const assignDriver = async (req, res) => {
+  try {
+    if (req.user.role !== "transporter") {
+      return res.status(403).json({ success: false, message: "Only transporters can assign drivers" });
+    }
+    const { driverName, driverContactNumber, vehicleNumber, estimatedDeliveryDate } = req.body;
+    if (!driverName || !driverContactNumber || !vehicleNumber || !estimatedDeliveryDate) {
+      return res.status(400).json({ success: false, message: "Driver name, contact, vehicle number, and estimated delivery date are required" });
+    }
+    const shipment = await Shipment.findOneAndUpdate(
+      { _id: req.params.id, transporter: req.user._id },
+      {
+        $set: { driverName, driverContactNumber, vehicleNumber, estimatedDeliveryDate, status: "Driver Assigned" },
+        $push: { updates: { status: "Driver Assigned", notes: "Driver assigned by transporter" } },
+      },
+      { new: true }
+    ).populate(shipmentPopulate);
+    if (!shipment) return res.status(404).json({ success: false, message: "Shipment not found" });
+
+    const buyerId = shipment.order?.buyer?._id || shipment.order?.buyer;
+    const farmerId = shipment.order?.product?.farmer?._id || shipment.order?.product?.farmer;
+    await Notification.insertMany([buyerId, farmerId].filter(Boolean).map((recipient) => ({
+      recipient,
+      type: "driver_assigned",
+      title: "Driver assigned to your shipment",
+      message: `${driverName} (${driverContactNumber}) will deliver your order in vehicle ${vehicleNumber}.`,
+      data: { shipmentId: shipment._id, orderId: shipment.order?._id, productId: shipment.order?.product?._id },
+    })));
+    return res.status(200).json({ success: true, shipment });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   createShipment,
   getMyShipments,
   updateShipment,
+  assignDriver,
 };

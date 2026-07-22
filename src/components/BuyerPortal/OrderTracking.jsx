@@ -3,7 +3,10 @@ import { Package, Truck, Check, Clock, MapPin, Calendar } from 'lucide-react';
 import { useBuyer } from '../../contexts/BuyerContext';
 
 export default function OrderTracking() {
-  const { orders } = useBuyer();
+  const { orders = [], shipments = [] } = useBuyer();
+
+  const getShipment = (orderId) => shipments.find((shipment) => shipment.order?._id === orderId || shipment.order === orderId);
+  const getCurrentStatus = (order) => getShipment(order.id)?.status || order.status || 'Pending Farmer Approval';
 
   const renderProductImage = (image, className) => {
     if (typeof image === 'string' && (image.startsWith('http://') || image.startsWith('https://') || image.startsWith('data:image/'))) {
@@ -14,11 +17,14 @@ export default function OrderTracking() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'Confirmed':
+      case 'Pending Farmer Approval':
+      case 'Accepted by Farmer':
         return <Check size={20} className="text-blue-600" />;
-      case 'Processing':
+      case 'Driver Assigned':
         return <Clock size={20} className="text-yellow-600" />;
-      case 'Shipped':
+      case 'Picked Up from Farm':
+      case 'In Transit':
+      case 'Out for Delivery':
         return <Truck size={20} className="text-orange-600" />;
       case 'Delivered':
         return <Check size={20} className="text-emerald-600" />;
@@ -29,11 +35,14 @@ export default function OrderTracking() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Confirmed':
+      case 'Pending Farmer Approval':
+      case 'Accepted by Farmer':
         return 'bg-blue-100 text-blue-700';
-      case 'Processing':
+      case 'Driver Assigned':
         return 'bg-yellow-100 text-yellow-700';
-      case 'Shipped':
+      case 'Picked Up from Farm':
+      case 'In Transit':
+      case 'Out for Delivery':
         return 'bg-orange-100 text-orange-700';
       case 'Delivered':
         return 'bg-emerald-100 text-emerald-700';
@@ -44,9 +53,12 @@ export default function OrderTracking() {
 
   const getProgressPercentage = (status) => {
     const statusMap = {
-      'Confirmed': 25,
-      'Processing': 50,
-      'Shipped': 75,
+      'Pending Farmer Approval': 15,
+      'Accepted by Farmer': 30,
+      'Driver Assigned': 45,
+      'Picked Up from Farm': 60,
+      'In Transit': 75,
+      'Out for Delivery': 90,
       'Delivered': 100,
     };
     return statusMap[status] || 0;
@@ -101,8 +113,8 @@ export default function OrderTracking() {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-emerald-600">₹{order.totalAmount.toLocaleString()}</p>
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-2 ${getStatusColor(order.status)}`}>
-                    {order.status}
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-2 ${getStatusColor(getCurrentStatus(order))}`}>
+                    {getCurrentStatus(order)}
                   </span>
                 </div>
               </div>
@@ -121,7 +133,7 @@ export default function OrderTracking() {
                 <div className="h-2 bg-surface-alt rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
-                    animate={{ width: `${getProgressPercentage(order.status)}%` }}
+                    animate={{ width: `${getProgressPercentage(getCurrentStatus(order))}%` }}
                     transition={{ delay: 0.2, duration: 0.6 }}
                     className="h-full bg-gradient-to-r from-emerald-500 to-green-500"
                   />
@@ -130,9 +142,11 @@ export default function OrderTracking() {
 
               {/* Status Timeline */}
               <div className="space-y-4">
-                {['Confirmed', 'Processing', 'Shipped', 'Delivered'].map((status, idx) => {
-                  const isCompleted = ['Confirmed', 'Processing', 'Shipped', 'Delivered'].indexOf(order.status) >= idx;
-                  const isActive = order.status === status;
+                {['Pending Farmer Approval', 'Accepted by Farmer', 'Driver Assigned', 'Picked Up from Farm', 'In Transit', 'Out for Delivery', 'Delivered'].map((status, idx) => {
+                  const timeline = ['Pending Farmer Approval', 'Accepted by Farmer', 'Driver Assigned', 'Picked Up from Farm', 'In Transit', 'Out for Delivery', 'Delivered'];
+                  const currentStatus = getCurrentStatus(order);
+                  const isCompleted = timeline.indexOf(currentStatus) >= idx;
+                  const isActive = currentStatus === status;
 
                   return (
                     <div key={status} className="flex gap-4">
@@ -149,7 +163,7 @@ export default function OrderTracking() {
                         >
                           {isCompleted ? getStatusIcon(status) : idx + 1}
                         </motion.div>
-                        {idx < 3 && (
+                        {idx < 6 && (
                           <div className={`w-0.5 h-12 my-2 ${isCompleted ? 'bg-emerald-500' : 'bg-surface-alt'}`} />
                         )}
                       </div>
@@ -165,6 +179,15 @@ export default function OrderTracking() {
                   );
                 })}
               </div>
+
+              {getShipment(order.id)?.driverName && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+                  <h4 className="font-semibold text-primary mb-2">Assigned Driver</h4>
+                  <p className="text-sm text-accent-muted">{getShipment(order.id).driverName} • {getShipment(order.id).driverContactNumber}</p>
+                  <p className="text-sm text-accent-muted">Vehicle: {getShipment(order.id).vehicleNumber}</p>
+                  <p className="text-sm text-accent-muted">Estimated delivery: {new Date(getShipment(order.id).estimatedDeliveryDate).toLocaleDateString()}</p>
+                </div>
+              )}
 
               {/* Order Items */}
               <div className="border-t border-surface-alt pt-6">

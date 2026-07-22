@@ -10,7 +10,19 @@ const notificationSchema = new mongoose.Schema(
 
     type: {
       type: String,
-      enum: ["new_delivery", "delivery_accepted", "delivery_rejected", "delivery_completed", "order_update"],
+      enum: [
+        "new_order",
+        "order_accepted",
+        "order_rejected",
+        "shipment_request",
+        "driver_assigned",
+        "shipment_status_updated",
+        "new_delivery",
+        "delivery_accepted",
+        "delivery_rejected",
+        "delivery_completed",
+        "order_update",
+      ],
       default: "order_update",
     },
 

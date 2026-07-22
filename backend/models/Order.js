@@ -17,11 +17,34 @@ const orderSchema = new mongoose.Schema(
     quantity: {
       type: Number,
       required: true,
+      min: 1,
     },
 
     status: {
       type: String,
-      default: "Pending",
+      enum: [
+        "Pending Farmer Approval",
+        "Accepted by Farmer",
+        "Rejected by Farmer",
+        "Cancelled",
+        "Completed",
+        "Pending",
+        "Accepted",
+        "Rejected",
+      ],
+      default: "Pending Farmer Approval",
+    },
+
+    rejectionReason: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    notes: {
+      type: String,
+      default: "",
+      trim: true,
     },
   },
   {

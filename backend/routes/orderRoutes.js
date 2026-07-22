@@ -14,8 +14,8 @@ const { protect, authorizeRoles } = require("../middleware/authMiddleware");
 router.post("/", protect, createOrder);
 
 router.get("/my", protect, getMyOrders);
-router.get("/farmer", protect, getFarmerOrders);
+router.get("/farmer", protect, authorizeRoles("farmer"), getFarmerOrders);
 router.get("/", protect, authorizeRoles("admin"), getAllOrders);
-router.put("/farmer/:id", protect, updateFarmerOrderStatus);
+router.put("/farmer/:id", protect, authorizeRoles("farmer"), updateFarmerOrderStatus);
 
 module.exports = router;

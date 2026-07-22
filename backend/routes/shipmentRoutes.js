@@ -5,6 +5,7 @@ const {
   createShipment,
   getMyShipments,
   updateShipment,
+  assignDriver,
 } = require("../controllers/shipmentController");
 
 const { protect } = require("../middleware/authMiddleware");
@@ -28,6 +29,12 @@ router.put(
   "/:id",
   protect,
   updateShipment
+);
+
+router.put(
+  "/:id/assign-driver",
+  protect,
+  assignDriver
 );
 
 module.exports = router;

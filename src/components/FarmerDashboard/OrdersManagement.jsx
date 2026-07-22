@@ -43,25 +43,25 @@ export default function OrdersManagement() {
   }, []);
 
   const getStatusIcon = (status) => {
-    if (status === 'Accepted') return <CheckCircle className="text-green-600" size={18} />;
-    if (status === 'Rejected') return <XCircle className="text-red-600" size={18} />;
-    if (status === 'Pending') return <Clock className="text-amber-600" size={18} />;
+    if (status === 'Accepted by Farmer') return <CheckCircle className="text-green-600" size={18} />;
+    if (status === 'Rejected by Farmer') return <XCircle className="text-red-600" size={18} />;
+    if (status === 'Pending Farmer Approval') return <Clock className="text-amber-600" size={18} />;
     return null;
   };
 
   const getStatusColor = (status) => {
     const normalized = (status || '').toLowerCase();
-    if (normalized === 'accepted') return 'bg-green-100 text-green-700';
-    if (normalized === 'rejected') return 'bg-red-100 text-red-700';
-    if (normalized === 'pending') return 'bg-amber-100 text-amber-700';
+    if (normalized === 'accepted by farmer' || normalized === 'accepted') return 'bg-green-100 text-green-700';
+    if (normalized === 'rejected by farmer' || normalized === 'rejected') return 'bg-red-100 text-red-700';
+    if (normalized === 'pending farmer approval' || normalized === 'pending') return 'bg-amber-100 text-amber-700';
     return 'bg-gray-100 text-gray-700';
   };
 
   const normalizeStatus = (status) => {
     const normalized = (status || '').toLowerCase();
-    if (normalized === 'accepted') return 'Accepted';
-    if (normalized === 'rejected') return 'Rejected';
-    return 'Pending';
+    if (normalized === 'accepted by farmer' || normalized === 'accepted') return 'Accepted by Farmer';
+    if (normalized === 'rejected by farmer' || normalized === 'rejected') return 'Rejected by Farmer';
+    return 'Pending Farmer Approval';
   };
 
   const normalizedOrders = orders.map((order) => ({ ...order, status: normalizeStatus(order.status) }));
@@ -79,8 +79,8 @@ export default function OrdersManagement() {
   const stats = {
     total: normalizedOrders.length,
     pending: normalizedOrders.filter(o => o.status === 'Pending').length,
-    accepted: normalizedOrders.filter(o => o.status === 'Accepted').length,
-    rejected: normalizedOrders.filter(o => o.status === 'Rejected').length,
+    accepted: normalizedOrders.filter(o => o.status === 'Accepted by Farmer').length,
+    rejected: normalizedOrders.filter(o => o.status === 'Rejected by Farmer').length,
     avgValue: normalizedOrders.length
       ? `₹${Math.round(normalizedOrders.reduce((sum, order) => sum + (Number(order.amount?.replace(/[^0-9]/g, '') || 0)), 0) / normalizedOrders.length).toLocaleString('en-IN')}`
       : '₹0',
@@ -88,7 +88,10 @@ export default function OrdersManagement() {
 
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
-      const response = await api.put(`/orders/farmer/${orderId}`, { status: newStatus });
+      const response = await api.put(`/orders/farmer/${orderId}`, {
+        status: newStatus,
+        ...(newStatus === 'Rejected by Farmer' ? { rejectionReason: window.prompt('Why is this order being rejected?') || 'Product is unavailable' } : {}),
+      });
       const updatedOrder = response?.data?.order;
       if (updatedOrder) {
         setOrders((prev) => prev.map((order) => (order.id === updatedOrder.id ? updatedOrder : order)));
@@ -138,7 +141,7 @@ export default function OrdersManagement() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {[
           { label: 'Total Orders', value: stats.total, icon: '📦', color: 'bg-blue-50' },
-          { label: 'Pending', value: stats.pending, icon: '⏳', color: 'bg-amber-50' },
+          { label: 'Pending Approval', value: stats.pending, icon: '⏳', color: 'bg-amber-50' },
           { label: 'Accepted', value: stats.accepted, icon: '✓', color: 'bg-green-50' },
           { label: 'Rejected', value: stats.rejected, icon: '✗', color: 'bg-red-50' },
           { label: 'Avg Value', value: stats.avgValue, icon: '💰', color: 'bg-purple-50' },
@@ -176,7 +179,7 @@ export default function OrdersManagement() {
         <div>
           <label className="text-sm text-accent-muted mb-2 block">Filter by Status</label>
           <div className="flex gap-2 flex-wrap">
-            {['All', 'Pending', 'Accepted', 'Rejected'].map(status => (
+            {['All', 'Pending Farmer Approval', 'Accepted by Farmer', 'Rejected by Farmer'].map(status => (
               <motion.button
                 key={status}
                 whileHover={{ scale: 1.05 }}
@@ -277,7 +280,7 @@ export default function OrdersManagement() {
             </div>
 
             <div className="p-6 space-y-6">
-              {selectedOrder.status === 'Accepted' && (
+              {selectedOrder.status === 'Accepted by Farmer' && (
                 <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-lg mb-6 flex items-center gap-2">
                   <CheckCircle size={18} />
                   <p className="text-sm font-medium">A transporter has been automatically assigned to this order and they will contact you for pickup.</p>
@@ -362,18 +365,18 @@ export default function OrdersManagement() {
               </div>
 
               <div className="flex gap-3 pt-6 border-t border-surface-alt flex-wrap">
-                {selectedOrder.status === 'Pending' && (
+                {selectedOrder.status === 'Pending Farmer Approval' && (
                   <>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
-                      onClick={() => updateOrderStatus(selectedOrder.id, 'Accepted')}
+                      onClick={() => updateOrderStatus(selectedOrder.id, 'Accepted by Farmer')}
                       className="flex-1 min-w-[120px] px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
                     >
                       Accept
                     </motion.button>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
-                      onClick={() => updateOrderStatus(selectedOrder.id, 'Rejected')}
+                      onClick={() => updateOrderStatus(selectedOrder.id, 'Rejected by Farmer')}
                       className="flex-1 min-w-[120px] px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
                     >
                       Reject

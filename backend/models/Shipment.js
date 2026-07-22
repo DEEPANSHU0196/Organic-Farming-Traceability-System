@@ -14,12 +14,53 @@ const shipmentSchema = new mongoose.Schema(
 
     trackingId: String,
 
+    driverName: {
+      type: String,
+      trim: true,
+    },
+
+    driverContactNumber: {
+      type: String,
+      trim: true,
+    },
+
+    vehicleNumber: {
+      type: String,
+      trim: true,
+    },
+
+    estimatedDeliveryDate: Date,
+
     currentLocation: String,
 
     status: {
       type: String,
-      default: "Assigned",
+      enum: [
+        "Awaiting Driver Assignment",
+        "Driver Assigned",
+        "Picked Up from Farm",
+        "In Transit",
+        "Out for Delivery",
+        "Delivered",
+        "Rejected",
+        "Assigned",
+        "Picked",
+        "Completed",
+      ],
+      default: "Awaiting Driver Assignment",
     },
+
+    updates: [
+      {
+        status: String,
+        location: String,
+        notes: String,
+        updatedAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
   },
   {
     timestamps: true,
