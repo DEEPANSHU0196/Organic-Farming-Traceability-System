@@ -10,17 +10,22 @@ export default function DashboardLayout({
   setActiveSection,
   children,
   onLogout,
+  portalLinks = [],
+  portalClassName = '',
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const roleLabel = `${role.charAt(0).toUpperCase()}${role.slice(1)} Portal`;
+  const sectionLabel = activeSection === 'overview' ? 'Dashboard' : activeSection.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
+    <div className={`dashboard-shell ${portalClassName} flex h-screen overflow-hidden`}>
       {/* Sidebar */}
       <PortalSidebar
         role={role}
         items={navItems}
         activeSection={activeSection}
         setActiveSection={setActiveSection}
+        portalLinks={portalLinks}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onLogout={onLogout}
@@ -43,8 +48,11 @@ export default function DashboardLayout({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="p-6 md:p-8 min-h-full"
+            className="dashboard-content p-6 md:p-8 min-h-full"
           >
+            <div className="mb-5 flex items-center gap-2 text-xs font-semibold text-[#718278]">
+              <span>{roleLabel}</span><span className="text-[#a9744f]">/</span><span className="text-[#1b4332]">{sectionLabel}</span>
+            </div>
             {children}
           </motion.div>
         </main>

@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { X, LogOut, Leaf, ChevronRight } from 'lucide-react';
+import { X, LogOut, Leaf, ChevronRight, Sprout, ShoppingBasket, Truck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { BrandMark } from './ui';
 
 // Role config: accent color class, icon emoji, portal label
 const ROLE_CONFIG = {
@@ -49,6 +50,7 @@ export default function PortalSidebar({
   onLogout,
   userName = 'User',
   userEmail = 'user@agritrust.com',
+  portalLinks = [],
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -75,12 +77,7 @@ export default function PortalSidebar({
       {/* Logo Header */}
       <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-            style={{ background: `linear-gradient(135deg, ${config.accent}33, ${config.accent}66)`, border: `1px solid ${config.accent}44` }}
-          >
-            <Leaf className="w-5 h-5" style={{ color: config.accent }} />
-          </div>
+          <BrandMark size={38} dark />
           <div>
             <div className="text-white font-bold text-sm tracking-tight leading-none">AgroVerse</div>
             <div className="text-xs mt-0.5 font-medium" style={{ color: config.accent + 'cc' }}>{config.label}</div>
@@ -164,6 +161,25 @@ export default function PortalSidebar({
           );
         })}
       </nav>
+
+      {portalLinks.length > 0 && (
+        <div className="mx-3 mb-4 border-t border-white/[0.06] pt-3">
+          <p className="px-3.5 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Portals</p>
+          {portalLinks.map((portal) => {
+            const PortalIcon = portal.icon;
+            return (
+              <button
+                key={portal.path}
+                onClick={() => { navigate(portal.path); onClose?.(); }}
+                className="flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-left text-sm font-medium text-white/55 transition-colors hover:bg-white/[0.07] hover:text-white"
+              >
+                <PortalIcon size={16} />
+                {portal.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* User + Logout */}
       <div className="px-3 pb-4 border-t border-white/[0.06] pt-4 space-y-2 flex-shrink-0">

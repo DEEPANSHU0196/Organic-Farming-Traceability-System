@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Leaf, LogIn, X, Menu } from 'lucide-react';
+import { BrandMark } from '../shared/ui';
 
 const NAV_LINKS = [
   { label: 'Features', href: 'features' },
@@ -62,9 +63,7 @@ function Navbar() {
           className="flex items-center gap-2 select-none group"
           onClick={(e) => { e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-green-700 flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-            <Leaf className="text-white w-4 h-4" />
-          </div>
+          <BrandMark size={34} dark={!scrolled} />
           <span className={`text-[20px] sm:text-[22px] tracking-tight font-bold select-none font-display transition-colors duration-500 ${scrolled ? 'text-primary' : 'text-white'}`}>
             AgroVerse
             <sup className={`text-[9px] align-super ml-[1px] font-normal transition-colors duration-500 ${scrolled ? 'text-primary/35' : 'text-white/50'}`}>®</sup>

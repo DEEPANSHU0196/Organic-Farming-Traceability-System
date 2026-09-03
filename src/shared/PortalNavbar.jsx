@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, Bell, Search, User, Settings, LogOut, X, ChevronDown, Leaf } from 'lucide-react';
+import { Menu, Bell, Search, User, Settings, LogOut, X, ChevronDown, Leaf, Home } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import NotificationCenter from '../components/TransporterDashboard/NotificationCenter';
+import { BrandMark } from './ui';
 
 const ROLE_CONFIG = {
   farmer: {
@@ -98,7 +99,7 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
   };
 
   return (
-    <header className="h-16 bg-white border-b border-slate-100 flex items-center px-4 md:px-6 gap-4 sticky top-0 z-30 flex-shrink-0 shadow-sm">
+    <header className="portal-navbar h-16 bg-white/90 border-b border-slate-100 flex items-center px-4 md:px-6 gap-4 sticky top-0 z-30 flex-shrink-0 shadow-sm backdrop-blur-xl">
       {/* Left */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Mobile toggle */}
@@ -113,7 +114,7 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
 
         {/* Logo on mobile */}
         <div className="md:hidden flex items-center gap-2">
-          <Leaf size={18} style={{ color: config.accent }} />
+          <BrandMark size={24} />
           <span className="font-bold text-slate-800 text-sm">AgroVerse</span>
         </div>
 
@@ -137,6 +138,9 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
 
       {/* Right */}
       <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate('/')} className="hidden rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-[#1b4332] md:block" title="Public AgroVerse home">
+          <Home size={18} />
+        </motion.button>
 
         {/* Notifications */}
         {role === 'transporter' ? (
@@ -244,7 +248,7 @@ export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogou
                   <div
                     className={`w-10 h-10 rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center text-white font-bold mb-2`}
                   >
-                    {config.initials}
+                    {initials}
                   </div>
                   <p className="text-sm font-semibold text-slate-800">{displayName}</p>
                   <p className="text-xs text-slate-500">{displayEmail}</p>

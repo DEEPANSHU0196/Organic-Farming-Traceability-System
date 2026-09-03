@@ -173,7 +173,15 @@ const PlatformAnalytics = () => {
 
   const chartOptions = {
     responsive: true,
-    maintainAspectRatio: true,
+    maintainAspectRatio: false,
+    animation: {
+      duration: 1200,
+      easing: 'easeOutQuart',
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index',
+    },
     plugins: {
       legend: {
         display: true,
@@ -252,8 +260,14 @@ const PlatformAnalytics = () => {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* User Growth Chart */}
-        <div className="bg-white border border-slate-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow">
-          <h3 className="font-semibold text-slate-900 mb-4">User Growth</h3>
+        <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h3 className="font-semibold text-slate-900">User Growth</h3>
+              <p className="text-xs text-slate-500 mt-1">Platform adoption over the last 8 months</p>
+            </div>
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-[0_0_0_5px_rgba(52,211,153,0.12)]" />
+          </div>
           <div className="h-80">
             <Line data={userGrowthData} options={chartOptions} />
           </div>

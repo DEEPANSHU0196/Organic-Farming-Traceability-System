@@ -3,6 +3,7 @@ import {
   Eye,
   Edit,
   Lock,
+  Trash2,
   CheckCircle,
   AlertCircle,
   XCircle,
@@ -12,6 +13,7 @@ import api from '../../api/axios';
 const BuyersManagement = () => {
   const [buyers, setBuyers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     const fetchBuyers = async () => {
@@ -37,6 +39,20 @@ const BuyersManagement = () => {
     };
     fetchBuyers();
   }, []);
+
+  const handleDelete = async (buyer) => {
+    if (!window.confirm(`Remove ${buyer.name} from the platform?`)) return;
+    try {
+      setDeletingId(buyer.id);
+      await api.delete(`/users/${buyer.id}`);
+      setBuyers((current) => current.filter((item) => item.id !== buyer.id));
+    } catch (error) {
+      console.error('Failed to remove buyer:', error);
+      window.alert(error?.response?.data?.message || 'Unable to remove this buyer.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const getStatusBadge = (status) => {
     if (status === 'Active') {
@@ -141,6 +157,9 @@ const BuyersManagement = () => {
                     </button>
                     <button className="p-2 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Suspend">
                       <Lock className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(buyer)} disabled={deletingId === buyer.id} className="p-2 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors disabled:opacity-40" title="Remove buyer">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </td>

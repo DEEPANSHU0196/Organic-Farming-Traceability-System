@@ -6,6 +6,7 @@ import { TrendingUp, Package, CheckCircle, AlertCircle, Bell, Search, Settings, 
 import { useDashboard } from '../../contexts/DashboardContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { getMyShipments } from '../../api/shipment';
+import routePhoto from '../../assets/tractor.png';
 
 // Register ChartJS components
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Legend, Filler);
@@ -46,6 +47,14 @@ const deliveryTrendData = {
 const chartOptions = {
   responsive: true,
   maintainAspectRatio: false,
+  animation: {
+    duration: 1100,
+    easing: 'easeOutQuart',
+  },
+  interaction: {
+    intersect: false,
+    mode: 'index',
+  },
   plugins: {
     legend: {
       position: 'top',
@@ -118,8 +127,8 @@ export default function ModernLogisticsDashboard() {
   const displayName = user?.fullName || user?.name || 'Transporter';
   const initials = displayName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || 'TR';
 
-  const pendingCount = shipments.filter(s => s.status !== 'Completed' && s.status !== 'Rejected').length;
-  const completedCount = shipments.filter(s => s.status === 'Completed').length;
+  const pendingCount = shipments.filter(s => !['Completed', 'Delivered', 'Rejected'].includes(s.status)).length;
+  const completedCount = shipments.filter(s => ['Completed', 'Delivered'].includes(s.status)).length;
   const totalDistance = completedCount * 145; // Simulated distance based on real completions
 
   const stats = [
@@ -211,8 +220,11 @@ export default function ModernLogisticsDashboard() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <h1 className="text-3xl font-bold text-slate-900">Logistics Dashboard</h1>
-          <p className="text-slate-600 mt-1">Welcome back, {displayName.split(' ')[0]}! Here's your delivery overview.</p>
+          <div className="relative overflow-hidden rounded-2xl bg-[#1b4332] p-6 text-white shadow-xl">
+            <img src={routePhoto} alt="Agricultural transport route" className="absolute inset-0 h-full w-full object-cover opacity-25" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#1b4332]/95 to-[#a9744f]/45" />
+            <div className="relative"><p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#e9c46a]">Move with confidence</p><h1 className="text-3xl font-bold">Logistics Dashboard</h1><p className="mt-1 text-white/75">Welcome back, {displayName.split(' ')[0]}! Here is your delivery overview.</p></div>
+          </div>
         </motion.div>
 
         {/* Stats Grid - 4 Columns */}

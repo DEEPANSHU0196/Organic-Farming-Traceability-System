@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { Leaf, Target, Eye, Zap, Shield, Globe, TrendingUp } from 'lucide-react';
+import farmPhoto from '../assets/background.png';
 
 const STATS = [
   { value: '10K+',  label: 'Farmers',         emoji: '🌾' },
@@ -126,10 +127,9 @@ export default function AboutSection() {
             className="relative"
           >
             {/* Big decorative card */}
-            <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-primary to-accent-light p-8 text-white shadow-2xl">
-              {/* Decorative circles */}
-              <div className="absolute -top-10 -right-10 w-48 h-48 rounded-full bg-white/5" />
-              <div className="absolute -bottom-8 -left-8 w-36 h-36 rounded-full bg-white/5" />
+            <div className="relative min-h-[430px] overflow-hidden rounded-3xl bg-primary p-8 text-white shadow-2xl">
+              <img src={farmPhoto} alt="Lush farm landscape" className="absolute inset-0 h-full w-full object-cover opacity-45" />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/75 to-accent/60" />
 
               <div className="relative z-10">
                 <div className="flex items-center gap-3 mb-8">

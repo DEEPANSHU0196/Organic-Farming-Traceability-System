@@ -9,6 +9,7 @@ import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import AboutSection from './components/AboutSection';
 import ContactSection from './components/ContactSection';
+import TraceabilityExperience from './components/TraceabilityExperience';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import FarmerDashboard from './pages/FarmerDashboard';
@@ -29,6 +30,8 @@ function HomePage() {
       <div className="relative z-10 bg-white">
         <FeaturesSection />
       </div>
+
+      <TraceabilityExperience />
 
       <div className="relative z-10 bg-surface/40">
         <AboutSection />
@@ -103,7 +106,7 @@ function App() {
                   <Route
                     path="/farmer-dashboard/*"
                     element={
-                      <ProtectedRoute requiredRole="farmer">
+                      <ProtectedRoute requiredRole={["farmer", "admin"]}>
                         <FarmerDashboard />
                       </ProtectedRoute>
                     }
@@ -113,7 +116,7 @@ function App() {
                   <Route
                     path="/buyer-dashboard/*"
                     element={
-                      <ProtectedRoute requiredRole="buyer">
+                      <ProtectedRoute requiredRole={["buyer", "admin"]}>
                         <BuyerDashboard />
                       </ProtectedRoute>
                     }
@@ -123,7 +126,7 @@ function App() {
                   <Route
                     path="/transporter-dashboard/*"
                     element={
-                      <ProtectedRoute requiredRole="transporter">
+                      <ProtectedRoute requiredRole={["transporter", "admin"]}>
                         <TransporterDashboard />
                       </ProtectedRoute>
                     }

@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Eye, EyeOff, LogIn, ArrowLeft, ArrowRight, Leaf, CheckCircle, UserPlus } from 'lucide-react';
+import { Eye, EyeOff, LogIn, ArrowLeft, ArrowRight, Leaf, CheckCircle, UserPlus, Sprout, ShoppingCart, Truck, ShieldCheck, Package, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { BrandMark } from '../shared/ui';
 
 const ROLES = [
   {
@@ -10,6 +11,7 @@ const ROLES = [
     label: 'Farmer',
     desc: 'Sell your produce directly to buyers',
     emoji: '🌾',
+    icon: Sprout,
     accent: '#22c55e',
     accentLight: '#dcfce7',
     accentBorder: '#86efac',
@@ -22,6 +24,7 @@ const ROLES = [
     label: 'Buyer',
     desc: 'Source fresh produce from verified farmers',
     emoji: '🛒',
+    icon: ShoppingCart,
     accent: '#0ea5e9',
     accentLight: '#e0f2fe',
     accentBorder: '#7dd3fc',
@@ -34,6 +37,7 @@ const ROLES = [
     label: 'Transporter',
     desc: 'Manage deliveries and logistics routes',
     emoji: '🚚',
+    icon: Truck,
     accent: '#f97316',
     accentLight: '#ffedd5',
     accentBorder: '#fdba74',
@@ -46,6 +50,7 @@ const ROLES = [
     label: 'Admin',
     desc: 'Oversee platform operations and users',
     emoji: '🛡️',
+    icon: ShieldCheck,
     accent: '#8b5cf6',
     accentLight: '#ede9fe',
     accentBorder: '#c4b5fd',
@@ -54,6 +59,41 @@ const ROLES = [
     features: ['Manage users', 'Approve products', 'View analytics'],
   },
 ];
+
+function CountUp({ value }) {
+  const [display, setDisplay] = useState(0);
+  useEffect(() => {
+    const target = Number(value.replace(/[^0-9]/g, ''));
+    let current = 0;
+    const step = Math.max(1, Math.ceil(target / 28));
+    const timer = window.setInterval(() => {
+      current = Math.min(target, current + step);
+      setDisplay(current);
+      if (current === target) window.clearInterval(timer);
+    }, 35);
+    return () => window.clearInterval(timer);
+  }, [value]);
+  return <>{display.toLocaleString()}{value.includes('L') ? 'L+' : '+'}</>;
+}
+
+function NatureStrip() {
+  return (
+    <div className="login-nature" aria-hidden="true">
+      <svg className="login-grass" viewBox="0 0 800 110" preserveAspectRatio="none">
+        <path className="grass-ground" d="M0 92 C100 82 170 103 270 91 C390 76 470 103 590 88 C680 77 740 91 800 82 V110 H0Z" />
+        {Array.from({ length: 36 }, (_, index) => <path key={index} className="grass-blade" style={{ animationDelay: `${(index % 9) * -0.3}s` }} d={`M${index * 23} 101 C${index * 23 - 5} ${70 - (index % 4) * 5}, ${index * 23 + (index % 3) * 5} ${39 + (index % 5) * 5}, ${index * 23 + 5} ${15 + (index % 6) * 7} C${index * 23 + 4} ${52 + (index % 3) * 4}, ${index * 23 + 7} 78, ${index * 23 + 9} 101Z`} />)}
+      </svg>
+      {[['butterfly-one', '#e9c46a'], ['butterfly-two', '#d9f2e4'], ['butterfly-three', '#f4d6a0']].map(([className, color]) => (
+        <svg key={className} className={`butterfly ${className}`} viewBox="0 0 32 24">
+          <path className="butterfly-wing butterfly-wing-left" fill={color} d="M15 12C10 2 1 1 2 8c.5 4 5 7 13 6Z" />
+          <path className="butterfly-wing butterfly-wing-right" fill={color} d="M17 12c5-10 14-11 13-4-.5 4-5 7-13 6Z" />
+          <path className="butterfly-body" d="M15.2 5h1.6v14h-1.6z" />
+          <path className="butterfly-antenna" d="M16 6C13 2 11 3 10 1M16 6c3-4 5-3 6-5" />
+        </svg>
+      ))}
+    </div>
+  );
+}
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -190,7 +230,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex" style={{ background: '#f8faf8' }}>
       {/* Left Panel — Branding */}
       <div
-        className="hidden lg:flex lg:w-5/12 xl:w-[42%] flex-col justify-between p-12 relative overflow-hidden"
+        className="login-brand-panel hidden lg:flex lg:w-5/12 xl:w-[42%] flex-col justify-between p-12 relative overflow-hidden"
         style={{ background: 'linear-gradient(160deg, #0d1f12 0%, #122a18 60%, #0a1a0c 100%)' }}
       >
         {/* Background decoration */}
@@ -217,9 +257,7 @@ export default function LoginPage() {
         {/* Logo */}
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center">
-              <Leaf className="w-5 h-5 text-emerald-400" />
-            </div>
+            <BrandMark size={42} dark />
             <div>
               <div className="text-white font-bold text-xl tracking-tight">AgroVerse</div>
               <div className="text-emerald-400/80 text-xs font-medium">by AgriTrust Platform</div>
@@ -247,9 +285,9 @@ export default function LoginPage() {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-6">
               {[
-                { label: 'Farmers', value: '12,400+', icon: '🌾' },
-                { label: 'Products', value: '48,000+', icon: '🥦' },
-                { label: 'Orders', value: '2.1L+', icon: '📦' },
+                { label: 'Farmers', value: '12,400+', icon: Users },
+                { label: 'Products', value: '48,000+', icon: Sprout },
+                { label: 'Orders', value: '2.1L+', icon: Package },
               ].map((stat, i) => (
                 <motion.div
                   key={stat.label}
@@ -258,14 +296,16 @@ export default function LoginPage() {
                   transition={{ delay: 0.35 + i * 0.1 }}
                   className="text-center"
                 >
-                  <div className="text-2xl mb-1">{stat.icon}</div>
-                  <div className="text-white font-bold text-lg">{stat.value}</div>
+                  <div className="login-stat-icon mb-1"><stat.icon size={20} /></div>
+                  <div className="text-white font-bold text-lg"><CountUp value={stat.value} /></div>
                   <div className="text-white/40 text-xs">{stat.label}</div>
                 </motion.div>
               ))}
             </div>
           </motion.div>
         </div>
+
+        <NatureStrip />
 
         {/* Footer */}
         <div className="relative z-10">
@@ -328,19 +368,20 @@ export default function LoginPage() {
                     whileHover={{ y: -3, scale: 1.01 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => handleSelectRole(r.id)}
-                    className="relative flex flex-col items-start p-5 rounded-2xl border-2 text-left transition-all duration-200 bg-white hover:shadow-lg group overflow-hidden"
+                    className="role-card relative flex flex-col items-start p-5 rounded-2xl border-2 text-left transition-all duration-200 bg-white hover:shadow-lg group overflow-hidden"
                     style={{
                       borderColor: r.accentBorder,
                       boxShadow: `0 2px 12px ${r.accent}0a`,
                     }}
                   >
+                    <div className="absolute inset-x-0 top-0 h-1" style={{ background: r.accent }} />
                     {/* Glow bg on hover */}
                     <div
                       className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                       style={{ background: `radial-gradient(circle at top left, ${r.accentLight}, transparent 70%)` }}
                     />
 
-                    <span className="text-3xl mb-3 relative z-10">{r.emoji}</span>
+                    <span className="role-card-icon relative z-10 mb-3 flex h-11 w-11 items-center justify-center rounded-xl transition-transform duration-200" style={{ background: r.accentLight, color: r.accent }}><r.icon size={24} strokeWidth={1.8} /></span>
                     <div className="font-bold text-slate-800 text-base mb-1 relative z-10">{r.label}</div>
                     <div className="text-slate-500 text-xs leading-relaxed mb-4 relative z-10">{r.desc}</div>
 
@@ -351,7 +392,7 @@ export default function LoginPage() {
                       >
                         Enter portal
                       </span>
-                      <ArrowRight size={13} style={{ color: r.accent }} />
+                      <ArrowRight className="transition-transform duration-200 group-hover:translate-x-1" size={13} style={{ color: r.accent }} />
                     </div>
                   </motion.button>
                 ))}
@@ -378,7 +419,7 @@ export default function LoginPage() {
                 <div
                   className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${role.gradient} flex items-center justify-center text-2xl shadow-lg`}
                 >
-                  {role.emoji}
+                  <role.icon size={24} strokeWidth={1.8} />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-900">Sign in as {role.label}</h2>

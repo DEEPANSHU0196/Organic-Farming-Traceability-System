@@ -2,6 +2,11 @@ import { motion } from 'motion/react';
 import { ShoppingBag, Package, Star, CreditCard, TrendingUp, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBuyer } from '../../contexts/BuyerContext';
+import backgroundPhoto from '../../assets/background.png';
+import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler } from 'chart.js';
+
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler);
 
 const statusColors = {
   Delivered: { bg: '#dcfce7', text: '#16a34a' },
@@ -67,16 +72,21 @@ export default function BuyerDashboardOverview({ onNavigate }) {
       price: `₹${p.price}/${p.unit}`,
       rating: p.rating || 0,
       farmer: p.farmerName || 'Farmer',
-      emoji: p.image && p.image.length < 5 ? p.image : '🌾',
+      emoji: p.image || '🌾',
       badge: p.certification || 'Verified'
     }));
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">Welcome back, {displayName}! 👋</h2>
-        <p className="text-slate-500 text-sm mt-1">Here's what's happening with your account today.</p>
+      <div className="relative overflow-hidden rounded-2xl bg-[#1b4332] p-6 text-white shadow-xl">
+        <img src={backgroundPhoto} alt="Fresh farmland" className="absolute inset-0 h-full w-full object-cover opacity-35" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1b4332]/95 to-[#2d6a4f]/55" />
+        <div className="relative">
+          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#e9c46a]">Fresh, verified, traceable</p>
+          <h2 className="text-2xl font-bold text-white">Welcome back, {displayName}! 👋</h2>
+          <p className="mt-1 text-sm text-white/75">See what is moving from trusted farms to your table today.</p>
+        </div>
       </div>
 
       {/* Stats */}
@@ -104,6 +114,14 @@ export default function BuyerDashboardOverview({ onNavigate }) {
           );
         })}
       </div>
+
+      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }} className="rounded-2xl border border-sky-100 bg-gradient-to-br from-white to-sky-50/70 p-6 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <div><h3 className="font-semibold text-slate-800">Your buying pulse</h3><p className="mt-1 text-xs text-slate-500">Completed spend across the last six months</p></div>
+          <div className="rounded-xl bg-sky-100 p-2 text-sky-600"><TrendingUp size={18} /></div>
+        </div>
+        <div className="h-44"><Line data={{ labels: Array.from({ length: 6 }, (_, index) => new Date(new Date().getFullYear(), new Date().getMonth() - 5 + index, 1).toLocaleDateString('en-US', { month: 'short' })), datasets: [{ label: 'Spend', data: Array.from({ length: 6 }, (_, index) => { const month = new Date().getMonth() - (5 - index); return orders.filter((order) => ['Delivered', 'Completed'].includes(order.status) && new Date(order.createdAt || order.date || 0).getMonth() === (month + 12) % 12).reduce((sum, order) => sum + (order.totalAmount || (order.price ? order.price * order.quantity : 0) || 0), 0); }), borderColor: '#0284c7', backgroundColor: 'rgba(14, 165, 233, 0.14)', fill: true, tension: 0.42, pointRadius: 4, pointBackgroundColor: '#0284c7', pointBorderColor: '#fff', pointBorderWidth: 2 }] }} options={{ responsive: true, maintainAspectRatio: false, animation: { duration: 1100, easing: 'easeOutQuart' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (context) => ` ₹${Number(context.raw).toLocaleString()}` } } }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,0.15)' }, ticks: { color: '#94a3b8' } }, x: { grid: { display: false }, ticks: { color: '#94a3b8' } } } }} /></div>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Recent Orders */}
@@ -165,7 +183,7 @@ export default function BuyerDashboardOverview({ onNavigate }) {
             ) : (
               recommended.map((p) => (
                 <div key={p.name} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 hover:bg-sky-50 transition-colors cursor-pointer group">
-                  <span className="text-2xl">{p.emoji}</span>
+                  {p.emoji.startsWith('http') || p.emoji.startsWith('data:') ? <img src={p.emoji} alt="" className="h-12 w-12 rounded-xl object-cover" /> : <span className="text-2xl">{p.emoji}</span>}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-slate-800 truncate">{p.name}</p>

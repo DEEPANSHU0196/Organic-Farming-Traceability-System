@@ -13,7 +13,7 @@ const stats = [
 ];
 
 export default function HeroSection() {
-  const [phase, setPhase] = useState("intro"); // "intro" → "landing"
+  const [phase, setPhase] = useState("landing");
   const videoRef     = useRef(null);
   const containerRef = useRef(null);
 
@@ -28,11 +28,15 @@ export default function HeroSection() {
   useEffect(() => {
     const v = videoRef.current;
     if (!v) return;
+    const fallbackTimer = window.setTimeout(() => setPhase("landing"), 4500);
     const onTime = () => {
       if (v.currentTime >= 6.5 && phase === "intro") setPhase("landing");
     };
     v.addEventListener("timeupdate", onTime);
-    return () => v.removeEventListener("timeupdate", onTime);
+    return () => {
+      window.clearTimeout(fallbackTimer);
+      v.removeEventListener("timeupdate", onTime);
+    };
   }, [phase]);
 
   return (
@@ -41,7 +45,7 @@ export default function HeroSection() {
       className="relative w-full min-h-screen overflow-x-hidden bg-black"
       style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}
     >
-      {/* ── VIDEO BACKGROUND — absolute, stretches with section ── */}
+      {/* Tractor video is the primary hero visual. */}
       <motion.video
         ref={videoRef}
         src={VIDEO_SRC}
@@ -49,7 +53,7 @@ export default function HeroSection() {
         muted
         loop
         playsInline
-        className="absolute inset-0 w-full h-full object-cover"
+        className="absolute inset-0 h-full w-full object-cover"
         style={{ scale: videoScale, minHeight: "100vh" }}
         initial={{ filter: "brightness(0.75) saturate(0.9)" }}
         animate={
@@ -70,10 +74,30 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent pointer-events-none" style={{ minHeight: "100vh" }} />
       <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
 
-      {/* ── INTRO OVERLAY (cinematic letterbox) — absolute ── */}
-      <AnimatePresence>
-        {phase === "intro" && <IntroOverlay key="intro" />}
-      </AnimatePresence>
+      {/* Live traceability signal */}
+      <motion.div
+        initial={{ opacity: 0, x: 24 }}
+        animate={{ opacity: phase === "landing" ? 1 : 0, x: phase === "landing" ? 0 : 24 }}
+        transition={{ duration: 0.8, delay: 0.5 }}
+        className="absolute right-8 top-28 z-20 hidden w-56 rounded-2xl border border-white/20 bg-black/20 p-4 text-white backdrop-blur-md lg:block"
+      >
+        <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-white/60">
+          <span>Traceability pulse</span>
+          <span className="flex items-center gap-1.5 text-green-300"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-300" />Live</span>
+        </div>
+        <div className="flex items-end gap-1.5" aria-label="Live platform activity chart">
+          {[32, 48, 38, 66, 54, 78, 62, 92, 74, 100].map((height, index) => (
+            <motion.span
+              key={index}
+              initial={{ height: 0 }}
+              animate={{ height: `${height}%` }}
+              transition={{ duration: 0.6, delay: 0.7 + index * 0.05 }}
+              className="h-10 flex-1 rounded-t bg-gradient-to-t from-green-400/40 to-lime-200"
+            />
+          ))}
+        </div>
+        <div className="mt-3 flex justify-between text-xs text-white/55"><span>Farm to fork</span><strong className="text-white">99.9% verified</strong></div>
+      </motion.div>
 
       {/* ── IN-FLOW CONTENT WRAPPER — pushes section height ── */}
       {/*
@@ -112,15 +136,7 @@ export default function HeroSection() {
         )}
       </div>
 
-      {/* Skip button (intro only) — absolute, always visible over intro */}
-      {phase === "intro" && (
-        <button
-          onClick={() => setPhase("landing")}
-          className="absolute bottom-8 right-8 z-30 text-xs tracking-widest uppercase px-5 py-2 rounded-full bg-white/10 text-white/80 backdrop-blur-sm border border-white/20 hover:bg-white/20 hover:text-white transition-all duration-200"
-        >
-          Skip ›
-        </button>
-      )}
+      <button onClick={() => document.getElementById("journey")?.scrollIntoView({ behavior: "smooth" })} className="absolute bottom-8 right-8 z-30 hidden items-center gap-2 rounded-full border border-white/25 bg-black/20 px-4 py-2 text-xs uppercase tracking-widest text-white/80 backdrop-blur-sm transition hover:bg-white/15 sm:flex">See the journey <span className="text-[#e9c46a]">↓</span></button>
     </section>
   );
 }

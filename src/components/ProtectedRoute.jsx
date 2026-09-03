@@ -42,7 +42,7 @@ export default function ProtectedRoute({ children, requiredRole = null }) {
     return <Navigate to={roleDashboardMap[normalizedUserRole] || '/login'} replace />;
   }
 
-  if (allowedRoles.length > 0 && normalizedUserRole && currentPath.startsWith('/')) {
+  if (allowedRoles.length > 0 && normalizedUserRole && normalizedUserRole !== 'admin' && currentPath.startsWith('/')) {
     const expectedPathPrefix = `/${normalizedUserRole}-dashboard`;
     if (!currentPath.startsWith(expectedPathPrefix)) {
       return <Navigate to={roleDashboardMap[normalizedUserRole] || '/login'} replace />;

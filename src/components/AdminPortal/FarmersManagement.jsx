@@ -7,12 +7,14 @@ import {
   ChevronDown,
   CheckCircle,
   AlertCircle,
+  Trash2,
 } from 'lucide-react';
 import api from '../../api/axios';
 
 const FarmersManagement = () => {
   const [farmers, setFarmers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     const fetchFarmers = async () => {
@@ -39,6 +41,20 @@ const FarmersManagement = () => {
     };
     fetchFarmers();
   }, []);
+
+  const handleDelete = async (farmer) => {
+    if (!window.confirm(`Remove ${farmer.name} from the platform?`)) return;
+    try {
+      setDeletingId(farmer.id);
+      await api.delete(`/users/${farmer.id}`);
+      setFarmers((current) => current.filter((item) => item.id !== farmer.id));
+    } catch (error) {
+      console.error('Failed to remove farmer:', error);
+      window.alert(error?.response?.data?.message || 'Unable to remove this farmer.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const getStatusIcon = (status) => {
     if (status === 'Verified') {
@@ -140,6 +156,9 @@ const FarmersManagement = () => {
                     </button>
                     <button className="p-2 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors" title="Suspend">
                       <Lock className="w-4 h-4" />
+                    </button>
+                    <button onClick={() => handleDelete(farmer)} disabled={deletingId === farmer.id} className="p-2 text-slate-600 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors disabled:opacity-40" title="Remove farmer">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 </td>

@@ -6,6 +6,7 @@ import {
   BarChart3, Activity, Star, Truck
 } from 'lucide-react';
 import api from '../../api/axios';
+import adminPhoto from '../../assets/background.png';
 
 const RECENT_APPROVALS = [
   { id: 1, name: 'Ramesh Kumar', type: 'Farmer', product: 'Organic Wheat', status: 'pending', time: '5 min ago' },
@@ -110,11 +111,14 @@ export default function AdminDashboardOverview({ onNavigate }) {
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl p-6 text-white"
-        style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #a78bfa 50%, #6d28d9 100%)' }}
+        className="relative overflow-hidden rounded-2xl p-6 text-white shadow-xl"
+        style={{ background: '#1b4332' }}
       >
-        <div className="flex items-center justify-between">
+        <img src={adminPhoto} alt="Agriculture network overview" className="absolute inset-0 h-full w-full object-cover opacity-25" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1b4332]/95 to-[#a9744f]/50" />
+        <div className="relative flex items-center justify-between">
           <div>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#e9c46a]">Command center</p>
             <h2 className="text-xl font-bold">Welcome back, Admin 👋</h2>
             <p className="text-white/70 text-sm mt-1">Here's what's happening on AgroVerse today.</p>
           </div>

@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { CheckCircle2, Truck, Package, MapPin, Eye, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getMyShipments, updateShipment } from '../../api/shipment';
+import { LeafLoader, StatusBadge } from '../../shared/ui';
 
 export default function ShipmentTracking() {
   const [shipments, setShipments] = useState([]);
@@ -72,7 +73,7 @@ export default function ShipmentTracking() {
       {/* Shipments */}
       {loading ? (
         <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
+          <LeafLoader label="Loading shipment journey..." />
         </div>
       ) : shipments.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-lg border border-surface-alt">
@@ -96,17 +97,7 @@ export default function ShipmentTracking() {
                 <p className="text-sm text-accent-muted">Order: {shipment.order}</p>
               </div>
               <div className="flex items-center gap-2">
-                <span
-                  className={`px-3 py-1 rounded-full text-sm font-medium ${
-                    shipment.status === 'Delivered'
-                      ? 'bg-green-100 text-green-700'
-                      : shipment.status === 'In Transit'
-                      ? 'bg-blue-100 text-blue-700'
-                      : 'bg-amber-100 text-amber-700'
-                  }`}
-                >
-                  {shipment.status}
-                </span>
+                <StatusBadge status={shipment.status} />
               </div>
             </div>
 

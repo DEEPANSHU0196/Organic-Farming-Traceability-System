@@ -1,11 +1,56 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Navigation, Clock, Fuel, AlertTriangle, ChevronRight } from 'lucide-react';
+import { getMyShipments } from '../../api/shipment';
 
 export default function RouteTracking() {
   const [routes, setRoutes] = useState([]);
-
   const [expandedRoute, setExpandedRoute] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const loadRoutes = async () => {
+      try {
+        const response = await getMyShipments();
+        const shipments = response?.data?.shipments || [];
+        setRoutes(shipments.map((shipment) => {
+          const order = shipment.order || {};
+          const product = order.product || {};
+          const buyer = order.buyer || {};
+          const start = product.farmer?.address || 'Farm origin';
+          const end = buyer.address || 'Buyer destination';
+          const updates = shipment.updates || [];
+          const completed = shipment.status === 'Delivered' || shipment.status === 'Completed';
+          const stops = [
+            { location: start, type: 'pickup', time: 'Origin', status: completed || shipment.status !== 'Pending' ? 'completed' : 'current' },
+            { location: shipment.currentLocation || 'In transit', type: 'checkpoint', time: shipment.status || 'Awaiting update', status: completed ? 'completed' : 'current' },
+            { location: end, type: 'delivery', time: shipment.estimatedDelivery ? new Date(shipment.estimatedDelivery).toLocaleDateString() : 'ETA pending', status: completed ? 'completed' : 'pending' },
+          ];
+          return {
+            id: shipment._id,
+            name: shipment.trackingId || `Route ${shipment._id?.slice(-6) || ''}`,
+            start,
+            end,
+            stops,
+            totalDistance: shipment.distanceTravelledKm ? `${shipment.distanceTravelledKm} km` : 'Distance pending',
+            remainingTime: completed ? 'Complete' : shipment.estimatedDelivery ? new Date(shipment.estimatedDelivery).toLocaleDateString() : 'Calculating',
+            avgSpeed: 'Live updates',
+            fuelConsumption: 'Tracking',
+            totalTime: updates.length ? `${updates.length} updates` : 'No updates yet',
+            timeSpent: shipment.status || 'Pending',
+            issues: shipment.status === 'Rejected' ? ['Shipment was rejected'] : [],
+          };
+        }));
+      } catch (loadError) {
+        console.error('Failed to load route tracking:', loadError);
+        setError('Unable to load route data. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadRoutes();
+  }, []);
 
   const getStopStatusColor = (status) => {
     switch (status) {
@@ -23,7 +68,7 @@ export default function RouteTracking() {
   const getProgressPercentage = (route) => {
     const stops = route.stops;
     const completedStops = stops.filter(s => s.status === 'completed').length;
-    return Math.round((completedStops / stops.length) * 100);
+    return stops.length ? Math.round((completedStops / stops.length) * 100) : 0;
   };
 
   return (
@@ -38,8 +83,18 @@ export default function RouteTracking() {
         <p className="text-gray-600">Monitor your delivery routes and progress in real-time</p>
       </motion.div>
 
+      {error && <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
+
       {/* Routes List */}
       <div className="space-y-4">
+        {loading && <div className="rounded-xl border border-slate-200 bg-white p-8 text-center text-slate-500">Loading your live routes...</div>}
+        {!loading && !error && routes.length === 0 && (
+          <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center">
+            <Navigation className="mx-auto mb-3 text-orange-400" size={28} />
+            <p className="font-semibold text-slate-800">No active routes yet</p>
+            <p className="mt-1 text-sm text-slate-500">Claim or accept a delivery to see its route here.</p>
+          </div>
+        )}
         {routes.map((route, index) => {
           const isExpanded = expandedRoute === route.id;
           const progress = getProgressPercentage(route);

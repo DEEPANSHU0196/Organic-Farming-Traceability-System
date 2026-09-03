@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Phone, Clock, CheckCircle, XCircle, AlertCircle, Package, ExternalLink, Truck } from 'lucide-react';
 import { getMyShipments, getAvailableShipments, updateShipment, assignDriver, acceptShipmentRequest } from '../../api/shipment';
+import { LeafLoader } from '../../shared/ui';
 
 export default function AssignedDeliveries() {
   const [activeTab, setActiveTab] = useState('available');
@@ -231,7 +232,7 @@ export default function AssignedDeliveries() {
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600"></div>
+          <LeafLoader label="Loading delivery network..." />
         </div>
       )}
 

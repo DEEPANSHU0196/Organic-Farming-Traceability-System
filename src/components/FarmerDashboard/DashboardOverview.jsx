@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Line, Bar } from 'react-chartjs-2';
 import { useAuth } from '../../contexts/AuthContext';
 import { useProducts } from '../../contexts/ProductContext';
+import farmerPhoto from '../../assets/background.png';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -148,11 +149,14 @@ export default function DashboardOverview() {
   return (
     <div className="space-y-8">
       {/* Welcome Section with Action Buttons */}
-      <div className="bg-gradient-to-r from-emerald-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="relative overflow-hidden rounded-2xl bg-[#1b4332] p-6 text-white shadow-xl md:p-8">
+        <img src={farmerPhoto} alt="Farmer in a field" className="absolute inset-0 h-full w-full object-cover opacity-30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1b4332] via-[#1b4332]/85 to-[#2d6a4f]/45" />
+        <div className="relative flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Welcome back, {displayName}! 👋</h1>
-            <p className="text-white/90">Here's your farm's performance summary for this month</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-[#e9c46a]">Your growing season</p>
+            <h1 className="text-3xl font-bold mb-2">Welcome back, {displayName}!</h1>
+            <p className="text-white/90">Your farm-to-market performance, all in one place.</p>
           </div>
           <div className="flex gap-3 flex-wrap md:flex-nowrap">
             <motion.button
@@ -226,6 +230,8 @@ export default function DashboardOverview() {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: { duration: 1100, easing: 'easeOutQuart' },
+                interaction: { intersect: false, mode: 'index' },
                 plugins: {
                   legend: { display: true, position: 'top' },
                 },
@@ -257,6 +263,7 @@ export default function DashboardOverview() {
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
+                animation: { duration: 1100, easing: 'easeOutQuart' },
                 plugins: {
                   legend: { display: true, position: 'top' },
                 },

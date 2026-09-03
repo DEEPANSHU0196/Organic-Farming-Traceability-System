@@ -56,6 +56,7 @@ export default function FarmerDashboard() {
   return (
     <DashboardLayout
       role="farmer"
+      portalClassName="farmer-portal"
       navItems={NAV_ITEMS}
       activeSection={activeSection}
       setActiveSection={handleSectionChange}

@@ -2,12 +2,13 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, Users, ShoppingCart, Package,
-  ClipboardList, CheckCircle, BarChart3, Settings
+  ClipboardList, CheckCircle, BarChart3, Settings, Sprout, Truck
 } from 'lucide-react';
 import DashboardLayout from '../shared/DashboardLayout';
 import AdminDashboardOverview from '../components/AdminPortal/AdminDashboardOverview';
 import FarmersManagement from '../components/AdminPortal/FarmersManagement';
 import BuyersManagement from '../components/AdminPortal/BuyersManagement';
+import TransportersManagement from '../components/AdminPortal/TransportersManagement';
 import ProductModeration from '../components/AdminPortal/ProductModeration';
 import AdminOrders from '../components/AdminPortal/AdminOrders';
 import PendingApprovals from '../components/AdminPortal/PendingApprovals';
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { id: 'overview',   label: 'Dashboard',  icon: LayoutDashboard },
   { id: 'farmers',    label: 'Farmers',    icon: Users },
   { id: 'buyers',     label: 'Buyers',     icon: ShoppingCart },
+  { id: 'transporters', label: 'Transporters', icon: Truck },
   { id: 'products',   label: 'Products',   icon: Package },
   { id: 'orders',     label: 'Orders',     icon: ClipboardList },
   { id: 'approvals',  label: 'Approvals',  icon: CheckCircle },
@@ -44,6 +46,7 @@ export default function AdminDashboard() {
       case 'overview':  return <AdminDashboardOverview onNavigate={handleSectionChange} />;
       case 'farmers':   return <FarmersManagement />;
       case 'buyers':    return <BuyersManagement />;
+      case 'transporters': return <TransportersManagement />;
       case 'products':  return <ProductModeration />;
       case 'orders':    return <AdminOrders />;
       case 'approvals': return <PendingApprovals />;
@@ -59,6 +62,11 @@ export default function AdminDashboard() {
       navItems={NAV_ITEMS}
       activeSection={activeSection}
       setActiveSection={handleSectionChange}
+      portalLinks={[
+        { label: 'Farmer Portal', path: '/farmer-dashboard/overview', icon: Sprout },
+        { label: 'Buyer Portal', path: '/buyer-dashboard/overview', icon: ShoppingCart },
+        { label: 'Transporter Portal', path: '/transporter-dashboard/overview', icon: Truck },
+      ]}
       onLogout={handleLogout}
     >
       {renderSection()}

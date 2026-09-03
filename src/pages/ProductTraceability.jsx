@@ -21,6 +21,7 @@ import {
   Award,
 } from "lucide-react";
 import api from "../api/axios";
+import { LeafLoader, StatusBadge } from "../shared/ui";
 
 const EMPTY_IMAGE = "https://placehold.co/1200x900?text=Organic+Product";
 
@@ -102,7 +103,7 @@ const toneStyles = {
 const LoadingSkeleton = () => (
   <div className="min-h-screen bg-surface px-4 py-8 sm:px-6 lg:px-8">
     <div className="mx-auto max-w-7xl space-y-6">
-      <div className="h-48 rounded-xl bg-surface-alt animate-pulse" />
+      <LeafLoader label="Verifying your product journey..." />
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
           <div className="h-80 rounded-xl bg-surface-alt animate-pulse" />
@@ -240,7 +241,7 @@ const ProductTraceability = () => {
   return (
     <div className="min-h-screen bg-surface">
       {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-gradient-to-r from-emerald-500 to-green-600 text-white">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#a9744f] text-white">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
@@ -382,7 +383,7 @@ const ProductTraceability = () => {
                   <div className="text-xs font-semibold uppercase tracking-widest text-accent-muted mb-1">Current Status</div>
                   <div className="text-2xl font-bold text-primary">{product.shipment?.status || "Pending"}</div>
                 </div>
-                <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${toneStyles[traceData.shipmentStatus.tone].badge}`}>{traceData.shipmentStatus.label}</span>
+                <StatusBadge status={traceData.shipmentStatus.label} />
               </div>
               <div className="mb-4">
                 <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-accent-muted mb-2">
