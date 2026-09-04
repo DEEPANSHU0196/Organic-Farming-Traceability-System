@@ -46,7 +46,6 @@ export default function PortalButtons({ heroMode = false }) {
           );
         })}
       </div>
-
       {/* Single CTA */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -74,7 +73,7 @@ export default function PortalButtons({ heroMode = false }) {
           </motion.span>
         </motion.button>
 
-        <p className={`text-sm mt-3 ${heroMode ? 'text-white/50' : 'text-accent-muted/70'}`}>
+        <p className={`basis-full text-sm ${heroMode ? 'text-white/50' : 'text-accent-muted/70'}`}>
           Select your role and sign in to your portal →
         </p>
       </motion.div>

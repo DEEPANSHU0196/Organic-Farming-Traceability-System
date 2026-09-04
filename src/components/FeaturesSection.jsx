@@ -164,8 +164,7 @@ export default function FeaturesSection() {
     : PORTALS.filter((portal) => portal.id === normalizedRole);
 
   return (
-    <section id="features" className="relative overflow-hidden border-y border-black/[0.04] bg-surface-alt px-6 py-24 sm:px-8">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.92),transparent_48%),linear-gradient(180deg,rgba(241,243,241,0.98),rgba(234,236,233,0.78))] pointer-events-none" />
+    <section id="features" className="relative overflow-hidden border-y border-black/[0.04] bg-transparent px-6 py-24 sm:px-8">
 
       <div className="relative max-w-7xl mx-auto">
         {/* Section Header */}

@@ -9,7 +9,6 @@ import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
 import AboutSection from './components/AboutSection';
 import ContactSection from './components/ContactSection';
-import TraceabilityExperience from './components/TraceabilityExperience';
 import ProtectedRoute from './components/ProtectedRoute';
 
 import FarmerDashboard from './pages/FarmerDashboard';
@@ -23,25 +22,23 @@ import ProductTraceability from './pages/ProductTraceability';
 // Home Page
 function HomePage() {
   return (
-    <div className="relative bg-white text-primary font-sans selection:bg-surface-warm selection:text-primary antialiased overflow-x-hidden">
+    <div className="home-page relative text-primary font-sans selection:bg-surface-warm selection:text-primary antialiased overflow-x-hidden">
 
       <HeroSection />
 
-      <div className="relative z-10 bg-white">
+      <div className="relative z-10">
         <FeaturesSection />
       </div>
 
-      <TraceabilityExperience />
-
-      <div className="relative z-10 bg-surface/40">
+      <div className="relative z-10">
         <AboutSection />
       </div>
 
-      <div className="relative z-10 bg-white">
+      <div className="relative z-10">
         <ContactSection />
       </div>
 
-      <footer className="relative z-10 bg-white border-t border-surface-alt">
+      <footer className="relative z-10 border-t border-surface-alt">
         <div className="max-w-7xl mx-auto px-6 sm:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-accent-muted/60">
 
           <div className="flex items-center gap-2">

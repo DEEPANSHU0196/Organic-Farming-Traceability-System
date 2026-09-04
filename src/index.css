@@ -111,6 +111,16 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.home-page {
+  background-color: #eef3ee;
+  background-image:
+    radial-gradient(circle at 10% 18%, rgba(82, 183, 136, 0.14), transparent 26rem),
+    radial-gradient(circle at 90% 58%, rgba(233, 196, 106, 0.12), transparent 24rem),
+    linear-gradient(rgba(27, 67, 50, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 67, 50, 0.035) 1px, transparent 1px);
+  background-size: auto, auto, 42px 42px, 42px 42px;
+}
+
 .dashboard-shell {
   background-color: #f4f7f2;
   background-image: linear-gradient(rgba(77, 109, 71, 0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(77, 109, 71, 0.035) 1px, transparent 1px);

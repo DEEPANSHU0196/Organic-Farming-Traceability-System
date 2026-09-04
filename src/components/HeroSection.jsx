@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
 import Navbar from "./Navbar";
 import PortalButtons from "./PortalButtons";
-import ServicePills from "./ServicePills";
 
 const VIDEO_SRC = "/videos/tractor-hero.mp4";
 
@@ -136,7 +135,6 @@ export default function HeroSection() {
         )}
       </div>
 
-      <button onClick={() => document.getElementById("journey")?.scrollIntoView({ behavior: "smooth" })} className="absolute bottom-8 right-8 z-30 hidden items-center gap-2 rounded-full border border-white/25 bg-black/20 px-4 py-2 text-xs uppercase tracking-widest text-white/80 backdrop-blur-sm transition hover:bg-white/15 sm:flex">See the journey <span className="text-[#e9c46a]">↓</span></button>
     </section>
   );
 }
@@ -267,16 +265,6 @@ function LandingContent({ contentOpacity }) {
         className="mt-6"
       >
         <PortalButtons heroMode />
-      </motion.div>
-
-      {/* Service Pills */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.75 }}
-        className="mt-5"
-      >
-        <ServicePills heroMode />
       </motion.div>
 
       {/* Stats row */}

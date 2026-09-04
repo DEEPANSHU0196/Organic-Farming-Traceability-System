@@ -60,7 +60,7 @@ function StatCard({ stat, index }) {
 
 export default function AboutSection() {
   return (
-    <section id="about" className="relative overflow-hidden border-y border-[#dfe7e1] bg-[#f1f3f1] px-6 py-24 sm:px-8">
+    <section id="about" className="relative overflow-hidden border-y border-[#dfe7e1] bg-transparent px-6 py-24 sm:px-8">
       {/* Soft section texture keeps the light grey background from feeling flat. */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
