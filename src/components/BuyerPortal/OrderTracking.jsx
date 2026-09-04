@@ -138,21 +138,38 @@ export default function OrderTracking() {
 
             {/* Order Progress */}
             <div className="space-y-6 px-1 pt-6 md:px-3">
-              {/* Progress Bar */}
-              <div>
-                <div className="flex justify-between items-center mb-3">
-                  <p className="text-sm font-semibold text-primary">Delivery Progress</p>
-                  <p className="text-sm text-accent-muted">
-                    {new Date(order.deliveryDate).toLocaleDateString()}
-                  </p>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[#e4eff0]">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${getProgressPercentage(getCurrentStatus(order))}%` }}
-                    transition={{ delay: 0.2, duration: 0.6 }}
-                    className="h-full bg-gradient-to-r from-[#168aad] to-[#52b788]"
-                  />
+              {/* Progress Summary */}
+              <div className="relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-5 sm:p-6">
+                <div className="absolute -right-8 -top-10 h-28 w-28 rounded-full bg-emerald-200/30 blur-2xl" />
+                <div className="relative">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">
+                        <Truck size={21} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Delivery journey</p>
+                        <h4 className="mt-1 text-lg font-bold text-primary">Your order is on its way</h4>
+                      </div>
+                    </div>
+                    <div className="text-left sm:text-right">
+                      <p className="text-2xl font-bold text-emerald-700">{getProgressPercentage(getCurrentStatus(order))}%</p>
+                      <p className="text-xs font-medium text-accent-muted">Expected {new Date(order.deliveryDate).toLocaleDateString()}</p>
+                    </div>
+                  </div>
+                  <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/80 shadow-inner ring-1 ring-emerald-100">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${getProgressPercentage(getCurrentStatus(order))}%` }}
+                      transition={{ delay: 0.2, duration: 0.8, ease: 'easeOut' }}
+                      className="delivery-progress-shimmer relative h-full rounded-full bg-gradient-to-r from-emerald-600 via-green-500 to-lime-400"
+                    />
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-xs font-medium text-accent-muted">
+                    <span>Order placed</span>
+                    <span className="font-semibold text-emerald-700">{getCurrentStatus(order)}</span>
+                    <span>Delivered</span>
+                  </div>
                 </div>
               </div>
 
@@ -171,7 +188,8 @@ export default function OrderTracking() {
               )}
 
               {/* Status Timeline */}
-              <div className="space-y-4">
+              <div className="relative grid gap-1 md:grid-cols-7 md:gap-0">
+                <div className="absolute bottom-0 left-5 top-0 w-0.5 bg-surface-alt md:bottom-auto md:left-[7%] md:right-[7%] md:top-5 md:h-1 md:w-auto" />
                 {['Pending Farmer Approval', 'Accepted by Farmer', 'Driver Assigned', 'Picked Up from Farm', 'In Transit', 'Out for Delivery', 'Delivered'].map((status, idx) => {
                   const timeline = ['Pending Farmer Approval', 'Accepted by Farmer', 'Driver Assigned', 'Picked Up from Farm', 'In Transit', 'Out for Delivery', 'Delivered'];
                   const currentStatus = getCurrentStatus(order);
@@ -179,30 +197,27 @@ export default function OrderTracking() {
                   const isActive = currentStatus === status;
 
                   return (
-                    <div key={status} className="flex gap-4">
-                      <div className="flex flex-col items-center">
+                    <div key={status} className="group relative flex min-h-[4.5rem] gap-4 md:min-h-0 md:flex-col md:items-center md:px-1">
+                      <div className="relative z-10 flex flex-col items-center">
                         <motion.div
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
                           transition={{ delay: 0.1 + idx * 0.1 }}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          className={`flex h-10 w-10 items-center justify-center rounded-full border-4 border-white text-sm font-bold shadow-md transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg ${
                             isCompleted
-                              ? 'bg-emerald-500 text-white'
+                              ? isActive ? 'bg-emerald-600 text-white ring-4 ring-emerald-100 animate-pulse-glow' : 'bg-emerald-500 text-white'
                               : 'bg-surface-alt text-gray-400'
                           }`}
                         >
                           {isCompleted ? getStatusIcon(status) : idx + 1}
                         </motion.div>
-                        {idx < 6 && (
-                          <div className={`w-0.5 h-12 my-2 ${isCompleted ? 'bg-emerald-500' : 'bg-surface-alt'}`} />
-                        )}
                       </div>
-                      <div className="flex-1 pt-1">
-                        <p className={`font-semibold ${isActive ? 'text-emerald-600' : isCompleted ? 'text-primary' : 'text-accent-muted'}`}>
+                      <div className="relative z-10 flex-1 pb-3 pt-1 md:flex-none md:pb-0 md:pt-3 md:text-center">
+                        <p className={`text-sm font-bold leading-tight transition-colors ${isActive ? 'text-emerald-700' : isCompleted ? 'text-primary' : 'text-accent-muted'}`}>
                           {status}
                         </p>
-                        <p className="text-sm text-accent-muted">
-                          {isActive ? 'Currently processing' : isCompleted ? 'Completed' : 'Pending'}
+                        <p className={`mt-1 text-xs ${isActive ? 'font-semibold text-emerald-600' : 'text-accent-muted'}`}>
+                          {isActive ? 'In progress' : isCompleted ? 'Completed' : 'Pending'}
                         </p>
                       </div>
                     </div>

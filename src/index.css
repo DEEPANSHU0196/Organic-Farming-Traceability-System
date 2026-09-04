@@ -74,6 +74,19 @@
   animation: pulse-glow 3s ease-in-out infinite;
 }
 
+@keyframes delivery-progress-shine {
+  from { transform: translateX(-120%); }
+  to { transform: translateX(220%); }
+}
+.delivery-progress-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.42), transparent);
+  animation: delivery-progress-shine 2.8s ease-in-out infinite;
+}
+
 
 
 /* Smooth scrollbar */
