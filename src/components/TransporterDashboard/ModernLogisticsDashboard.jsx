@@ -211,7 +211,7 @@ export default function ModernLogisticsDashboard() {
   };
 
   return (
-    <div className="w-full h-full bg-slate-50">
+    <div className="transporter-overview w-full h-full bg-slate-50">
       {/* Main Content */}
       <div className="p-6 space-y-6 overflow-auto">
         {/* Header */}

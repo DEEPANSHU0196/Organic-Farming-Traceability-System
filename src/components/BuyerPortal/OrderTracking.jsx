@@ -2,6 +2,7 @@ import { motion } from 'motion/react';
 import { Package, Truck, Check, Clock, MapPin, Calendar } from 'lucide-react';
 import { useBuyer } from '../../contexts/BuyerContext';
 import { updateShipment } from '../../api/shipment';
+import backgroundPhoto from '../../assets/background.png';
 
 export default function OrderTracking() {
   const { orders = [], shipments = [], refreshData } = useBuyer();
@@ -93,10 +94,11 @@ export default function OrderTracking() {
   }
 
   return (
-    <div className="space-y-6">
+      <div className="buyer-orders space-y-7">
       <div>
-        <h1 className="text-3xl font-bold text-primary mb-2">My Orders</h1>
-        <p className="text-accent-muted">Track {orders.length} order(s)</p>
+          <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#168aad]"><Package size={14} /> Fresh from the field</div>
+          <h1 className="font-display text-4xl font-bold text-[#173e2b]">My orders</h1>
+          <p className="mt-2 text-sm text-[#718278]">Follow every harvest from a trusted farm to your table.</p>
       </div>
 
       <div className="space-y-6">
@@ -106,14 +108,16 @@ export default function OrderTracking() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="bg-white rounded-lg shadow-md border border-surface-alt overflow-hidden"
+            className="buyer-order border-b border-[#cfe0e3] pb-8"
           >
             {/* Order Header */}
-            <div className="bg-gradient-to-r from-emerald-50 to-green-50 border-b border-surface-alt p-6">
+            <div className="relative overflow-hidden rounded-2xl border border-[#d6e7e9] bg-white/65 p-5 backdrop-blur-sm md:p-6">
+              <img src={typeof order.items?.[0]?.image === 'string' && (order.items[0].image.startsWith('http') || order.items[0].image.startsWith('data:')) ? order.items[0].image : backgroundPhoto} alt="Fresh produce from your order" className="absolute right-0 top-0 h-full w-40 object-cover opacity-15 mix-blend-multiply" />
               <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h3 className="font-bold text-primary text-lg mb-1">{order.id}</h3>
-                  <div className="flex items-center gap-4 text-sm text-accent-muted">
+                <div className="relative">
+                  <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-[#a9744f]">Harvest journey {idx + 1}</p>
+                  <h3 className="text-lg font-bold text-[#173e2b]">Order #{order.id.slice(-8)}</h3>
+                  <div className="mt-2 flex items-center gap-4 text-xs text-[#718278]">
                     <span className="flex items-center gap-1">
                       <Calendar size={14} />
                       {new Date(order.createdAt).toLocaleDateString()}
@@ -123,8 +127,8 @@ export default function OrderTracking() {
                     </span>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold text-emerald-600">₹{order.totalAmount.toLocaleString()}</p>
+                <div className="relative text-right">
+                  <p className="font-display text-2xl font-bold text-[#168aad]">₹{order.totalAmount.toLocaleString()}</p>
                   <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold mt-2 ${getStatusColor(getCurrentStatus(order))}`}>
                     {getCurrentStatus(order)}
                   </span>
@@ -133,7 +137,7 @@ export default function OrderTracking() {
             </div>
 
             {/* Order Progress */}
-            <div className="p-6 space-y-6">
+            <div className="space-y-6 px-1 pt-6 md:px-3">
               {/* Progress Bar */}
               <div>
                 <div className="flex justify-between items-center mb-3">
@@ -142,12 +146,12 @@ export default function OrderTracking() {
                     {new Date(order.deliveryDate).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="h-2 bg-surface-alt rounded-full overflow-hidden">
+                <div className="h-2 overflow-hidden rounded-full bg-[#e4eff0]">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${getProgressPercentage(getCurrentStatus(order))}%` }}
                     transition={{ delay: 0.2, duration: 0.6 }}
-                    className="h-full bg-gradient-to-r from-emerald-500 to-green-500"
+                    className="h-full bg-gradient-to-r from-[#168aad] to-[#52b788]"
                   />
                 </div>
               </div>
@@ -207,8 +211,8 @@ export default function OrderTracking() {
               </div>
 
               {getShipment(order.id)?.driverName && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-                  <h4 className="font-semibold text-primary mb-2">Assigned Driver</h4>
+                <div className="border-l-2 border-[#52b788] bg-[#f1faf5] px-4 py-3">
+                  <h4 className="mb-2 font-semibold text-[#173e2b]">Assigned driver</h4>
                   <p className="text-sm text-accent-muted">{getShipment(order.id).driverName} • {getShipment(order.id).driverContactNumber}</p>
                   <p className="text-sm text-accent-muted">Vehicle: {getShipment(order.id).vehicleNumber}</p>
                   <p className="text-sm text-accent-muted">Estimated delivery: {new Date(getShipment(order.id).estimatedDeliveryDate).toLocaleDateString()}</p>
@@ -220,9 +224,9 @@ export default function OrderTracking() {
                 <h4 className="font-semibold text-primary mb-4">Order Items</h4>
                 <div className="space-y-3">
                   {order.items.map(item => (
-                    <div key={item.id} className="flex items-center justify-between bg-surface-alt p-3 rounded-lg">
+                    <div key={item.id} className="flex items-center justify-between border-b border-[#e4eff0] px-1 py-3 last:border-0">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-emerald-100 to-green-200 rounded-lg flex-shrink-0 overflow-hidden">
+                        <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-[#d8f0e4] to-[#b6dcd0] shadow-sm">
                           {renderProductImage(item.image, 'h-full w-full object-cover')}
                         </div>
                         <div>
@@ -241,12 +245,12 @@ export default function OrderTracking() {
               </div>
 
               {/* Delivery Address */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h4 className="font-semibold text-primary mb-2 flex items-center gap-2">
-                  <MapPin size={18} className="text-blue-600" />
-                  Delivery Address
-                </h4>
-                <p className="text-sm text-accent-muted">{order.deliveryAddress}</p>
+              <div className="flex items-start gap-3 border-t border-[#e4eff0] pt-5">
+                <MapPin size={18} className="mt-0.5 text-[#168aad]" />
+                <div>
+                  <h4 className="mb-1 font-semibold text-[#173e2b]">Delivery address</h4>
+                  <p className="text-sm text-accent-muted">{order.deliveryAddress}</p>
+                </div>
               </div>
             </div>
           </motion.div>

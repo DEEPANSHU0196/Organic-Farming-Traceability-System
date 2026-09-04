@@ -151,7 +151,45 @@ body {
 .status-flagged { color: #8c3e2d; background: #f7ddd5; }
 .status-neutral { color: #526258; background: #e8eee9; }
 .leaf-loader { display: flex; align-items: center; justify-content: center; gap: .65rem; padding: 2rem; color: #2d6a4f; font-size: .875rem; font-weight: 700; }
-.farmer-portal .dashboard-content { background: radial-gradient(circle at 88% 0%, rgba(233,196,106,.15), transparent 24rem), radial-gradient(circle at 0% 100%, rgba(82,183,136,.11), transparent 28rem); }
+.farmer-portal .dashboard-shell,
+.farmer-portal .dashboard-content { background: #f8faf6; }
+.portal-buyer .dashboard-content { background: #f5fbfc; }
+.portal-transporter .dashboard-content { background: #f7faf8; }
+.portal-admin .dashboard-content { background: #fbf9f6; }
+.portal-sidebar { position: relative; overflow: hidden; }
+.portal-sidebar::before { content: ''; position: absolute; inset: 0; pointer-events: none; opacity: .5; background: radial-gradient(circle at 0% 0%, rgba(82,183,136,.14), transparent 14rem), linear-gradient(130deg, transparent 65%, rgba(233,196,106,.05)); }
+.sidebar-brand, .portal-sidebar nav, .portal-sidebar > div:last-child { z-index: 1; }
+.sidebar-ambient-mark { position: absolute; right: -1.5rem; bottom: 5.5rem; color: rgba(82,183,136,.08); pointer-events: none; }
+.sidebar-logo-frame { display: flex; align-items: center; justify-content: center; width: 2.7rem; height: 2.7rem; border: 1px solid rgba(233,196,106,.25); border-radius: .95rem; background: rgba(233,196,106,.08); box-shadow: 0 0 22px rgba(233,196,106,.08); }
+.sidebar-live-dot { width: .35rem; height: .35rem; border-radius: 50%; box-shadow: 0 0 0 3px rgba(82,183,136,.12); animation: sidebar-live-pulse 2.4s ease-in-out infinite; }
+.sidebar-nav-item:hover .sidebar-logo-frame { border-color: rgba(233,196,106,.45); }
+@keyframes sidebar-live-pulse { 0%, 100% { opacity: .55; transform: scale(.85); } 50% { opacity: 1; transform: scale(1.15); } }
+.buyer-orders { position: relative; }
+.buyer-order { animation: order-arrive .65s cubic-bezier(.22,1,.36,1) both; }
+.buyer-order:nth-child(2) { animation-delay: .1s; }
+.buyer-order:nth-child(3) { animation-delay: .2s; }
+.buyer-order .rounded-full.bg-emerald-500 { box-shadow: 0 0 0 5px rgba(82,183,136,.14); }
+.buyer-order .border-l-2 { animation: route-pulse 3s ease-in-out infinite; }
+@keyframes order-arrive { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes route-pulse { 0%, 100% { border-color: #52b788; } 50% { border-color: #168aad; } }
+.buyer-overview,
+.transporter-overview,
+.admin-overview { position: relative; }
+.buyer-overview .bg-white,
+.transporter-overview .bg-white,
+.admin-overview .bg-white { border-color: rgba(27,67,50,.12); box-shadow: 0 8px 24px rgba(27,67,50,.045); transition: transform 220ms ease, box-shadow 220ms ease; }
+.buyer-overview .bg-white:hover,
+.transporter-overview .bg-white:hover,
+.admin-overview .bg-white:hover { box-shadow: 0 14px 30px rgba(27,67,50,.09); }
+.buyer-overview > .relative,
+.transporter-overview .relative.overflow-hidden,
+.admin-overview > .relative.overflow-hidden { animation: portal-arrive .7s cubic-bezier(.22,1,.36,1) both; }
+.buyer-overview .bg-sky-50\/70 { background: rgba(255,255,255,.68); }
+.transporter-overview > div:first-child { background: transparent; }
+.transporter-overview .bg-slate-50 { background: transparent; }
+.admin-overview .bg-white.border,
+.transporter-overview .bg-white { backdrop-filter: blur(8px); }
+@keyframes portal-arrive { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 .farmer-portal .dashboard-content h1,
 .farmer-portal .dashboard-content h2,
 .farmer-portal .dashboard-content h3 { letter-spacing: -.01em; }
@@ -169,6 +207,18 @@ body {
 .farmer-portal .dashboard-content .group img { transition: transform 500ms ease; }
 .farmer-portal .dashboard-content .group:hover img { transform: scale(1.05); }
 .farmer-portal .dashboard-content .border-dashed { border-color: rgba(45,106,79,.35); background: rgba(82,183,136,.05); }
+.farmer-overview { position: relative; }
+.farmer-hero { background: #173e2b; isolation: isolate; }
+.farmer-hero::after { content: ''; position: absolute; inset: 0; z-index: 1; pointer-events: none; opacity: .14; background-image: radial-gradient(rgba(255,255,255,.7) .7px, transparent .7px); background-size: 9px 9px; animation: field-grain 18s linear infinite; }
+.farmer-hero-shade { background: linear-gradient(105deg, rgba(13,47,31,.98) 0%, rgba(23,62,43,.78) 52%, rgba(45,106,79,.35) 100%); z-index: 1; }
+.season-strip { box-shadow: 0 8px 24px rgba(27,67,50,.04); }
+.metric-progress { background: linear-gradient(90deg, #2d6a4f, #52b788); transform-origin: left; animation: progress-reveal 1.2s cubic-bezier(.22,1,.36,1) both; }
+.metric-tile:nth-child(2) .metric-progress { background: linear-gradient(90deg, #168aad, #8dd6ce); animation-delay: .08s; }
+.metric-tile:nth-child(3) .metric-progress { background: linear-gradient(90deg, #c98a2e, #f4d58b); animation-delay: .16s; }
+.metric-tile:nth-child(4) .metric-progress { background: linear-gradient(90deg, #a9744f, #e8854a); animation-delay: .24s; }
+.chart-card { min-height: 28rem; }
+@keyframes progress-reveal { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes field-grain { from { background-position: 0 0; } to { background-position: 90px 45px; } }
 .brand-mark { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; }
 .brand-mark svg { width: 100%; height: 100%; overflow: visible; }
 .brand-leaf { transform-box: fill-box; transform-origin: bottom left; animation: brand-leaf-breathe 3.8s ease-in-out infinite; }

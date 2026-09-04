@@ -77,7 +77,7 @@ export default function BuyerDashboardOverview({ onNavigate }) {
     }));
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto">
+    <div className="buyer-overview space-y-6 max-w-6xl mx-auto">
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-[#1b4332] p-6 text-white shadow-xl">
         <img src={backgroundPhoto} alt="Fresh farmland" className="absolute inset-0 h-full w-full object-cover opacity-35" />

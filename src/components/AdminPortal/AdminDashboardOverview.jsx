@@ -106,7 +106,7 @@ export default function AdminDashboardOverview({ onNavigate }) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="admin-overview space-y-6">
       {/* Welcome Banner */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}

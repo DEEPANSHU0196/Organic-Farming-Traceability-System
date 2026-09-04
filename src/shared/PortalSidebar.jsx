@@ -71,16 +71,25 @@ export default function PortalSidebar({
 
   const SidebarContent = () => (
     <div
-      className="flex flex-col h-full"
+      className="portal-sidebar flex flex-col h-full"
       style={{ background: 'linear-gradient(180deg, #0d1f12 0%, #122018 50%, #0d1a10 100%)' }}
     >
+      <motion.div
+        aria-hidden="true"
+        className="sidebar-ambient-mark"
+        animate={{ y: [0, -9, 0], rotate: [-2, 2, -2] }}
+        transition={{ repeat: Infinity, duration: 6, ease: 'easeInOut' }}
+      >
+        <Sprout size={92} strokeWidth={1} />
+      </motion.div>
       {/* Logo Header */}
-      <div className="px-6 py-5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
+      <div className="sidebar-brand relative px-6 py-5 border-b border-white/[0.06] flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-3">
-          <BrandMark size={38} dark />
+          <div className="sidebar-logo-frame"><BrandMark size={38} dark /></div>
           <div>
             <div className="text-white font-bold text-sm tracking-tight leading-none">AgroVerse</div>
             <div className="text-xs mt-0.5 font-medium" style={{ color: config.accent + 'cc' }}>{config.label}</div>
+            <div className="mt-2 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.12em] text-white/35"><span className="sidebar-live-dot" style={{ background: config.accent }} /> Network live</div>
           </div>
         </div>
         <button
@@ -108,7 +117,7 @@ export default function PortalSidebar({
               }}
               whileHover={{ x: 3 }}
               whileTap={{ scale: 0.98 }}
-              className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-left group relative"
+              className="sidebar-nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-left group relative"
               style={{
                 background: isActive ? config.accentBg : 'transparent',
                 border: isActive ? `1px solid ${config.accent}33` : '1px solid transparent',

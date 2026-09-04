@@ -18,7 +18,7 @@ export default function DashboardLayout({
   const sectionLabel = activeSection === 'overview' ? 'Dashboard' : activeSection.split('-').map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(' ');
 
   return (
-    <div className={`dashboard-shell ${portalClassName} flex h-screen overflow-hidden`}>
+    <div className={`dashboard-shell portal-${role} ${portalClassName} flex h-screen overflow-hidden`}>
       {/* Sidebar */}
       <PortalSidebar
         role={role}

@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { CheckCircle, XCircle, Eye, Clock, Search, X, Download, Phone, Mail, MapPin } from 'lucide-react';
+import { CheckCircle, XCircle, Eye, Clock, Search, X, Download, Phone, Mail, MapPin, Package, Hourglass, BadgeCheck, CircleX, CircleDollarSign, Sprout } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
 
@@ -78,7 +78,7 @@ export default function OrdersManagement() {
 
   const stats = {
     total: normalizedOrders.length,
-    pending: normalizedOrders.filter(o => o.status === 'Pending').length,
+    pending: normalizedOrders.filter(o => o.status === 'Pending Farmer Approval').length,
     accepted: normalizedOrders.filter(o => o.status === 'Accepted by Farmer').length,
     rejected: normalizedOrders.filter(o => o.status === 'Rejected by Farmer').length,
     avgValue: normalizedOrders.length
@@ -121,10 +121,14 @@ export default function OrdersManagement() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-primary mb-2">Orders Management</h1>
-        <p className="text-accent-muted">View and manage incoming orders from buyers</p>
+    <div className="farmer-orders space-y-7">
+      <div className="flex flex-col justify-between gap-4 border-b border-[#dbe7dc] pb-6 md:flex-row md:items-end">
+        <div>
+          <p className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.18em] text-[#a9744f]"><Sprout size={14} /> Harvest desk</p>
+          <h1 className="font-display text-4xl font-bold text-[#173e2b]">Orders management</h1>
+          <p className="mt-2 text-sm text-[#718278]">Keep every harvest moving from your field to the right buyer.</p>
+        </div>
+        <p className="text-xs font-semibold text-[#718278]">{stats.total} orders in your network</p>
       </div>
 
       {showNotification && (
@@ -138,24 +142,23 @@ export default function OrdersManagement() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-x-6 gap-y-5 border-b border-[#dbe7dc] pb-6 md:grid-cols-5">
         {[
-          { label: 'Total Orders', value: stats.total, icon: '📦', color: 'bg-blue-50' },
-          { label: 'Pending Approval', value: stats.pending, icon: '⏳', color: 'bg-amber-50' },
-          { label: 'Accepted', value: stats.accepted, icon: '✓', color: 'bg-green-50' },
-          { label: 'Rejected', value: stats.rejected, icon: '✗', color: 'bg-red-50' },
-          { label: 'Avg Value', value: stats.avgValue, icon: '💰', color: 'bg-purple-50' },
+          { label: 'Total Orders', value: stats.total, icon: Package, color: '#168aad' },
+          { label: 'Pending Approval', value: stats.pending, icon: Hourglass, color: '#c98a2e' },
+          { label: 'Accepted', value: stats.accepted, icon: BadgeCheck, color: '#2d9d68' },
+          { label: 'Rejected', value: stats.rejected, icon: CircleX, color: '#c96855' },
+          { label: 'Avg Value', value: stats.avgValue, icon: CircleDollarSign, color: '#a9744f' },
         ].map((stat, idx) => (
           <motion.div
             key={idx}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className={`${stat.color} rounded-lg p-4 text-center border border-surface-alt`}
+            className="order-stat group flex items-center gap-3 border-l border-[#dbe7dc] pl-4 first:border-l-0 first:pl-0"
           >
-            <p className="text-2xl mb-2">{stat.icon}</p>
-            <p className="text-accent-muted text-sm mb-1">{stat.label}</p>
-            <p className="text-2xl font-bold text-primary">{stat.value}</p>
+            <stat.icon size={22} style={{ color: stat.color }} className="transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-110" />
+            <div><p className="mb-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#8a978e]">{stat.label}</p><p className="font-display text-2xl font-bold text-[#173e2b]">{stat.value}</p></div>
           </motion.div>
         ))}
       </div>
@@ -164,9 +167,9 @@ export default function OrdersManagement() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-md border border-surface-alt p-4 space-y-3"
+        className="order-filters space-y-4 border-b border-[#dbe7dc] pb-6"
       >
-        <div className="flex items-center gap-3 bg-surface-alt rounded-lg px-4 py-2">
+        <div className="flex items-center gap-3 border-b border-[#cfded2] px-1 py-3 focus-within:border-[#2d6a4f]">
           <Search size={18} className="text-accent" />
           <input
             type="text"
@@ -177,7 +180,7 @@ export default function OrdersManagement() {
           />
         </div>
         <div>
-          <label className="text-sm text-accent-muted mb-2 block">Filter by Status</label>
+          <label className="mb-2 block text-[10px] font-bold uppercase tracking-[0.12em] text-[#8a978e]">Filter by status</label>
           <div className="flex gap-2 flex-wrap">
             {['All', 'Pending Farmer Approval', 'Accepted by Farmer', 'Rejected by Farmer'].map(status => (
               <motion.button
@@ -186,8 +189,8 @@ export default function OrdersManagement() {
                 onClick={() => setFilterStatus(status)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                   filterStatus === status
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-surface-alt text-accent hover:bg-surface-alt/80'
+                    ? 'bg-[#2d6a4f] text-white shadow-md shadow-[#2d6a4f]/20'
+                    : 'border border-[#dbe7dc] bg-transparent text-[#718278] hover:border-[#8fb996] hover:text-[#173e2b]'
                 }`}
               >
                 {status}
@@ -207,14 +210,14 @@ export default function OrdersManagement() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-lg shadow-md border border-surface-alt overflow-hidden"
+        className="overflow-hidden border-b border-[#dbe7dc]"
       >
         {loading ? (
           <div className="p-8 text-center text-accent-muted">Loading orders from buyers...</div>
         ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-surface-alt border-b border-surface-alt">
+            <thead className="border-b border-[#dbe7dc]">
               <tr>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-primary">Order ID</th>
                 <th className="px-6 py-4 text-left text-sm font-semibold text-primary">Buyer</th>
@@ -233,9 +236,9 @@ export default function OrdersManagement() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   whileHover={{ backgroundColor: '#f1f3f1' }}
-                  className="transition-colors"
+                  className="order-row border-b border-[#edf2ea] transition-colors"
                 >
-                  <td className="px-6 py-4 text-sm font-bold text-primary">{order.id}</td>
+                  <td className="px-6 py-4 text-sm font-bold text-[#173e2b]">{order.id}</td>
                   <td className="px-6 py-4 text-sm text-accent-muted">{order.buyer}</td>
                   <td className="px-6 py-4 text-sm text-primary">{order.product}</td>
                   <td className="px-6 py-4 text-sm font-medium text-primary">{order.quantity} {order.unit}</td>
