@@ -1,35 +1,35 @@
 import { motion } from 'motion/react';
-import { Leaf, Target, Eye, Zap, Shield, Globe, TrendingUp } from 'lucide-react';
+import { Leaf, Target, Eye, Gauge, BadgeCheck, MapPinned, ChartNoAxesCombined, Users, ShoppingCart, Star, Truck } from 'lucide-react';
 import farmPhoto from '../assets/background.png';
 
 const STATS = [
-  { value: '10K+',  label: 'Farmers',         emoji: '🌾' },
-  { value: '500+',  label: 'Buyers',           emoji: '🛒' },
-  { value: '98%',   label: 'Satisfaction Rate',emoji: '⭐' },
-  { value: '1000+', label: 'Deliveries',       emoji: '🚚' },
+  { value: '10K+',  label: 'Farmers',          icon: Users,       color: '#16a36a' },
+  { value: '500+',  label: 'Buyers',            icon: ShoppingCart, color: '#1596d1' },
+  { value: '98%',   label: 'Satisfaction Rate', icon: Star,       color: '#d99320' },
+  { value: '1000+', label: 'Deliveries',        icon: Truck,      color: '#e47732' },
 ];
 
 const BENEFITS = [
   {
-    icon: Zap,
+    icon: Gauge,
     title: 'Lightning Fast',
     desc: 'Real-time updates across all portals — from farm to delivery door in one seamless flow.',
     color: '#22c55e',
   },
   {
-    icon: Shield,
+    icon: BadgeCheck,
     title: 'Fully Verified',
     desc: 'Every farmer, buyer and transporter is vetted. Trust at every step of the supply chain.',
     color: '#38bdf8',
   },
   {
-    icon: Globe,
+    icon: MapPinned,
     title: 'Pan-India Reach',
     desc: 'Connecting rural producers with urban markets across all major Indian states and cities.',
     color: '#fb923c',
   },
   {
-    icon: TrendingUp,
+    icon: ChartNoAxesCombined,
     title: 'Data-Driven',
     desc: 'Analytics dashboards give stakeholders actionable insights to grow smarter each season.',
     color: '#a78bfa',
@@ -37,33 +37,35 @@ const BENEFITS = [
 ];
 
 function StatCard({ stat, index }) {
+  const Icon = stat.icon;
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.85 }}
       whileInView={{ opacity: 1, scale: 1 }}
       viewport={{ once: true }}
       transition={{ duration: 0.45, delay: index * 0.09, ease: 'easeOut' }}
-      className="flex flex-col items-center text-center p-6 rounded-2xl bg-white/80 border border-white/60 backdrop-blur-sm shadow-sm hover:shadow-md transition-shadow duration-300"
+      whileHover={{ y: -5, scale: 1.02 }}
+      className="group relative flex flex-col items-center overflow-hidden rounded-2xl border border-[#dfe7e1] bg-white/90 p-6 text-center shadow-[0_8px_22px_rgba(27,67,50,0.05)] backdrop-blur-sm transition-all duration-300 hover:shadow-[0_16px_32px_rgba(27,67,50,0.12)]"
     >
-      <span className="text-3xl mb-3">{stat.emoji}</span>
-      <span className="text-3xl sm:text-4xl font-black text-primary font-display">{stat.value}</span>
-      <span className="text-xs sm:text-sm text-accent-muted mt-1 font-medium">{stat.label}</span>
+      <div className="absolute inset-x-0 top-0 h-1 opacity-70 transition-opacity duration-300 group-hover:opacity-100" style={{ background: `linear-gradient(90deg, transparent, ${stat.color}, transparent)` }} />
+      <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl transition-all duration-300 group-hover:scale-110" style={{ color: stat.color, background: `${stat.color}14`, border: `1px solid ${stat.color}28`, boxShadow: `0 0 0 0 ${stat.color}00` }}>
+        <Icon size={21} strokeWidth={1.8} />
+      </div>
+      <span className="font-display text-3xl font-black text-primary sm:text-4xl">{stat.value}</span>
+      <span className="mt-1 text-xs font-medium text-accent-muted sm:text-sm">{stat.label}</span>
     </motion.div>
   );
 }
 
 export default function AboutSection() {
   return (
-    <section id="about" className="relative py-24 px-6 sm:px-8 overflow-hidden">
-      {/* Background gradient blob */}
+    <section id="about" className="relative overflow-hidden border-y border-[#dfe7e1] bg-[#f1f3f1] px-6 py-24 sm:px-8">
+      {/* Soft section texture keeps the light grey background from feeling flat. */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div
-          className="absolute -top-40 -right-40 w-96 h-96 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #22c55e 0%, transparent 70%)' }}
-        />
-        <div
-          className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #38bdf8 0%, transparent 70%)' }}
+          className="absolute inset-0 opacity-70"
+          style={{ background: 'radial-gradient(circle at 12% 18%, rgba(82,183,136,.12), transparent 22rem), radial-gradient(circle at 88% 72%, rgba(233,196,106,.12), transparent 24rem)' }}
         />
       </div>
 
@@ -219,13 +221,14 @@ export default function AboutSection() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.09, duration: 0.45 }}
-                  className="group bg-white border border-surface-alt rounded-2xl p-6 hover:shadow-md transition-all duration-300 hover:-translate-y-1 cursor-default"
+                  className="group relative overflow-hidden bg-white border border-[#dfe7e1] rounded-2xl p-6 shadow-[0_8px_24px_rgba(27,67,50,0.05)] hover:shadow-[0_16px_32px_rgba(27,67,50,0.11)] transition-all duration-300 hover:-translate-y-1 cursor-default"
                 >
+                  <div className="absolute inset-x-0 top-0 h-1" style={{ background: `linear-gradient(90deg, ${b.color}, transparent)` }} />
                   <div
-                    className="w-11 h-11 rounded-xl flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
-                    style={{ background: b.color + '18' }}
+                    className="w-12 h-12 rounded-2xl flex items-center justify-center mb-5 transition-transform duration-300 group-hover:scale-110"
+                    style={{ background: `linear-gradient(135deg, ${b.color}22, ${b.color}08)`, border: `1px solid ${b.color}30` }}
                   >
-                    <Icon size={20} style={{ color: b.color }} />
+                    <Icon size={22} strokeWidth={1.8} style={{ color: b.color }} />
                   </div>
                   <h4 className="font-bold text-primary mb-2">{b.title}</h4>
                   <p className="text-sm text-accent-muted leading-relaxed">{b.desc}</p>

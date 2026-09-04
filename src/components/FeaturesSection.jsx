@@ -6,13 +6,13 @@ import {
   Search, ShoppingBag, Clock,
   Truck, Map, BarChart3,
   Users, CheckCircle, LineChart,
-  ChevronRight,
+  Sprout, ShoppingCart, ShieldCheck,
 } from 'lucide-react';
 
 const PORTALS = [
   {
     id: 'farmer',
-    emoji: '🌾',
+    icon: Sprout,
     title: 'Farmer Portal',
     subtitle: 'Grow & Sell Smarter',
     accent: '#22c55e',
@@ -28,7 +28,7 @@ const PORTALS = [
   },
   {
     id: 'buyer',
-    emoji: '🛒',
+    icon: ShoppingCart,
     title: 'Buyer Portal',
     subtitle: 'Source Fresh, Buy Confident',
     accent: '#38bdf8',
@@ -44,7 +44,7 @@ const PORTALS = [
   },
   {
     id: 'transporter',
-    emoji: '🚚',
+    icon: Truck,
     title: 'Transporter Portal',
     subtitle: 'Move More, Earn More',
     accent: '#fb923c',
@@ -60,7 +60,7 @@ const PORTALS = [
   },
   {
     id: 'admin',
-    emoji: '🛡️',
+    icon: ShieldCheck,
     title: 'Admin Portal',
     subtitle: 'Govern the Ecosystem',
     accent: '#a78bfa',
@@ -85,6 +85,7 @@ function PortalCard({ portal, index }) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-60px' }}
       transition={{ duration: 0.5, delay: index * 0.1, ease: 'easeOut' }}
+      whileHover={{ y: -8 }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       className="group relative flex flex-col rounded-3xl overflow-hidden border transition-all duration-300 cursor-default"
@@ -101,13 +102,22 @@ function PortalCard({ portal, index }) {
         className="px-7 pt-8 pb-6"
         style={{ background: hovered ? portal.accentLight : 'transparent' }}
       >
-        {/* Emoji icon with gradient bg */}
-        <div
-          className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${portal.gradient} flex items-center justify-center text-2xl shadow-md mb-5 transition-transform duration-300 ${hovered ? 'scale-110' : ''}`}
-        >
-          {portal.emoji}
+        <div className="flex items-start justify-between gap-4">
+          {/* Portal identity mark */}
+          <div
+            className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${portal.gradient} flex items-center justify-center shadow-md transition-transform duration-300 ${hovered ? 'scale-110' : ''}`}
+            style={{ boxShadow: `0 10px 22px ${portal.accent}35` }}
+          >
+            <portal.icon size={27} strokeWidth={1.8} className="text-white" aria-hidden="true" />
+          </div>
+          <span
+            className="pt-1 text-xs font-bold tracking-[0.18em]"
+            style={{ color: portal.accent, opacity: 0.7 }}
+          >
+            0{index + 1}
+          </span>
         </div>
-        <h3 className="text-xl font-bold text-primary font-display">{portal.title}</h3>
+        <h3 className="mt-5 text-xl font-bold text-primary font-display">{portal.title}</h3>
         <p className="text-sm mt-1 font-medium" style={{ color: portal.accent }}>{portal.subtitle}</p>
       </div>
 
@@ -135,28 +145,11 @@ function PortalCard({ portal, index }) {
         })}
       </div>
 
-      {/* CTA row */}
-      <div
-        className="px-7 py-4 border-t flex items-center justify-between transition-all duration-200"
-        style={{
-          borderColor: hovered ? portal.accentBorder : 'rgba(0,0,0,0.06)',
-          background: hovered ? `${portal.accent}08` : 'transparent',
-        }}
-      >
-        <span className="text-xs font-semibold text-accent-muted">Explore Portal</span>
-        <motion.div
-          animate={{ x: hovered ? 4 : 0 }}
-          transition={{ duration: 0.2 }}
-        >
-          <ChevronRight size={16} style={{ color: portal.accent }} />
-        </motion.div>
-      </div>
-
       {/* Top accent line */}
       <motion.div
         className="absolute top-0 left-0 right-0 h-[3px] rounded-t-3xl"
         style={{ background: `linear-gradient(90deg, ${portal.accent}, transparent)` }}
-        animate={{ opacity: hovered ? 1 : 0 }}
+        animate={{ opacity: hovered ? 1 : 0.55 }}
         transition={{ duration: 0.25 }}
       />
     </motion.div>
@@ -171,9 +164,8 @@ export default function FeaturesSection() {
     : PORTALS.filter((portal) => portal.id === normalizedRole);
 
   return (
-    <section id="features" className="relative py-24 px-6 sm:px-8 overflow-hidden">
-      {/* Subtle background gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-white via-surface/60 to-white pointer-events-none" />
+    <section id="features" className="relative overflow-hidden border-y border-black/[0.04] bg-surface-alt px-6 py-24 sm:px-8">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.92),transparent_48%),linear-gradient(180deg,rgba(241,243,241,0.98),rgba(234,236,233,0.78))] pointer-events-none" />
 
       <div className="relative max-w-7xl mx-auto">
         {/* Section Header */}

@@ -195,14 +195,27 @@ body {
 @keyframes stat-icon-glow { 0%, 100% { box-shadow: 0 0 0 rgba(233,196,106,0); } 50% { box-shadow: 0 0 14px rgba(233,196,106,.2); } }
 
 .earth-section { background: #faf7f0; }
+.impact-section { background: radial-gradient(circle at 8% 12%, rgba(82,183,136,.16), transparent 24rem), radial-gradient(circle at 92% 85%, rgba(233,196,106,.1), transparent 25rem), #1b4332; }
+.impact-header { border-bottom: 1px solid rgba(255,255,255,.12); padding-bottom: 2.5rem; }
 .eyebrow { color: #a9744f; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; }
 .display-heading { color: #1b4332; font-family: var(--font-display); font-size: clamp(2.2rem, 5vw, 4.5rem); line-height: 1; letter-spacing: 0; }
+.impact-heading { color: #fffdf8; max-width: 13ch; }
 .display-heading em { color: #a9744f; font-style: normal; }
 .journey-board { position: relative; overflow: hidden; border: 1px solid rgba(27,67,50,.12); border-radius: 1.5rem; background: rgba(255,255,255,.56); padding: 2rem; box-shadow: 0 22px 60px rgba(27,67,50,.08); }
 .journey-line { position: absolute; left: 10%; right: 10%; top: 5.75rem; height: 2px; background: linear-gradient(90deg, #52b788, #e9c46a, #a9744f); opacity: .6; }
+.journey-flow { position: absolute; z-index: 2; left: 10%; right: 10%; top: calc(5.75rem - 4px); height: 10px; pointer-events: none; }
+.journey-flow span { position: absolute; left: 0; width: 10px; height: 10px; border: 2px solid #fffdf8; border-radius: 50%; background: #2d6a4f; box-shadow: 0 0 0 3px rgba(82,183,136,.18), 0 0 14px rgba(82,183,136,.85); animation: journey-flow-forward 5.5s linear infinite; }
+.journey-stage .journey-node { animation: journey-node-pulse 5.5s ease-in-out infinite; animation-delay: var(--stage-delay); }
+@keyframes journey-flow-forward { 0% { left: 0; opacity: 0; transform: scale(.65); } 6% { opacity: 1; } 88% { opacity: 1; } 100% { left: calc(100% - 10px); opacity: 0; transform: scale(1.15); } }
+@keyframes journey-node-pulse { 0%, 12%, 100% { transform: scale(1); box-shadow: 0 0 0 4px #faf7f0; } 5% { transform: scale(1.2); box-shadow: 0 0 0 4px #faf7f0, 0 0 0 8px rgba(82,183,136,.22), 0 0 18px rgba(82,183,136,.6); } }
 .chart-panel { border-radius: 1.25rem; background: #fffdf8; padding: 1.5rem; color: #1b4332; box-shadow: 0 16px 45px rgba(0,0,0,.12); }
 .trust-badge { display: inline-flex; align-items: center; gap: .5rem; border: 1px solid rgba(27,67,50,.14); border-radius: 999px; padding: .65rem .9rem; color: #1b4332; background: rgba(255,255,255,.6); font-size: .78rem; font-weight: 700; }
-@media (max-width: 767px) { .journey-line { left: 2rem; top: 5rem; bottom: 10rem; width: 2px; height: auto; } }
+@media (max-width: 767px) {
+  .journey-line { left: 2rem; top: 5rem; bottom: 10rem; width: 2px; height: auto; }
+  .journey-flow { left: calc(2rem - 4px); right: auto; top: 5rem; bottom: 10rem; width: 10px; height: auto; }
+  .journey-flow span { top: 0; left: 0; animation-name: journey-flow-down; }
+  @keyframes journey-flow-down { 0% { top: 0; opacity: 0; transform: scale(.65); } 6% { opacity: 1; } 88% { opacity: 1; } 100% { top: calc(100% - 10px); opacity: 0; transform: scale(1.15); } }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
