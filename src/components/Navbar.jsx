@@ -6,6 +6,7 @@ import { BrandMark } from '../shared/ui';
 
 const NAV_LINKS = [
   { label: 'Features', href: 'features' },
+  { label: 'Workflow', href: 'workflow' },
   { label: 'About Us', href: 'about' },
   { label: 'Contact',  href: 'contact' },
 ];

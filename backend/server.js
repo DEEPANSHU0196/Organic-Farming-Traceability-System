@@ -20,6 +20,7 @@ const adminRoutes = require("./routes/adminRoutes");
 const qrRoutes = require("./routes/qrRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const chatbotRoutes = require("./routes/chatbotRoutes");
 
 
 const getAllowedOrigins = () => {
@@ -194,6 +195,11 @@ app.use(
 app.use(
   "/api/notifications",
   notificationRoutes
+);
+
+app.use(
+  "/api/chatbot",
+  chatbotRoutes
 );
 
 

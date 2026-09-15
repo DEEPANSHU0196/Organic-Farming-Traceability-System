@@ -7,6 +7,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 
 import HeroSection from './components/HeroSection';
 import FeaturesSection from './components/FeaturesSection';
+import WorkflowSection from './components/WorkflowSection';
 import AboutSection from './components/AboutSection';
 import ContactSection from './components/ContactSection';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -17,6 +18,7 @@ import TransporterDashboard from './pages/TransporterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import LoginPage from './pages/LoginPage';
 import ProductTraceability from './pages/ProductTraceability';
+import AgroChatbot from './components/Chatbot/AgroChatbot';
 
 
 // Home Page
@@ -28,6 +30,10 @@ function HomePage() {
 
       <div className="relative z-10">
         <FeaturesSection />
+      </div>
+
+      <div className="relative z-10">
+        <WorkflowSection />
       </div>
 
       <div className="relative z-10">
@@ -148,6 +154,8 @@ function App() {
                   />
 
                 </Routes>
+
+                <AgroChatbot />
 
               </Router>
 
