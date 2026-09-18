@@ -2,6 +2,7 @@ const Shipment = require("../models/Shipment");
 const Product = require("../models/Product");
 const Order = require("../models/Order");
 const Notification = require("../models/Notification");
+const { appendTraceBlock } = require("../utils/traceBlockchain");
 
 const SHIPMENT_STATUSES = [
   "Awaiting Driver Assignment",
@@ -117,6 +118,16 @@ const acceptShipmentRequest = async (req, res) => {
           icon: "CheckCircle"
         });
         await product.save({ runValidators: false });
+          await appendTraceBlock({
+            productId: product._id,
+            eventType: "SHIPMENT_STATUS_UPDATED",
+            payload: {
+              status: shipment.status,
+              location: product.shipment.currentLocation,
+              description: req.body.notes || `Status updated to ${shipment.status}`,
+            },
+            actor: req.user,
+          });
       }
     }
     

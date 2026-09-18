@@ -1,5 +1,6 @@
 const QRCode = require("qrcode");
 const Product = require("../models/Product");
+const { appendTraceBlock } = require("../utils/traceBlockchain");
 
 
 const getFrontendBaseUrl = () =>
@@ -51,6 +52,13 @@ const generateProductQR = async (
       { qrCode, traceabilityId },
       { runValidators: false }
     );
+
+    await appendTraceBlock({
+      productId: product._id,
+      eventType: "QR_GENERATED",
+      payload: { traceabilityId, traceUrl },
+      actor: req.user,
+    });
 
     res.status(200).json({
       success: true,

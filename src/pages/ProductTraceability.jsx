@@ -1,24 +1,30 @@
 ﻿import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   BadgeCheck,
+  Building2,
   CalendarDays,
-  ChevronDown,
-  ChevronRight,
   Clock3,
+  Copy,
   Leaf,
   MapPin,
+  Navigation,
   Package,
   QrCode,
   ShieldCheck,
+  ScanLine,
   Sparkles,
+  Thermometer,
   Truck,
   UserRound,
   XCircle,
   Activity,
   Globe,
+  Hash,
+  Link2,
   Award,
+  Warehouse,
 } from "lucide-react";
 import api from "../api/axios";
 import { LeafLoader, StatusBadge } from "../shared/ui";
@@ -137,9 +143,9 @@ const EmptyState = () => (
 
 function SectionCard({ title, subtitle, icon: Icon, children }) {
   return (
-    <motion.section initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.45 }} className="bg-white rounded-xl shadow-md border border-surface-alt overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-surface-alt">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-sm">
+    <motion.section initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.45 }} className="trace-section-card">
+      <div className="trace-section-heading">
+        <div className="trace-section-icon">
           <Icon className="h-5 w-5" />
         </div>
         <div>
@@ -147,7 +153,7 @@ function SectionCard({ title, subtitle, icon: Icon, children }) {
           {subtitle && <p className="text-xs text-accent-muted">{subtitle}</p>}
         </div>
       </div>
-      <div className="p-6">{children}</div>
+      <div className="trace-section-body">{children}</div>
     </motion.section>
   );
 }
@@ -195,20 +201,84 @@ function BadgePill({ active, icon: Icon, label }) {
   );
 }
 
+const journeyStageImages = [
+  "https://images.unsplash.com/photo-1500595046743-cd271d694d30?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1592838064575-70ed626d3a0e?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1586864387967-d02ef85d93e8?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1488459716781-31db52582fe9?auto=format&fit=crop&w=900&q=80",
+];
+
+const getTemperature = (update, product) => {
+  const temperature = update?.temperature ?? product?.shipment?.temperature ?? product?.temperature;
+  return temperature === undefined || temperature === null || temperature === "" ? "Not captured" : `${temperature}°C`;
+};
+
+const shortenHash = (hash) => (hash ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : "Awaiting hash");
+
+function FarmToTableJourney({ product, traceData }) {
+  const updates = Array.isArray(product?.shipment?.updates) ? product.shipment.updates : [];
+  const shipmentStatus = product?.shipment?.status || "Pending";
+  const stages = [
+    { label: "Farm", role: "Origin", icon: Leaf, location: product?.location || "Farm location", status: product?.harvestDate ? "Harvest recorded" : "Awaiting harvest", update: updates[0], image: product?.image || journeyStageImages[0] },
+    { label: "Collection center", role: "Quality handoff", icon: Building2, location: updates[1]?.location || "Collection center", status: updates[1]?.status || "Awaiting scan", update: updates[1], image: journeyStageImages[1] },
+    { label: "Transporter", role: traceData.transporter.name, icon: Truck, location: product?.shipment?.currentLocation || updates[2]?.location || "Route location", status: shipmentStatus, update: updates[2], image: journeyStageImages[2] },
+    { label: "Warehouse", role: "Storage checkpoint", icon: Warehouse, location: updates[3]?.location || product?.shipment?.currentLocation || "Warehouse checkpoint", status: updates[3]?.status || "Awaiting checkpoint", update: updates[3], image: journeyStageImages[3] },
+    { label: "Buyer", role: "Final destination", icon: UserRound, location: product?.shipment?.order?.buyer?.address || "Delivery destination", status: shipmentStatus === "Delivered" ? "Journey complete" : "In progress", update: updates[4], image: journeyStageImages[4] },
+  ];
+  const activeIndex = Math.max(0, stages.findIndex((stage) => stage.status.toLowerCase().includes("transit") || stage.status.toLowerCase().includes("progress")));
+
+  return (
+    <SectionCard title="Farm-to-table journey" subtitle="A living view of every handoff in the supply chain" icon={Globe}>
+      <div className="journey-map-shell">
+        <div className="journey-map-header">
+          <div>
+            <div className="journey-live-label"><span className="journey-live-dot" /> Live journey signal</div>
+            <p className="mt-2 text-sm text-white/70">Every checkpoint becomes part of this product's verified story.</p>
+          </div>
+          <div className="journey-route-stat"><Navigation className="h-4 w-4" /> {traceData.distanceTravelled}</div>
+        </div>
+        <div className="journey-route" aria-label="Farm to table supply chain journey">
+          <div className="journey-route-line" />
+          <motion.div className="journey-route-packet" animate={{ left: ["4%", "96%"] }} transition={{ duration: 4.5, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }} />
+          <div className="journey-stage-grid">
+            {stages.map((stage, index) => {
+              const Icon = stage.icon;
+              const isActive = index === activeIndex || (index === 0 && activeIndex === 0);
+              return (
+                <motion.div key={stage.label} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} whileHover={{ y: -7 }} className={`journey-map-stage ${isActive ? "journey-map-stage-active" : ""}`}>
+                  <div className="journey-stage-photo"><img src={stage.image} alt={`${stage.label} checkpoint`} onError={(event) => { event.currentTarget.src = journeyStageImages[index]; }} /><span className="journey-stage-index">0{index + 1}</span></div>
+                  <div className="journey-stage-marker"><Icon className="h-5 w-5" /></div>
+                  <div className="journey-stage-copy">
+                    <div className="flex items-start justify-between gap-2"><div><h3>{stage.label}</h3><p>{stage.role}</p></div><span className={`journey-status ${isActive ? "journey-status-live" : ""}`}>{isActive ? "Live" : "Logged"}</span></div>
+                    <div className="journey-stage-detail"><MapPin className="h-3.5 w-3.5 shrink-0" /> <span>{stage.location}</span></div>
+                    <div className="journey-stage-detail"><Thermometer className="h-3.5 w-3.5 shrink-0" /> <span>{getTemperature(stage.update, product)}</span><span className="journey-stage-status">{stage.status}</span></div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="journey-map-footer"><span><ShieldCheck className="h-4 w-4 text-[#a8d5ba]" /> QR-linked trace record</span><span><Clock3 className="h-4 w-4 text-[#e9c46a]" /> Updated {formatDateTime(product?.shipment?.updatedAt || product?.updatedAt)}</span></div>
+      </div>
+    </SectionCard>
+  );
+}
+
 const ProductTraceability = () => {
   const { productId, id } = useParams();
   const routeId = productId || id;
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [openTimeline, setOpenTimeline] = useState(0);
+  const [traceIdCopied, setTraceIdCopied] = useState(false);
 
   useEffect(() => {
     if (!routeId) { setProduct(null); setLoading(false); return undefined; }
     let active = true;
     setLoading(true);
     api.get(`/products/trace/${routeId}`)
-      .then((res) => { if (active) setProduct(res.data.product); })
+      .then((res) => { if (active) setProduct({ ...res.data.product, blockchain: res.data.blockchain }); })
       .catch((error) => { console.error(error); if (active) setProduct(null); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -239,19 +309,19 @@ const ProductTraceability = () => {
   const displayedStatus = product.shipment?.status || product.status || "Pending";
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface trace-page">
       {/* Hero */}
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="bg-gradient-to-br from-[#1b4332] via-[#2d6a4f] to-[#a9744f] text-white">
+      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="trace-hero" style={{ "--trace-hero-image": `url(${product.image || EMPTY_IMAGE})` }}>
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold mb-4">
+              <div className="trace-hero-kicker">
                 <Sparkles className="h-3.5 w-3.5" />
-                Premium Traceability Platform
+                AgroVerse verified product passport
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold mb-2">🌱 {product.name || "Product Traceability"}</h1>
-              <p className="text-white/85 max-w-xl text-sm">Track your food from farm to table with verified QR authentication, shipment visibility, and a complete journey timeline.</p>
-              <div className="mt-4 flex flex-wrap gap-2">
+              <h1 className="trace-hero-title"><span className="trace-product-mark">{typeof product.image === "string" && /^(https?:\/\/|data:image\/)/.test(product.image) ? <img src={product.image} alt="" /> : <Leaf className="h-10 w-10" />}</span> {product.name || "Product Traceability"}</h1>
+              <p className="trace-hero-copy">A living digital passport for this harvest. Follow its origin, quality signals, handoffs, and route from the farm to your table.</p>
+              <div className="trace-hero-pills">
                 <BadgePill active={productVerified} icon={ShieldCheck} label="Organic Verified" />
                 <BadgePill active={qrVerified} icon={QrCode} label="QR Authenticated" />
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1.5 text-xs font-semibold">
@@ -260,7 +330,7 @@ const ProductTraceability = () => {
                 </div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 lg:min-w-[300px]">
+            <div className="trace-hero-stats">
               {[
                 { label: "Product Status", value: displayedStatus },
                 { label: "Shipment Stage", value: traceData.shipmentStatus.label },
@@ -279,10 +349,11 @@ const ProductTraceability = () => {
 
       {/* Body */}
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <div className="trace-content-grid grid gap-8 lg:grid-cols-[3fr_2fr]">
 
           {/* Left */}
-          <div className="space-y-6">
+          <div className="trace-primary-column space-y-8">
+            <FarmToTableJourney product={product} traceData={traceData} />
             <SectionCard title="Product Information" subtitle="Origin, quality, and certification details" icon={Leaf}>
               <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
                 <div className="relative overflow-hidden rounded-xl border border-surface-alt bg-surface-alt shadow-inner">
@@ -309,53 +380,19 @@ const ProductTraceability = () => {
               </div>
             </SectionCard>
 
-            <SectionCard title="Journey Timeline" subtitle="Step-by-step supply chain history" icon={Truck}>
-              <div className="relative">
-                <div className="absolute left-[1.05rem] top-2 bottom-2 w-px bg-gradient-to-b from-emerald-400 via-blue-300 to-surface-alt" />
-                <div className="space-y-3">
-                  {traceData.timeline.map((item, index) => {
-                    const tone = getTimelineTone(item.status);
-                    const styles = toneStyles[tone];
-                    const expanded = openTimeline === index;
-                    const Icon = item.icon;
-                    return (
-                      <motion.div key={item.key} initial={{ opacity: 0, x: -12 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true, amount: 0.2 }} transition={{ duration: 0.35, delay: index * 0.05 }} className="relative pl-12">
-                        <div className={`absolute left-0 top-4 flex h-9 w-9 items-center justify-center rounded-full border-2 bg-white shadow-md ${styles.border}`}>
-                          <Icon className={`h-4 w-4 ${styles.iconColor}`} />
-                        </div>
-                        <button type="button" onClick={() => setOpenTimeline(expanded ? -1 : index)} className="w-full text-left rounded-lg border border-surface-alt bg-white hover:bg-surface px-4 py-3 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm font-bold text-primary">{item.title}</div>
-                              <div className="text-xs text-accent-muted mt-0.5 line-clamp-1">{item.description}</div>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${styles.badge}`}>{item.status || "Pending"}</span>
-                              {expanded ? <ChevronDown className="h-4 w-4 text-accent-muted" /> : <ChevronRight className="h-4 w-4 text-accent-muted" />}
-                            </div>
-                          </div>
-                          <AnimatePresence initial={false}>
-                            {expanded && (
-                              <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25 }} className="overflow-hidden">
-                                <div className="mt-3 grid gap-2 sm:grid-cols-3 pt-3 border-t border-surface-alt">
-                                  <InfoTile icon={Clock3} label="Date & time" value={formatDateTime(item.date)} />
-                                  <InfoTile icon={MapPin} label="Location" value={item.location || "N/A"} />
-                                  <InfoTile icon={BadgeCheck} label="Status" value={item.status || "Pending"} />
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </button>
-                      </motion.div>
-                    );
-                  })}
-                </div>
+            <SectionCard title="Journey Statistics" subtitle="At-a-glance journey metrics" icon={Sparkles}>
+              <div className="grid gap-4 grid-cols-2">
+                <StatCard label="Days Since Harvest" value={traceData.daysSinceHarvest ?? "N/A"} helper="days from farm" icon={CalendarDays} />
+                <StatCard label="Distance Travelled" value={traceData.distanceTravelled} helper="route covered" icon={Globe} />
+                <StatCard label="Shipment Status" value={traceData.shipmentStatus.label} helper="logistics update" icon={Truck} />
+                <StatCard label="Sustainability" value={`${traceData.sustainabilityScore}/100`} helper="eco impact score" icon={Leaf} />
               </div>
             </SectionCard>
+
           </div>
 
           {/* Right */}
-          <div className="space-y-6">
+          <div className="trace-secondary-column space-y-8">
             <SectionCard title="Farmer Profile" subtitle="Verified producer information" icon={UserRound}>
               <div className="flex items-center gap-4 rounded-lg border border-surface-alt bg-surface-alt p-4 mb-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-md shrink-0">
@@ -420,12 +457,14 @@ const ProductTraceability = () => {
             </SectionCard>
 
             <SectionCard title="QR Verification" subtitle="Consumer scan identity & authentication" icon={QrCode}>
-              <div className="rounded-lg bg-primary px-4 py-3 text-white flex items-center justify-between mb-4">
-                <div className="text-xs font-semibold uppercase tracking-widest text-green-300">Verified Product</div>
-                <BadgeCheck className="h-5 w-5 text-green-300" />
+              <div className="qr-identity-banner">
+                <div className="qr-identity-orbit"><ScanLine className="h-5 w-5" /></div>
+                <div className="min-w-0"><div className="qr-eyebrow"><span className="qr-live-dot" /> Scan-ready identity</div><p>One scan opens the verified farm-to-table record.</p></div>
+                <BadgeCheck className="ml-auto h-6 w-6 shrink-0 text-[#b9f1cf]" />
               </div>
-              <div className="grid gap-4 sm:grid-cols-[auto_1fr] items-start">
-                <div className="flex items-center justify-center rounded-xl border-2 border-dashed border-surface-warm bg-surface-alt p-4">
+              <div className="qr-verification-layout">
+                <div className="qr-frame-wrap">
+                  <div className="qr-scan-corner qr-scan-corner-tl" /><div className="qr-scan-corner qr-scan-corner-tr" /><div className="qr-scan-corner qr-scan-corner-bl" /><div className="qr-scan-corner qr-scan-corner-br" />
                   {product.qrCode ? (
                     <img src={product.qrCode} alt="Product QR Code" className="h-40 w-40 rounded-lg bg-white object-contain p-2 shadow-sm" />
                   ) : (
@@ -434,23 +473,40 @@ const ProductTraceability = () => {
                       <span>QR not generated</span>
                     </div>
                   )}
+                  {product.qrCode && <div className="qr-scan-line" />}
                 </div>
-                <div className="grid gap-2">
-                  <DetailRow label="Traceability ID" value={displayedTraceabilityId} />
-                  <DetailRow label="Scan Count" value={`${traceData.scanCount}`} />
-                  <DetailRow label="QR Verification" value={qrVerified ? "Authenticated" : "Pending"} />
-                  <DetailRow label="Organic Status" value={product.organicCertified ? "Organic Verified" : "Awaiting review"} />
+                <div className="qr-data-panel">
+                  <div className="qr-data-label">Traceability ID</div>
+                  <div className="qr-id-row"><strong>{displayedTraceabilityId}</strong><button type="button" aria-label="Copy traceability ID" title="Copy traceability ID" className="qr-copy-button" onClick={() => { navigator.clipboard?.writeText(displayedTraceabilityId); setTraceIdCopied(true); window.setTimeout(() => setTraceIdCopied(false), 1600); }}>{traceIdCopied ? <BadgeCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}</button></div>
+                  <div className="qr-data-grid">
+                    <div><span>Scan count</span><strong>{traceData.scanCount}</strong></div>
+                    <div><span>Authentication</span><strong className="text-emerald-700">{qrVerified ? "Verified" : "Pending"}</strong></div>
+                    <div><span>Organic status</span><strong>{product.organicCertified ? "Certified" : "Reviewing"}</strong></div>
+                    <div><span>Record type</span><strong>Public trace</strong></div>
+                    <div><span>Ledger integrity</span><strong className={product.blockchain?.valid ? "text-emerald-700" : "text-amber-700"}>{product.blockchain?.valid ? "Chain verified" : "Awaiting blocks"}</strong></div>
+                  </div>
+                  <div className="qr-instruction"><ScanLine className="h-4 w-4 shrink-0 text-[#2d6a4f]" /><span>Point your phone camera at the code to verify this product's origin and journey.</span></div>
                 </div>
               </div>
             </SectionCard>
 
-            <SectionCard title="Journey Statistics" subtitle="At-a-glance journey metrics" icon={Sparkles}>
-              <div className="grid gap-4 grid-cols-2">
-                <StatCard label="Days Since Harvest" value={traceData.daysSinceHarvest ?? "N/A"} helper="days from farm" icon={CalendarDays} />
-                <StatCard label="Distance Travelled" value={traceData.distanceTravelled} helper="route covered" icon={Globe} />
-                <StatCard label="Shipment Status" value={traceData.shipmentStatus.label} helper="logistics update" icon={Truck} />
-                <StatCard label="Sustainability" value={`${traceData.sustainabilityScore}/100`} helper="eco impact score" icon={Leaf} />
+            <SectionCard title="Blockchain Ledger" subtitle="Tamper-evident event history for this product" icon={Link2}>
+              <div className={`ledger-status ${product.blockchain?.valid ? "ledger-status-valid" : "ledger-status-pending"}`}>
+                <ShieldCheck className="h-5 w-5" />
+                <div><strong>{product.blockchain?.valid ? "Chain verified" : "Awaiting ledger events"}</strong><p>{product.blockchain?.valid ? `${product.blockchain.blockCount} linked block${product.blockchain.blockCount === 1 ? "" : "s"} checked successfully.` : "Generate a QR code or update the shipment to create the first blocks."}</p></div>
               </div>
+              {product.blockchain?.blocks?.length > 0 ? (
+                <div className="ledger-list">
+                  {product.blockchain.blocks.map((block, index) => (
+                    <motion.div key={block._id || block.hash} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.08 }} className="ledger-block">
+                      <div className="ledger-block-index">{String(block.index).padStart(2, "0")}</div>
+                      <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><strong>{block.eventType.replaceAll("_", " ")}</strong><span className="ledger-block-time">{formatDateTime(block.timestamp)}</span></div><div className="ledger-hash-row"><span><Link2 className="h-3 w-3" /> prev {shortenHash(block.previousHash)}</span><span><Hash className="h-3 w-3" /> hash {shortenHash(block.hash)}</span></div></div>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="ledger-empty"><Hash className="h-7 w-7" /><p>No blocks recorded for this legacy product yet.</p></div>
+              )}
             </SectionCard>
           </div>
         </div>

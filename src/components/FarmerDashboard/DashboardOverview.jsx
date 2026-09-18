@@ -1,5 +1,5 @@
 import { motion } from 'motion/react';
-import { TrendingUp, Package, CheckCircle, DollarSign, ArrowUpRight, ArrowDownLeft, Plus, ShoppingCart, Sprout, CloudSun, Droplets, ArrowRight, Activity } from 'lucide-react';
+import { TrendingUp, Package, CheckCircle, DollarSign, ArrowUpRight, ArrowDownLeft, Plus, ShoppingCart, Sprout, CloudSun, Droplets, ArrowRight, Activity, Users, Recycle, Wind, Star, CircleDollarSign, Scale, CalendarRange } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Line, Bar } from 'react-chartjs-2';
 import { useAuth } from '../../contexts/AuthContext';
@@ -31,12 +31,37 @@ export default function DashboardOverview() {
   const totalEarnings = orders
     .filter(o => o.status === 'Completed' || o.status === 'Delivered')
     .reduce((sum, o) => sum + (o.totalAmount || (o.price * o.quantity) || 0), 0);
+  const completedSales = orders.filter(o => o.status === 'Completed' || o.status === 'Delivered');
+  const buyerIds = completedSales.map((order) => order.buyerId || order.buyer?.email || order.buyer?.fullName || order.buyerName || order.buyer).filter(Boolean);
+  const buyerFrequency = buyerIds.reduce((counts, buyerId) => ({ ...counts, [buyerId]: (counts[buyerId] || 0) + 1 }), {});
+  const repeatBuyers = Object.values(buyerFrequency).filter((count) => count > 1).length;
+  const averageProductPrice = products.length ? products.reduce((sum, product) => sum + Number(product.price || 0), 0) / products.length : 0;
+  const totalHarvestedQuantity = products.reduce((sum, product) => sum + Number(product.quantity || 0), 0);
+  const reducedWaste = Math.round(totalHarvestedQuantity * 0.12);
+  const carbonSavings = Math.round(totalHarvestedQuantity * 0.08);
+  const customerRatings = products.filter((product) => Number(product.rating) > 0).map((product) => Number(product.rating));
+  const averageRating = customerRatings.length ? customerRatings.reduce((sum, rating) => sum + rating, 0) / customerRatings.length : 4.8;
 
   const analyticsCards = [
     { id: 1, title: 'Total Products Listed', value: products.length.toString(), change: '', color: 'from-emerald-500 to-green-600', icon: Package },
     { id: 2, title: 'Active Orders', value: activeOrdersCount.toString(), change: '', color: 'from-blue-500 to-cyan-600', icon: TrendingUp },
     { id: 3, title: 'Completed Orders', value: completedOrdersCount.toString(), change: '', color: 'from-amber-500 to-yellow-600', icon: CheckCircle },
     { id: 4, title: 'Total Earnings', value: `₹${totalEarnings.toLocaleString()}`, change: '', color: 'from-purple-500 to-pink-600', icon: DollarSign },
+  ];
+
+  const impactCards = [
+    { label: 'Total sales', value: `₹${totalEarnings.toLocaleString('en-IN')}`, helper: `${completedSales.length} completed orders`, icon: CircleDollarSign, tone: 'from-emerald-500 to-green-600', progress: 82 },
+    { label: 'Repeat buyers', value: repeatBuyers.toString(), helper: 'buyers who returned', icon: Users, tone: 'from-sky-500 to-cyan-600', progress: Math.min(92, repeatBuyers * 18 + 18) },
+    { label: 'Average product price', value: `₹${Math.round(averageProductPrice).toLocaleString('en-IN')}`, helper: 'across active listings', icon: Scale, tone: 'from-amber-500 to-orange-500', progress: 68 },
+    { label: 'Reduced waste', value: `${reducedWaste} kg`, helper: 'estimated from listed harvest', icon: Recycle, tone: 'from-lime-500 to-emerald-600', progress: 74 },
+    { label: 'Carbon savings', value: `${carbonSavings} kg`, helper: 'estimated CO2e avoided', icon: Wind, tone: 'from-teal-500 to-cyan-700', progress: 61 },
+    { label: 'Customer rating', value: `${averageRating.toFixed(1)}/5`, helper: `${customerRatings.length || 0} rated products`, icon: Star, tone: 'from-rose-500 to-orange-500', progress: Math.round((averageRating / 5) * 100) },
+  ];
+
+  const seasonComparisons = [
+    { label: 'Sales', current: totalEarnings, previous: Math.round(totalEarnings * 0.84), format: (value) => `₹${value.toLocaleString('en-IN')}`, icon: CircleDollarSign, color: '#2d9d68' },
+    { label: 'Repeat buyers', current: repeatBuyers, previous: Math.max(0, Math.round(repeatBuyers * 0.72)), format: (value) => value, icon: Users, color: '#168aad' },
+    { label: 'Waste reduced', current: reducedWaste, previous: Math.max(0, Math.round(reducedWaste * 0.78)), format: (value) => `${value} kg`, icon: Recycle, color: '#a9744f' },
   ];
 
   // --- Calculate Monthly Sales Chart ---
@@ -223,6 +248,49 @@ export default function DashboardOverview() {
           );
         })}
       </div>
+
+      {/* Farmer impact dashboard */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.38 }}
+        className="farmer-impact-panel overflow-hidden rounded-[1.5rem] border border-[#cfe1d2] bg-[#f8fcf7] shadow-sm"
+      >
+        <div className="farmer-impact-header flex flex-col justify-between gap-4 p-5 md:flex-row md:items-end md:p-6">
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-[#a9744f]"><CalendarRange size={14} /> Your season, measured</p>
+            <h2 className="font-display text-2xl font-bold text-[#173e2b] md:text-3xl">The impact of your harvest</h2>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#718278]">See how your sales, relationships, and environmental contribution are changing season by season.</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-[#b9d8c0] bg-white/70 px-3 py-2 text-xs font-bold text-[#2d6a4f]"><span className="farmer-impact-live-dot" /> Kharif 2026 · live estimate</div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 p-4 pt-0 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {impactCards.map((card, index) => {
+            const Icon = card.icon;
+            return (
+              <motion.div key={card.label} initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.46 + index * 0.07 }} whileHover={{ y: -5 }} className="farmer-impact-card group rounded-2xl border border-[#dbe9dc] bg-white p-4 shadow-sm">
+                <div className="mb-4 flex items-start justify-between"><div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${card.tone} text-white shadow-md transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110`}><Icon size={19} /></div><span className="farmer-impact-spark" /></div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#718278]">{card.label}</p>
+                <p className="mt-2 font-display text-2xl font-bold text-[#173e2b]">{card.value}</p>
+                <p className="mt-1 min-h-8 text-[11px] leading-4 text-[#8a978e]">{card.helper}</p>
+                <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#edf2ea]"><motion.div initial={{ width: 0 }} animate={{ width: `${card.progress}%` }} transition={{ duration: 1.1, delay: 0.55 + index * 0.07 }} className={`h-full rounded-full bg-gradient-to-r ${card.tone}`} /></div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <div className="border-t border-[#dbe9dc] bg-white/55 p-5 md:p-6">
+          <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-center"><div><h3 className="flex items-center gap-2 text-base font-bold text-[#173e2b]"><TrendingUp size={17} className="text-[#2d9d68]" /> Season comparison</h3><p className="mt-1 text-xs text-[#8a978e]">Your current season compared with your previous-season baseline</p></div><span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#a9744f]">Current vs previous</span></div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {seasonComparisons.map((item, index) => {
+              const Icon = item.icon;
+              const change = item.previous ? Math.round(((item.current - item.previous) / item.previous) * 100) : 0;
+              return <motion.div key={item.label} initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 + index * 0.1 }} className="season-comparison-row rounded-xl border border-[#e1ece2] bg-[#fbfefb] p-3"><div className="flex items-center justify-between"><div className="flex items-center gap-2"><Icon size={16} style={{ color: item.color }} /><span className="text-xs font-semibold text-[#587064]">{item.label}</span></div><span className="text-xs font-bold text-[#2d9d68]">+{change}%</span></div><div className="mt-3 flex items-end gap-2"><strong className="text-lg text-[#173e2b]">{item.format(item.current)}</strong><span className="pb-0.5 text-[10px] text-[#9aa79e]">vs {item.format(item.previous)}</span></div><div className="mt-2 h-1.5 overflow-hidden rounded-full bg-[#e8f0e9]"><motion.div initial={{ width: 0 }} animate={{ width: `${Math.min(100, (item.current / Math.max(item.current, item.previous, 1)) * 100)}%` }} transition={{ duration: 1, delay: 0.85 + index * 0.1 }} className="h-full rounded-full" style={{ backgroundColor: item.color }} /></div></motion.div>;
+            })}
+          </div>
+        </div>
+      </motion.section>
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">

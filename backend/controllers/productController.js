@@ -2,6 +2,7 @@ const Product = require("../models/Product");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 const QRCode = require("qrcode");
+const { appendTraceBlock, verifyTraceChain } = require("../utils/traceBlockchain");
 
 
 // ======================
@@ -175,6 +176,19 @@ const addProduct = async (req, res) => {
 
     await generateTraceabilityAssets(product);
 
+    await appendTraceBlock({
+      productId: product._id,
+      eventType: "PRODUCT_REGISTERED",
+      payload: {
+        name: product.name,
+        category: product.category,
+        quantity: product.quantity,
+        harvestDate: product.harvestDate,
+        location: product.location,
+      },
+      actor: req.user,
+    });
+
     const savedProduct = await Product.findById(product._id);
 
     res.status(201).json({
@@ -344,9 +358,12 @@ const getProductTrace =
 
       }
 
+      const blockchain = await verifyTraceChain(product._id);
+
       res.status(200).json({
         success: true,
         product,
+        blockchain,
       });
 
     } catch (error) {
