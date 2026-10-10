@@ -1,0 +1,41 @@
+{
+  "_format": "hh-sol-cache-2",
+  "files": {
+    "C:\\Users\\yanas\\Desktop\\Agriculture\\Organic-Farming-Traceability-System\\backend\\contracts\\TraceabilityRegistry.sol": {
+      "lastModificationDate": 1789966291938,
+      "contentHash": "db770635317f7a28924da1036dba0ff6",
+      "sourceName": "contracts/TraceabilityRegistry.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "TraceabilityRegistry"
+      ]
+    }
+  }
+}

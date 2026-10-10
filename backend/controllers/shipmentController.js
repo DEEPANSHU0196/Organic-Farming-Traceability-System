@@ -3,6 +3,7 @@ const Product = require("../models/Product");
 const Order = require("../models/Order");
 const Notification = require("../models/Notification");
 const { appendTraceBlock } = require("../utils/traceBlockchain");
+const { hashPayload } = require("../utils/polygonTrace");
 
 const SHIPMENT_STATUSES = [
   "Awaiting Driver Assignment",
@@ -41,6 +42,9 @@ const notifyParticipants = async (shipment, type, title, message) => {
   }
 };
 
+const shipmentIdempotencyKey = (action, values) =>
+  `${action}:${hashPayload(values)}`;
+
 const createShipment = async (req, res) => {
   try {
     if (req.user.role !== "transporter") {
@@ -61,6 +65,22 @@ const createShipment = async (req, res) => {
       } },
       { new: true, upsert: true }
     ).populate(shipmentPopulate);
+
+    const productId = order.product?._id || order.product;
+    if (productId) {
+      await appendTraceBlock({
+        productId,
+        eventType: "SHIPMENT_CREATED",
+        payload: {
+          shipmentId: String(shipment._id),
+          trackingId: shipment.trackingId,
+          status: shipment.status,
+          location: shipment.currentLocation,
+        },
+        actor: req.user,
+        idempotencyKey: `shipment-created:${shipment._id}`,
+      });
+    }
 
     res.status(201).json({ success: true, shipment });
   } catch (error) {
@@ -102,6 +122,7 @@ const acceptShipmentRequest = async (req, res) => {
 
     shipment.transporter = req.user._id;
     shipment.status = "Awaiting Driver Assignment";
+    let traceEvent;
     
     // Sync with product traceability
     if (shipment.order) {
@@ -118,20 +139,24 @@ const acceptShipmentRequest = async (req, res) => {
           icon: "CheckCircle"
         });
         await product.save({ runValidators: false });
-          await appendTraceBlock({
-            productId: product._id,
-            eventType: "SHIPMENT_STATUS_UPDATED",
-            payload: {
-              status: shipment.status,
-              location: product.shipment.currentLocation,
-              description: req.body.notes || `Status updated to ${shipment.status}`,
-            },
-            actor: req.user,
-          });
+        traceEvent = {
+          productId: product._id,
+          eventType: "SHIPMENT_STATUS_UPDATED",
+          payload: {
+            shipmentId: String(shipment._id),
+            trackingId: shipment.trackingId,
+            status: shipment.status,
+            location: product.shipment.currentLocation,
+            description: req.body.notes || `Status updated to ${shipment.status}`,
+          },
+          actor: req.user,
+          idempotencyKey: `shipment-accepted:${shipment._id}:${String(req.user._id)}`,
+        };
       }
     }
     
     await shipment.save();
+    if (traceEvent) await appendTraceBlock(traceEvent);
     
     // Notify farmer and buyer
     await notifyParticipants(
@@ -252,6 +277,28 @@ const getMyShipments = async (req, res) => {
           });
           
           await product.save({ runValidators: false });
+
+          const traceLocation = product.shipment.currentLocation;
+          const traceDescription = req.body.notes || `Status updated to ${shipment.status}`;
+          await appendTraceBlock({
+            productId: product._id,
+            eventType: "SHIPMENT_STATUS_UPDATED",
+            payload: {
+              shipmentId: String(shipment._id),
+              trackingId: shipment.trackingId,
+              status: shipment.status,
+              location: traceLocation,
+              description: traceDescription,
+            },
+            actor: req.user,
+            idempotencyKey: shipmentIdempotencyKey("shipment-status", {
+              shipmentId: String(shipment._id),
+              actorId: String(req.user._id),
+              status: shipment.status,
+              location: traceLocation,
+              notes: req.body.notes || "",
+            }),
+          });
         }
       }
     }
@@ -299,6 +346,28 @@ const assignDriver = async (req, res) => {
       { new: true }
     ).populate(shipmentPopulate);
     if (!shipment) return res.status(404).json({ success: false, message: "Shipment not found" });
+
+    const productId = shipment.order?.product?._id || shipment.order?.product;
+    if (productId) {
+      await appendTraceBlock({
+        productId,
+        eventType: "SHIPMENT_STATUS_UPDATED",
+        payload: {
+          shipmentId: String(shipment._id),
+          trackingId: shipment.trackingId,
+          status: shipment.status,
+          location: shipment.currentLocation || null,
+        },
+        actor: req.user,
+        idempotencyKey: shipmentIdempotencyKey("driver-assignment", {
+          shipmentId: String(shipment._id),
+          actorId: String(req.user._id),
+          driverName,
+          vehicleNumber,
+          estimatedDeliveryDate: String(estimatedDeliveryDate),
+        }),
+      });
+    }
 
     const buyerId = shipment.order?.buyer?._id || shipment.order?.buyer;
     const farmerId = shipment.order?.product?.farmer?._id || shipment.order?.product?.farmer;

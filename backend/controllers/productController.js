@@ -3,6 +3,7 @@ const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
 const QRCode = require("qrcode");
 const { appendTraceBlock, verifyTraceChain } = require("../utils/traceBlockchain");
+const { verifyOnChainTrace } = require("../utils/polygonTrace");
 
 
 // ======================
@@ -187,6 +188,7 @@ const addProduct = async (req, res) => {
         location: product.location,
       },
       actor: req.user,
+      idempotencyKey: `product-registration:${product._id}`,
     });
 
     const savedProduct = await Product.findById(product._id);
@@ -359,11 +361,13 @@ const getProductTrace =
       }
 
       const blockchain = await verifyTraceChain(product._id);
+      const onChainVerification = await verifyOnChainTrace(product._id, blockchain.blocks);
 
       res.status(200).json({
         success: true,
         product,
         blockchain,
+        onChainVerification,
       });
 
     } catch (error) {

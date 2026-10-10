@@ -28,8 +28,15 @@ import {
 } from "lucide-react";
 import api from "../api/axios";
 import { LeafLoader, StatusBadge } from "../shared/ui";
+import {
+  getChainStatusDescription,
+  getVerificationStatusLabel,
+  getVerifiedEventHash,
+  getVerifiedExplorerUrl,
+  shortenHash,
+} from "../utils/onChainVerification";
 
-const EMPTY_IMAGE = "https://placehold.co/1200x900?text=Organic+Product";
+const EMPTY_IMAGE = "https://placehold.co/1200x900?text=Product";
 
 const progressSteps = ["Pending", "Picked", "In Transit", "Delivered"];
 
@@ -88,15 +95,7 @@ const getTimelineTone = (status) => {
 const getDistanceTravelled = (product) => {
   const explicit = product?.shipment?.distanceTravelledKm;
   if (typeof explicit === "number") return `${explicit.toFixed(0)} km`;
-  const fallback = (product?.shipment?.updates?.length || 0) * 18;
-  return fallback > 0 ? `~${fallback} km` : "Awaiting route data";
-};
-
-const getSustainabilityScore = (product) => {
-  const base = product?.organicCertified ? 92 : 68;
-  const updatesBonus = Math.min((product?.shipment?.updates?.length || 0) * 2, 6);
-  const deliveryBonus = product?.shipment?.status === "Delivered" ? 2 : 0;
-  return Math.min(base + updatesBonus + deliveryBonus, 99);
+  return "Not recorded";
 };
 
 const toneStyles = {
@@ -104,6 +103,14 @@ const toneStyles = {
   inprogress: { badge: "bg-blue-100 text-blue-700", border: "border-blue-300", iconColor: "text-blue-600" },
   delayed: { badge: "bg-red-100 text-red-700", border: "border-red-300", iconColor: "text-red-600" },
   pending: { badge: "bg-gray-100 text-gray-500", border: "border-gray-200", iconColor: "text-gray-400" },
+};
+
+const ledgerStatusStyles = {
+  confirmed: "ledger-status-valid",
+  pending: "ledger-status-pending",
+  failed: "ledger-status-failed",
+  unregistered: "ledger-status-unregistered",
+  unavailable: "ledger-status-unavailable",
 };
 
 const LoadingSkeleton = () => (
@@ -214,8 +221,6 @@ const getTemperature = (update, product) => {
   return temperature === undefined || temperature === null || temperature === "" ? "Not captured" : `${temperature}°C`;
 };
 
-const shortenHash = (hash) => (hash ? `${hash.slice(0, 10)}...${hash.slice(-8)}` : "Awaiting hash");
-
 function FarmToTableJourney({ product, traceData }) {
   const updates = Array.isArray(product?.shipment?.updates) ? product.shipment.updates : [];
   const shipmentStatus = product?.shipment?.status || "Pending";
@@ -233,24 +238,23 @@ function FarmToTableJourney({ product, traceData }) {
       <div className="journey-map-shell">
         <div className="journey-map-header">
           <div>
-            <div className="journey-live-label"><span className="journey-live-dot" /> Live journey signal</div>
-            <p className="mt-2 text-sm text-white/70">Every checkpoint becomes part of this product's verified story.</p>
+            <div className="journey-live-label"><span className="journey-live-dot" /> Recorded shipment history</div>
+            <p className="mt-2 text-sm text-white/70">Locations and handoffs are shown when present in the product record.</p>
           </div>
           <div className="journey-route-stat"><Navigation className="h-4 w-4" /> {traceData.distanceTravelled}</div>
         </div>
         <div className="journey-route" aria-label="Farm to table supply chain journey">
           <div className="journey-route-line" />
-          <motion.div className="journey-route-packet" animate={{ left: ["4%", "96%"] }} transition={{ duration: 4.5, repeat: Infinity, repeatType: "reverse", ease: "easeInOut" }} />
           <div className="journey-stage-grid">
             {stages.map((stage, index) => {
               const Icon = stage.icon;
-              const isActive = index === activeIndex || (index === 0 && activeIndex === 0);
+              const isActive = Boolean(stage.update) && index === activeIndex;
               return (
                 <motion.div key={stage.label} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} whileHover={{ y: -7 }} className={`journey-map-stage ${isActive ? "journey-map-stage-active" : ""}`}>
                   <div className="journey-stage-photo"><img src={stage.image} alt={`${stage.label} checkpoint`} onError={(event) => { event.currentTarget.src = journeyStageImages[index]; }} /><span className="journey-stage-index">0{index + 1}</span></div>
                   <div className="journey-stage-marker"><Icon className="h-5 w-5" /></div>
                   <div className="journey-stage-copy">
-                    <div className="flex items-start justify-between gap-2"><div><h3>{stage.label}</h3><p>{stage.role}</p></div><span className={`journey-status ${isActive ? "journey-status-live" : ""}`}>{isActive ? "Live" : "Logged"}</span></div>
+                    <div className="flex items-start justify-between gap-2"><div><h3>{stage.label}</h3><p>{stage.role}</p></div><span className={`journey-status ${isActive ? "journey-status-live" : ""}`}>{stage.update ? "Recorded" : "No update"}</span></div>
                     <div className="journey-stage-detail"><MapPin className="h-3.5 w-3.5 shrink-0" /> <span>{stage.location}</span></div>
                     <div className="journey-stage-detail"><Thermometer className="h-3.5 w-3.5 shrink-0" /> <span>{getTemperature(stage.update, product)}</span><span className="journey-stage-status">{stage.status}</span></div>
                   </div>
@@ -278,7 +282,7 @@ const ProductTraceability = () => {
     let active = true;
     setLoading(true);
     api.get(`/products/trace/${routeId}`)
-      .then((res) => { if (active) setProduct({ ...res.data.product, blockchain: res.data.blockchain }); })
+      .then((res) => { if (active) setProduct({ ...res.data.product, onChainVerification: res.data.onChainVerification }); })
       .catch((error) => { console.error(error); if (active) setProduct(null); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -289,21 +293,25 @@ const ProductTraceability = () => {
     const farmer = getDisplayPerson(product.farmer, "Farmer");
     const transporter = getDisplayPerson(product.shipment?.transporter, "Transporter");
     const shipmentStatus = getShipmentLabel(product.shipment?.status || product.status);
-    const timeline = buildTimeline(product);
+    const onChainEvents = Array.isArray(product.onChainVerification?.events) ? product.onChainVerification.events : [];
     return {
-      farmer, transporter, shipmentStatus, timeline,
-      scanCount: product.scanCount ?? product.qrScanCount ?? 0,
+      farmer, transporter, shipmentStatus,
+      scanCount: product.scanCount ?? product.qrScanCount ?? null,
       daysSinceHarvest: product.harvestDate ? Math.max(1, Math.floor((Date.now() - new Date(product.harvestDate).getTime()) / (1000 * 60 * 60 * 24))) : null,
       distanceTravelled: getDistanceTravelled(product),
-      sustainabilityScore: getSustainabilityScore(product),
+      verifiedEventCount: onChainEvents.filter((event) => event.verified === true && event.status === "confirmed").length,
     };
   }, [product]);
 
   if (loading) return <LoadingSkeleton />;
   if (!product || !traceData) return <EmptyState />;
 
-  const productVerified = Boolean(product.organicCertified);
-  const qrVerified = Boolean(product.qrCode || product.traceabilityId);
+  const qrAvailable = Boolean(product.qrCode || product.traceabilityId);
+  const chainVerification = product.onChainVerification || { status: "unavailable", registration: { status: "unavailable" }, events: [] };
+  const registration = chainVerification.registration || { status: "unavailable" };
+  const chainStatusClass = ledgerStatusStyles[chainVerification.status] || ledgerStatusStyles.unavailable;
+  const registrationStatusClass = ledgerStatusStyles[registration.status] || ledgerStatusStyles.unavailable;
+  const registrationExplorerUrl = getVerifiedExplorerUrl(registration);
   const currentShipmentStageIndex = Math.max(0, progressSteps.findIndex((step) => step.toLowerCase() === (product.shipment?.status || "Pending").toLowerCase()));
   const displayedTraceabilityId = product.traceabilityId || `TRACE-${product._id}`;
   const displayedStatus = product.shipment?.status || product.status || "Pending";
@@ -317,13 +325,13 @@ const ProductTraceability = () => {
             <div>
               <div className="trace-hero-kicker">
                 <Sparkles className="h-3.5 w-3.5" />
-                AgroVerse verified product passport
+                Public product trace
               </div>
               <h1 className="trace-hero-title"><span className="trace-product-mark">{typeof product.image === "string" && /^(https?:\/\/|data:image\/)/.test(product.image) ? <img src={product.image} alt="" /> : <Leaf className="h-10 w-10" />}</span> {product.name || "Product Traceability"}</h1>
-              <p className="trace-hero-copy">A living digital passport for this harvest. Follow its origin, quality signals, handoffs, and route from the farm to your table.</p>
+              <p className="trace-hero-copy">Product details and recorded logistics information. Chain details are shown only when matched against the Polygon Amoy contract.</p>
               <div className="trace-hero-pills">
-                <BadgePill active={productVerified} icon={ShieldCheck} label="Organic Verified" />
-                <BadgePill active={qrVerified} icon={QrCode} label="QR Authenticated" />
+                <BadgePill active={qrAvailable} icon={QrCode} label={qrAvailable ? "QR available" : "QR not generated"} />
+                <BadgePill active={chainVerification.status === "confirmed"} icon={ShieldCheck} label={getVerificationStatusLabel(chainVerification.status)} />
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/20 px-3 py-1.5 text-xs font-semibold">
                   <Activity className="h-3.5 w-3.5" />
                   {displayedTraceabilityId}
@@ -334,8 +342,8 @@ const ProductTraceability = () => {
               {[
                 { label: "Product Status", value: displayedStatus },
                 { label: "Shipment Stage", value: traceData.shipmentStatus.label },
-                { label: "Total Scans", value: `${traceData.scanCount} scans` },
-                { label: "Sustainability", value: `${traceData.sustainabilityScore}/100` },
+                { label: "Total Scans", value: traceData.scanCount === null ? "Not recorded" : `${traceData.scanCount} scans` },
+                { label: "Verified Events", value: traceData.verifiedEventCount },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-lg bg-white/15 border border-white/25 px-4 py-3">
                   <div className="text-xs text-white/70 font-medium mb-1">{label}</div>
@@ -354,7 +362,7 @@ const ProductTraceability = () => {
           {/* Left */}
           <div className="trace-primary-column space-y-8">
             <FarmToTableJourney product={product} traceData={traceData} />
-            <SectionCard title="Product Information" subtitle="Origin, quality, and certification details" icon={Leaf}>
+            <SectionCard title="Product Information" subtitle="Product and origin details from the listing" icon={Leaf}>
               <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
                 <div className="relative overflow-hidden rounded-xl border border-surface-alt bg-surface-alt shadow-inner">
                   <img src={product.image || EMPTY_IMAGE} alt={product.name} className="h-full min-h-[18rem] w-full object-cover" />
@@ -373,19 +381,19 @@ const ProductTraceability = () => {
                   <DetailRow label="Harvest Date" value={formatDate(product.harvestDate)} />
                   <DetailRow label="Description" value={product.description || "No description available."} wide />
                   <div className="grid grid-cols-2 gap-3">
-                    <DetailRow label="Cert. Number" value={product.certificationNumber || "Pending"} />
+                    <DetailRow label="Cert. reference" value={product.certificationNumber ? `${product.certificationNumber} (unverified)` : "Not provided"} />
                     <DetailRow label="Trace ID" value={displayedTraceabilityId} />
                   </div>
                 </div>
               </div>
             </SectionCard>
 
-            <SectionCard title="Journey Statistics" subtitle="At-a-glance journey metrics" icon={Sparkles}>
+            <SectionCard title="Journey Statistics" subtitle="Values recorded in the product listing" icon={Sparkles}>
               <div className="grid gap-4 grid-cols-2">
                 <StatCard label="Days Since Harvest" value={traceData.daysSinceHarvest ?? "N/A"} helper="days from farm" icon={CalendarDays} />
-                <StatCard label="Distance Travelled" value={traceData.distanceTravelled} helper="route covered" icon={Globe} />
+                <StatCard label="Distance Travelled" value={traceData.distanceTravelled} helper="only when recorded" icon={Globe} />
                 <StatCard label="Shipment Status" value={traceData.shipmentStatus.label} helper="logistics update" icon={Truck} />
-                <StatCard label="Sustainability" value={`${traceData.sustainabilityScore}/100`} helper="eco impact score" icon={Leaf} />
+                <StatCard label="Verified Events" value={traceData.verifiedEventCount} helper="matched on Polygon Amoy" icon={Link2} />
               </div>
             </SectionCard>
 
@@ -393,7 +401,7 @@ const ProductTraceability = () => {
 
           {/* Right */}
           <div className="trace-secondary-column space-y-8">
-            <SectionCard title="Farmer Profile" subtitle="Verified producer information" icon={UserRound}>
+            <SectionCard title="Farmer Profile" subtitle="Producer details from the product record" icon={UserRound}>
               <div className="flex items-center gap-4 rounded-lg border border-surface-alt bg-surface-alt p-4 mb-4">
                 <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 text-white shadow-md shrink-0">
                   <UserRound className="h-7 w-7" />
@@ -402,7 +410,7 @@ const ProductTraceability = () => {
                   <div className="text-base font-bold text-primary">{traceData.farmer.name}</div>
                   <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
                     <ShieldCheck className="h-3 w-3" />
-                    Farmer account verified
+                    Farmer account
                   </div>
                 </div>
               </div>
@@ -438,29 +446,20 @@ const ProductTraceability = () => {
               </div>
             </SectionCard>
 
-            <SectionCard title="Organic Certificate" subtitle="Official quality & certification checks" icon={Award}>
-              <div className="rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 p-5 text-white mb-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold">
-                    <ShieldCheck className="h-3.5 w-3.5" />
-                    Government Approved
-                  </div>
-                  <BadgeCheck className="h-6 w-6 text-white/80" />
-                </div>
-                <div className="text-xs text-white/70 mb-1">Certificate Number</div>
-                <div className="text-xl font-bold">{product.certificationNumber || "Pending certification"}</div>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <InfoTile icon={BadgeCheck} label="Verification Status" value={product.organicCertified ? "Certified Organic" : "Verification Pending"} />
-                <InfoTile icon={Leaf} label="Trace Type" value="Farm-to-consumer" />
-              </div>
+            <SectionCard title="Certificate reference" subtitle="Listing data only; not independently verified" icon={Award}>
+              {product.certificationNumber ? (
+                <DetailRow label="Reference provided" value={product.certificationNumber} wide />
+              ) : (
+                <p className="text-sm text-accent-muted">No certificate reference is present in this product record.</p>
+              )}
+              <p className="mt-3 text-xs text-accent-muted">This page does not validate organic status or certification documents.</p>
             </SectionCard>
 
-            <SectionCard title="QR Verification" subtitle="Consumer scan identity & authentication" icon={QrCode}>
+            <SectionCard title="QR code" subtitle="The QR opens this public product trace" icon={QrCode}>
               <div className="qr-identity-banner">
                 <div className="qr-identity-orbit"><ScanLine className="h-5 w-5" /></div>
-                <div className="min-w-0"><div className="qr-eyebrow"><span className="qr-live-dot" /> Scan-ready identity</div><p>One scan opens the verified farm-to-table record.</p></div>
-                <BadgeCheck className="ml-auto h-6 w-6 shrink-0 text-[#b9f1cf]" />
+                <div className="min-w-0"><div className="qr-eyebrow"><span className="qr-live-dot" /> Public trace link</div><p>A QR code links to this product record; it does not verify certification or chain state.</p></div>
+                <QrCode className="ml-auto h-6 w-6 shrink-0 text-[#b9f1cf]" />
               </div>
               <div className="qr-verification-layout">
                 <div className="qr-frame-wrap">
@@ -479,33 +478,55 @@ const ProductTraceability = () => {
                   <div className="qr-data-label">Traceability ID</div>
                   <div className="qr-id-row"><strong>{displayedTraceabilityId}</strong><button type="button" aria-label="Copy traceability ID" title="Copy traceability ID" className="qr-copy-button" onClick={() => { navigator.clipboard?.writeText(displayedTraceabilityId); setTraceIdCopied(true); window.setTimeout(() => setTraceIdCopied(false), 1600); }}>{traceIdCopied ? <BadgeCheck className="h-4 w-4" /> : <Copy className="h-4 w-4" />}</button></div>
                   <div className="qr-data-grid">
-                    <div><span>Scan count</span><strong>{traceData.scanCount}</strong></div>
-                    <div><span>Authentication</span><strong className="text-emerald-700">{qrVerified ? "Verified" : "Pending"}</strong></div>
-                    <div><span>Organic status</span><strong>{product.organicCertified ? "Certified" : "Reviewing"}</strong></div>
+                    <div><span>Scan count</span><strong>{traceData.scanCount ?? "Not recorded"}</strong></div>
+                    <div><span>QR status</span><strong>{qrAvailable ? "Generated" : "Not generated"}</strong></div>
+                    <div><span>On-chain status</span><strong>{getVerificationStatusLabel(chainVerification.status)}</strong></div>
                     <div><span>Record type</span><strong>Public trace</strong></div>
-                    <div><span>Ledger integrity</span><strong className={product.blockchain?.valid ? "text-emerald-700" : "text-amber-700"}>{product.blockchain?.valid ? "Chain verified" : "Awaiting blocks"}</strong></div>
                   </div>
-                  <div className="qr-instruction"><ScanLine className="h-4 w-4 shrink-0 text-[#2d6a4f]" /><span>Point your phone camera at the code to verify this product's origin and journey.</span></div>
+                  <div className="qr-instruction"><ScanLine className="h-4 w-4 shrink-0 text-[#2d6a4f]" /><span>Scan to open the product trace record.</span></div>
                 </div>
               </div>
             </SectionCard>
 
-            <SectionCard title="Blockchain Ledger" subtitle="Tamper-evident event history for this product" icon={Link2}>
-              <div className={`ledger-status ${product.blockchain?.valid ? "ledger-status-valid" : "ledger-status-pending"}`}>
-                <ShieldCheck className="h-5 w-5" />
-                <div><strong>{product.blockchain?.valid ? "Chain verified" : "Awaiting ledger events"}</strong><p>{product.blockchain?.valid ? `${product.blockchain.blockCount} linked block${product.blockchain.blockCount === 1 ? "" : "s"} checked successfully.` : "Generate a QR code or update the shipment to create the first blocks."}</p></div>
+            <SectionCard title="Polygon Amoy verification" subtitle="Product and event records checked against the configured contract" icon={Link2}>
+              <div className={`ledger-status ${chainStatusClass}`}>
+                <Link2 className="h-5 w-5" />
+                <div><strong>{getVerificationStatusLabel(chainVerification.status)}</strong><p>{getChainStatusDescription(chainVerification)}</p></div>
               </div>
-              {product.blockchain?.blocks?.length > 0 ? (
+              <div className="mt-4 rounded-lg border border-surface-alt bg-surface-alt p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <strong className="text-sm text-primary">Product batch registration</strong>
+                  <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${registrationStatusClass}`}>{getVerificationStatusLabel(registration.status)}</span>
+                </div>
+                {registration.batchId && <div className="ledger-hash-row"><span>Local submission batch ID: <code>{shortenHash(registration.batchId)}</code></span></div>}
+                <div className="mt-3 grid gap-2 text-xs text-accent-muted sm:grid-cols-2">
+                  <div>Transaction: {registrationExplorerUrl ? <a className="ledger-explorer-link" href={registrationExplorerUrl} target="_blank" rel="noreferrer">{shortenHash(registration.transactionHash)}</a> : "Unavailable"}</div>
+                  <div>Block number: {registration.verified && registration.blockNumber !== null && registration.blockNumber !== undefined ? registration.blockNumber : "Unavailable"}</div>
+                </div>
+              </div>
+              {Array.isArray(chainVerification.events) && chainVerification.events.length > 0 ? (
                 <div className="ledger-list">
-                  {product.blockchain.blocks.map((block, index) => (
-                    <motion.div key={block._id || block.hash} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.08 }} className="ledger-block">
-                      <div className="ledger-block-index">{String(block.index).padStart(2, "0")}</div>
-                      <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><strong>{block.eventType.replaceAll("_", " ")}</strong><span className="ledger-block-time">{formatDateTime(block.timestamp)}</span></div><div className="ledger-hash-row"><span><Link2 className="h-3 w-3" /> prev {shortenHash(block.previousHash)}</span><span><Hash className="h-3 w-3" /> hash {shortenHash(block.hash)}</span></div></div>
+                  {chainVerification.events.map((event, index) => {
+                    const eventHash = getVerifiedEventHash(event);
+                    const explorerUrl = getVerifiedExplorerUrl(event);
+                    const eventStatusClass = ledgerStatusStyles[event.status] || ledgerStatusStyles.unavailable;
+                    return (
+                    <motion.div key={event.eventId} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * 0.08 }} className="ledger-block">
+                      <div className="ledger-block-index">{String(index + 1).padStart(2, "0")}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2"><strong>{(event.eventType || "Trace event").replaceAll("_", " ")}</strong><span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${eventStatusClass}`}>{getVerificationStatusLabel(event.status)}</span><span className="ledger-block-time">{formatDateTime(event.timestamp)}</span></div>
+                        <div className="ledger-hash-row"><span><Hash className="h-3 w-3" /> Verified event hash: {eventHash ? shortenHash(eventHash) : "Not verified"}</span>{event.batchId && <span>Local batch: {shortenHash(event.batchId)}</span>}</div>
+                        <div className="mt-2 grid gap-1 text-xs text-accent-muted sm:grid-cols-2">
+                          <div>Transaction: {explorerUrl ? <a className="ledger-explorer-link" href={explorerUrl} target="_blank" rel="noreferrer">{shortenHash(event.transactionHash)} <span aria-hidden="true">↗</span></a> : "Unavailable"}</div>
+                          <div>Block number: {event.verified && event.blockNumber !== null && event.blockNumber !== undefined ? event.blockNumber : "Unavailable"}</div>
+                        </div>
+                      </div>
                     </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="ledger-empty"><Hash className="h-7 w-7" /><p>No blocks recorded for this legacy product yet.</p></div>
+                <div className="ledger-empty"><Hash className="h-7 w-7" /><p>No trace events are available for on-chain verification.</p></div>
               )}
             </SectionCard>
           </div>

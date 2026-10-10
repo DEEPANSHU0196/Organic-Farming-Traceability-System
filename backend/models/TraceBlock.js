@@ -35,6 +35,40 @@ const traceBlockSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
+    batchId: {
+      type: String,
+      index: true,
+    },
+    idempotencyKey: String,
+    eventHash: String,
+    blockchainStatus: {
+      type: String,
+      enum: ["pending", "confirmed", "failed"],
+      default: "pending",
+      index: true,
+    },
+    transactionHash: String,
+    blockNumber: Number,
+    productRegistrationTransactionHash: String,
+    productRegistrationBlockNumber: Number,
+    blockchainAttempts: {
+      type: Number,
+      default: 0,
+    },
+    blockchainNextAttemptAt: Date,
+    blockchainLastError: String,
+    blockchainLockId: String,
+    blockchainLockUntil: Date,
+    nonce: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
+    difficulty: {
+      type: Number,
+      required: true,
+      default: 2,
+    },
     timestamp: {
       type: Date,
       required: true,
@@ -45,5 +79,7 @@ const traceBlockSchema = new mongoose.Schema(
 );
 
 traceBlockSchema.index({ product: 1, index: 1 }, { unique: true });
+traceBlockSchema.index({ idempotencyKey: 1 }, { unique: true, sparse: true });
+traceBlockSchema.index({ blockchainStatus: 1, blockchainNextAttemptAt: 1, timestamp: 1 });
 
 module.exports = mongoose.model("TraceBlock", traceBlockSchema);

@@ -1,0 +1,16 @@
+{
+  "name": "organic-farming-traceability-blockchain",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Polygon Amoy traceability contracts for Organic Farming Traceability System",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:amoy": "hardhat run scripts/deploy.js --network polygonAmoy"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^17.4.2",
+    "hardhat": "^2.28.0"
+  }
+}

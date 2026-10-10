@@ -8,6 +8,8 @@ const cookieParser = require("cookie-parser");
 // Load Environment Variables
 dotenv.config();
 
+const { startTraceRetryWorker } = require("./utils/polygonTrace");
+
 
 // Routes
 
@@ -99,6 +101,8 @@ mongoose
     } catch (error) {
       console.log("Index cleanup skipped:", error.message);
     }
+
+    startTraceRetryWorker();
   })
   .catch((error) => {
     console.log(
