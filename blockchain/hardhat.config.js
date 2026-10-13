@@ -16,7 +16,7 @@ module.exports = {
   networks: {
     hardhat: {},
     polygonAmoy: {
-      url: process.env.POLYGON_RPC_URL || "https://rpc-amoy.polygon.technology/",
+      url: process.env.POLYGON_RPC_URL || "https://polygon-amoy-bor-rpc.publicnode.com",
       chainId: 80002,
       accounts: privateKey ? [privateKey] : [],
     },
