@@ -43,7 +43,7 @@ export default function DashboardSidebar({ sections, activeSection, setActiveSec
               <Leaf className="w-6 h-6 text-white" />
             </div>
             <div>
-              <div className="text-sm font-bold tracking-tight">AgriTrust</div>
+              <div className="text-sm font-bold tracking-tight">AgroVerse</div>
               <div className="text-xs text-white/60">Farmer Portal</div>
             </div>
           </div>

@@ -1,12 +1,32 @@
 const Product = require("../models/Product");
+const { generateAiReply, isAiEnabled } = require("../utils/aiAssistant");
+const { getMandiPrices } = require("../utils/mandiPrices");
+
+// Hindi / Hinglish keywords mapped onto the English intents the rule engine knows.
+const KEYWORD_ALIASES = [
+  [/(bhav|daam|dam|kimat|keemat|mandi|भाव|दाम|कीमत|मंडी)/i, " price "],
+  [/(keet|keeda|kida|rog|bimari|कीट|कीड़ा|रोग|बीमारी)/i, " pest "],
+  [/(khad|khaad|mitti|urvarak|खाद|मिट्टी|उर्वरक|जैविक खाद)/i, " fertilizer soil "],
+  [/(pramaan|praman|jaivik|प्रमाण|जैविक)/i, " certification jaivik "],
+  [/(kisan|किसान)/i, " farmer "],
+  [/(kharidar|खरीदार)/i, " buyer "],
+  [/(parivahan|transport|परिवहन)/i, " transport "],
+];
+
 
 // Knowledge base and AI logic engine
 const queryChatbot = async (req, res) => {
   try {
-    const { message = "", role = "guest", user = null } = req.body;
-    const cleanMessage = message.trim().toLowerCase();
+    const { message = "", role = "guest", user = null, language = "English", history = [], image = null } = req.body;
+    // Optional crop photo: { mediaType, data(base64) }, jpeg/png/webp up to ~4.5 MB.
+    const photo = image && ["image/jpeg", "image/png", "image/webp"].includes(image.mediaType)
+      && typeof image.data === "string" && image.data.length < 6_000_000 ? image : null;
+    let cleanMessage = String(message).trim().toLowerCase();
+    for (const [pattern, alias] of KEYWORD_ALIASES) {
+      if (pattern.test(cleanMessage)) cleanMessage += alias;
+    }
 
-    if (!cleanMessage) {
+    if (!cleanMessage && !photo) {
       return res.status(400).json({
         success: false,
         message: "Message is required",
@@ -32,14 +52,14 @@ const queryChatbot = async (req, res) => {
             { traceabilityId: { $regex: new RegExp(queryId, "i") } },
             { _id: queryId.match(/^[0-9a-fA-F]{24}$/) ? queryId : null },
           ],
-        }).populate("farmerId", "name location phone farmName certificationDetails");
+        }).populate("farmer", "fullName address phone");
       } catch (err) {
         console.log("Chatbot Product lookup error (non-fatal):", err.message);
       }
     }
 
     if (foundProduct) {
-      reply = `✨ **Verified Organic Batch Found!**\n\nProduct: **${foundProduct.name}**\nBatch ID: \`${foundProduct.traceabilityId || foundProduct._id}\`\nFarmer: ${foundProduct.farmerId?.farmName || foundProduct.farmerId?.name || "Certified AgroVerse Farmer"}\nLocation: ${foundProduct.location || foundProduct.farmerId?.location || "India"}\nHarvest Date: ${foundProduct.harvestDate ? new Date(foundProduct.harvestDate).toLocaleDateString("en-IN") : "Recent Harvest"}\nOrganic Status: 🌿 **100% Certified Organic (NPOP / Jaivik Bharat)**`;
+      reply = `✨ **Verified Organic Batch Found!**\n\nProduct: **${foundProduct.name}**\nBatch ID: \`${foundProduct.traceabilityId || foundProduct._id}\`\nFarmer: ${foundProduct.farmer?.fullName || "Certified AgroVerse Farmer"}\nLocation: ${foundProduct.location || foundProduct.farmer?.address || "India"}\nHarvest Date: ${foundProduct.harvestDate ? new Date(foundProduct.harvestDate).toLocaleDateString("en-IN") : "Recent Harvest"}\nOrganic Status: 🌿 **100% Certified Organic (NPOP / Jaivik Bharat)**`;
       
       actionType = "traceability_card";
       actionData = {
@@ -52,9 +72,9 @@ const queryChatbot = async (req, res) => {
         unit: foundProduct.unit || "kg",
         farmLocation: foundProduct.location || "Organic Certified Farm",
         harvestDate: foundProduct.harvestDate,
-        farmerName: foundProduct.farmerId?.name || "Verified AgroVerse Farmer",
+        farmerName: foundProduct.farmer?.fullName || "Verified AgroVerse Farmer",
         status: foundProduct.status || "Verified Organic",
-        certificateNumber: foundProduct.certificateNumber || "AGRO-NPOP-2026-081",
+        certificateNumber: foundProduct.certificationNumber || "AGRO-NPOP-2026-081",
         soilPh: foundProduct.soilPh || "6.8 (Optimal Organic Soil)",
       };
 
@@ -64,8 +84,17 @@ const queryChatbot = async (req, res) => {
         "How do I scan QR code for another batch?",
       ];
     } else if (cleanMessage.includes("price") || cleanMessage.includes("rate") || cleanMessage.includes("mandi") || cleanMessage.includes("cost") || cleanMessage.includes("market")) {
-      // 2. Mandi / Market Prices
-      reply = `📊 **AgroVerse Live Organic Mandi Rates (India - Today)**\n\n• **Organic Wheat (Sarbati)**: ₹3,450 / Quintal (▲ 2.1%)\n• **Organic Basmati Rice**: ₹6,200 / Quintal (▲ 1.4%)\n• **Organic Desi Tomato**: ₹48 / Kg\n• **Organic Turmeric (High Curcumin)**: ₹12,500 / Quintal\n• **Organic Moong Dal**: ₹9,800 / Quintal\n• **Organic Alphonso Mango**: ₹120 / Kg\n\n*Note: Organic certified produce commands a 20-35% premium over conventional produce on AgroVerse!*`;
+      // 2. Mandi / Market Prices - live Agmarknet data when DATA_GOV_API_KEY is set
+      let mandi = null;
+      try {
+        mandi = await getMandiPrices({ limit: 8 });
+      } catch (err) {
+        console.log("Mandi feed error (non-fatal):", err.message);
+      }
+      const rows = (mandi?.records || []).slice(0, 6).map((r) =>
+        `• **${r.commodity}${r.variety ? ` (${r.variety})` : ""}** — ₹${r.modalPrice?.toLocaleString("en-IN") ?? "—"} / quintal · ${r.market}, ${r.state}`);
+      const live = mandi?.source === "agmarknet";
+      reply = `📊 **${live ? "Today's mandi rates (Agmarknet)" : "Sample mandi rates"}**\n\n${rows.join("\n") || "Rates are unavailable right now."}\n\n*${live ? "These are conventional APMC prices. Certified organic produce usually sells at a premium above them." : "Sample figures for illustration only. Check Agmarknet or eNAM for today's prices."}*`;
       actionType = "market_rates";
       suggestions = [
         "How do I list my crops at premium prices?",
@@ -139,8 +168,34 @@ const queryChatbot = async (req, res) => {
       ];
     }
 
+    if (photo && !isAiEnabled()) {
+      reply = "📷 Photo diagnosis needs the AI assistant to be switched on (ANTHROPIC_API_KEY on the server). Meanwhile, describe the symptoms — spots, colour, pests, wilting — and I'll suggest organic remedies.";
+      actionType = "text";
+      suggestions = ["Yellow spots on tomato leaves", "White insects under leaves", "Leaves curling and drying"];
+    }
+
+    // Let the AI model write the final answer (in the user's language), grounded on
+    // the rule engine's platform data. Falls back to the rule reply if unavailable.
+    let source = "rules";
+    if (isAiEnabled()) {
+      const aiReply = await generateAiReply({
+        message: String(message).slice(0, 2000),
+        role,
+        user,
+        language,
+        history,
+        platformNotes: foundProduct ? `${reply}\n\nRecord: ${JSON.stringify(actionData)}` : null,
+        image: photo,
+      });
+      if (aiReply) {
+        reply = aiReply;
+        source = "ai";
+      }
+    }
+
     return res.json({
       success: true,
+      source,
       reply,
       actionType,
       actionData,

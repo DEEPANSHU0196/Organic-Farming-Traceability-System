@@ -2,8 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, Users, ShoppingCart, Package,
-  ClipboardList, CheckCircle, BarChart3, Settings, Sprout, Truck
-} from 'lucide-react';
+  ClipboardList, CheckCircle, BarChart3, Settings, Sprout, Truck, Inbox } from 'lucide-react';
 import DashboardLayout from '../shared/DashboardLayout';
 import AdminDashboardOverview from '../components/AdminPortal/AdminDashboardOverview';
 import FarmersManagement from '../components/AdminPortal/FarmersManagement';
@@ -14,6 +13,7 @@ import AdminOrders from '../components/AdminPortal/AdminOrders';
 import PendingApprovals from '../components/AdminPortal/PendingApprovals';
 import PlatformAnalytics from '../components/AdminPortal/PlatformAnalytics';
 import AdminSettings from '../components/AdminPortal/AdminSettings';
+import AdminMessages from '../components/AdminPortal/AdminMessages';
 
 const NAV_ITEMS = [
   { id: 'overview',   label: 'Dashboard',  icon: LayoutDashboard },
@@ -24,6 +24,7 @@ const NAV_ITEMS = [
   { id: 'orders',     label: 'Orders',     icon: ClipboardList },
   { id: 'approvals',  label: 'Approvals',  icon: CheckCircle },
   { id: 'analytics',  label: 'Analytics',  icon: BarChart3 },
+  { id: 'messages',   label: 'Messages',   icon: Inbox },
   { id: 'settings',   label: 'Settings',   icon: Settings },
 ];
 
@@ -51,6 +52,7 @@ export default function AdminDashboard() {
       case 'orders':    return <AdminOrders />;
       case 'approvals': return <PendingApprovals />;
       case 'analytics': return <PlatformAnalytics />;
+      case 'messages':   return <AdminMessages />;
       case 'settings':  return <AdminSettings />;
       default:          return <AdminDashboardOverview onNavigate={handleSectionChange} />;
     }

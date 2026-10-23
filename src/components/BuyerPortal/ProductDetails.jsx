@@ -1,4 +1,5 @@
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { useToast } from '../../contexts/ToastContext';
 import { X, ShoppingCart, Star, MapPin, Leaf, Check, Calendar, Heart, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -19,9 +20,15 @@ export default function ProductDetails({ product, onClose, onAddToCart }) {
     return <span className={className}>{image || '🌾'}</span>;
   };
 
+  const [added, setAdded] = useState(false);
+  const toast = useToast();
+
   const handleAddToCart = () => {
     addToCart(product, quantity);
-    onAddToCart();
+    onAddToCart?.();
+    setAdded(true);
+    toast(`${quantity} × ${product.name} added to your cart`, { title: 'Added to cart' });
+    window.setTimeout(() => setAdded(false), 1800);
   };
 
   return (
@@ -136,10 +143,20 @@ export default function ProductDetails({ product, onClose, onAddToCart }) {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleAddToCart}
-                  className="flex-1 min-w-[140px] px-6 py-3 bg-emerald-500 text-white rounded-lg font-semibold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
+                  animate={added ? { scale: [1, 1.06, 1] } : {}}
+                  className={`relative flex-1 min-w-[140px] overflow-hidden px-6 py-3 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2 text-white ${added ? 'bg-leaf' : 'bg-emerald-500 hover:bg-emerald-600'}`}
                 >
-                  <ShoppingCart size={20} />
-                  Add to Cart
+                  <AnimatePresence mode="wait" initial={false}>
+                    {added ? (
+                      <motion.span key="added" initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -18, opacity: 0 }} className="flex items-center gap-2">
+                        <Check size={20} strokeWidth={3} /> Added
+                      </motion.span>
+                    ) : (
+                      <motion.span key="add" initial={{ y: 18, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -18, opacity: 0 }} className="flex items-center gap-2">
+                        <ShoppingCart size={20} /> Add to Cart
+                      </motion.span>
+                    )}
+                  </AnimatePresence>
                 </motion.button>
 
                 <motion.button

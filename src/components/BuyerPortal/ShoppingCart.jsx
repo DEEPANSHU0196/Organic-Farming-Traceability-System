@@ -1,8 +1,11 @@
 import { motion } from 'motion/react';
 import { Trash2, Plus, Minus, ShoppingCart as CartIcon, ArrowRight } from 'lucide-react';
 import { useBuyer } from '../../contexts/BuyerContext';
+import EmptyState from '../../shared/EmptyState';
+import { useNavigate } from 'react-router-dom';
 
 export default function ShoppingCart({ onCheckout }) {
+  const navigate = useNavigate();
   const { cart, removeFromCart, updateCartQuantity } = useBuyer();
 
   const renderProductImage = (image, className) => {
@@ -22,11 +25,13 @@ export default function ShoppingCart({ onCheckout }) {
           <h1 className="text-3xl font-bold text-primary mb-2">Shopping Cart</h1>
           <p className="text-accent-muted">Your cart is currently empty</p>
         </div>
-        <div className="flex flex-col items-center justify-center py-16">
-          <CartIcon size={64} className="text-gray-300 mb-4" />
-          <p className="text-accent-muted text-lg">No products in cart</p>
-          <p className="text-accent-muted text-sm">Browse products to add them to cart</p>
-        </div>
+        <EmptyState
+          icon={CartIcon}
+          title="Your cart is empty"
+          body="Find certified produce straight from the farm. Every item comes with its full trace record."
+          actionLabel="Browse produce"
+          onAction={() => navigate('/buyer-dashboard/browse')}
+        />
       </div>
     );
   }

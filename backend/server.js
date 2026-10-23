@@ -23,6 +23,8 @@ const qrRoutes = require("./routes/qrRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
+const publicRoutes = require("./routes/publicRoutes");
+const { seedDefaultAdminAccounts } = require("./controllers/authController");
 
 
 const getAllowedOrigins = () => {
@@ -69,7 +71,8 @@ app.use(
 );
 
 
-app.use(express.json());
+// 6 MB leaves room for one base64 crop photo sent to AgroBot.
+app.use(express.json({ limit: "6mb" }));
 
 
 app.use(
@@ -90,6 +93,7 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
     console.log("MongoDB Connected");
+    await seedDefaultAdminAccounts();
 
     try {
       const db = mongoose.connection.db;
@@ -204,7 +208,10 @@ app.use(
 app.use(
   "/api/chatbot",
   chatbotRoutes
-);
+)
+
+// Public, unauthenticated data for the landing page, trace pages and farmer profiles
+app.use("/api/public", publicRoutes);
 
 
 

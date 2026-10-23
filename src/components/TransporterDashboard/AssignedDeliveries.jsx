@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { MapPin, Phone, Clock, CheckCircle, XCircle, AlertCircle, Package, ExternalLink, Truck } from 'lucide-react';
 import { getMyShipments, getAvailableShipments, updateShipment, assignDriver, acceptShipmentRequest } from '../../api/shipment';
-import { LeafLoader } from '../../shared/ui';
+import { SkeletonCards } from '../../shared/ui';
 
 export default function AssignedDeliveries() {
   const [activeTab, setActiveTab] = useState('available');
@@ -88,7 +88,6 @@ export default function AssignedDeliveries() {
               updates: ship.updates || [],
             };
           });
-      return formatted;
   };
 
   const handleClaimRequest = async (id) => {
@@ -231,9 +230,7 @@ export default function AssignedDeliveries() {
 
       {/* Loading State */}
       {loading && (
-        <div className="flex items-center justify-center py-12">
-          <LeafLoader label="Loading delivery network..." />
-        </div>
+        <SkeletonCards count={3} label="Loading delivery network" />
       )}
 
       {/* Empty State */}

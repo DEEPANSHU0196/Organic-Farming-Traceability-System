@@ -1,9 +1,13 @@
 import { motion } from 'motion/react';
-import { CheckCircle, XCircle, Eye, Clock, Search, X, Download, Phone, Mail, MapPin, Package, Hourglass, BadgeCheck, CircleX, CircleDollarSign, Sprout } from 'lucide-react';
+import { SkeletonRows } from '../../shared/ui';
+import { CheckCircle, XCircle, Eye, Clock, Search, X, Download, Phone, Mail, MapPin, Package, Hourglass, BadgeCheck, CircleX, CircleDollarSign, Sprout, Inbox } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import api from '../../api/axios';
+import EmptyState from '../../shared/EmptyState';
+import { useNavigate } from 'react-router-dom';
 
 export default function OrdersManagement() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
@@ -213,7 +217,7 @@ export default function OrdersManagement() {
         className="overflow-hidden border-b border-[#dbe7dc]"
       >
         {loading ? (
-          <div className="p-8 text-center text-accent-muted">Loading orders from buyers...</div>
+          <SkeletonRows label="Loading orders from buyers" />
         ) : (
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -410,11 +414,16 @@ export default function OrdersManagement() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-12 bg-white rounded-lg border border-surface-alt"
+          className="rounded-2xl border border-surface-alt bg-white"
         >
-          <p className="text-4xl mb-4">📭</p>
-          <p className="text-primary font-semibold mb-2">No orders found</p>
-          <p className="text-accent-muted">Try adjusting your filters</p>
+          <EmptyState
+            icon={Inbox}
+            compact
+            title={orders.length ? 'No orders match these filters' : 'No orders yet'}
+            body={orders.length ? 'Try a different status or clear the search.' : 'Orders from buyers land here. Approved batches are what buyers can order.'}
+            actionLabel={orders.length ? undefined : 'See my products'}
+            onAction={orders.length ? undefined : () => navigate('/farmer-dashboard/my-products')}
+          />
         </motion.div>
       )}
     </div>

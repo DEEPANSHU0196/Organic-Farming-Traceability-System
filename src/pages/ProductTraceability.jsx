@@ -1,7 +1,8 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
+  ArrowUpRight,
   BadgeCheck,
   Building2,
   CalendarDays,
@@ -27,7 +28,7 @@ import {
   Warehouse,
 } from "lucide-react";
 import api from "../api/axios";
-import { LeafLoader, StatusBadge } from "../shared/ui";
+import { Skeleton, StatusBadge } from "../shared/ui";
 import {
   getChainStatusDescription,
   getVerificationStatusLabel,
@@ -114,17 +115,27 @@ const ledgerStatusStyles = {
 };
 
 const LoadingSkeleton = () => (
-  <div className="min-h-screen bg-surface px-4 py-8 sm:px-6 lg:px-8">
-    <div className="mx-auto max-w-7xl space-y-6">
-      <LeafLoader label="Verifying your product journey..." />
+  <div className="min-h-screen bg-surface" role="status" aria-label="Verifying your product journey">
+    <span className="sr-only">Verifying your product journey…</span>
+    <div className="bg-[#173e2b] px-4 py-14 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-4">
+        <Skeleton className="h-4 w-40 !bg-white/10" />
+        <Skeleton className="h-10 w-2/3 max-w-xl !bg-white/10" />
+        <Skeleton className="h-4 w-1/2 max-w-md !bg-white/10" />
+      </div>
+    </div>
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        {[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-24 rounded-xl" />)}
+      </div>
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="space-y-6">
-          <div className="h-80 rounded-xl bg-surface-alt animate-pulse" />
-          <div className="h-72 rounded-xl bg-surface-alt animate-pulse" />
+          <Skeleton className="h-80 rounded-xl" />
+          <Skeleton className="h-72 rounded-xl" />
         </div>
         <div className="space-y-6">
-          <div className="h-64 rounded-xl bg-surface-alt animate-pulse" />
-          <div className="h-56 rounded-xl bg-surface-alt animate-pulse" />
+          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-56 rounded-xl" />
         </div>
       </div>
     </div>
@@ -232,6 +243,10 @@ function FarmToTableJourney({ product, traceData }) {
     { label: "Buyer", role: "Final destination", icon: UserRound, location: product?.shipment?.order?.buyer?.address || "Delivery destination", status: shipmentStatus === "Delivered" ? "Journey complete" : "In progress", update: updates[4], image: journeyStageImages[4] },
   ];
   const activeIndex = Math.max(0, stages.findIndex((stage) => stage.status.toLowerCase().includes("transit") || stage.status.toLowerCase().includes("progress")));
+  // The route line fills up to the furthest stage that has a recorded update.
+  const reachedIndex = stages.reduce((last, stage, index) => (stage.update ? index : last), 0);
+  const routeProgress = stages.length > 1 ? reachedIndex / (stages.length - 1) : 1;
+  const STAGE_STEP = 0.35;
 
   return (
     <SectionCard title="Farm-to-table journey" subtitle="A living view of every handoff in the supply chain" icon={Globe}>
@@ -245,14 +260,21 @@ function FarmToTableJourney({ product, traceData }) {
         </div>
         <div className="journey-route" aria-label="Farm to table supply chain journey">
           <div className="journey-route-line" />
+          <motion.div
+            className="journey-route-progress"
+            initial={{ scaleX: 0 }}
+            whileInView={{ scaleX: routeProgress }}
+            viewport={{ once: true, margin: "-80px" }}
+            transition={{ duration: Math.max(0.4, reachedIndex * STAGE_STEP), ease: "easeInOut" }}
+          />
           <div className="journey-stage-grid">
             {stages.map((stage, index) => {
               const Icon = stage.icon;
               const isActive = Boolean(stage.update) && index === activeIndex;
               return (
-                <motion.div key={stage.label} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.08 }} whileHover={{ y: -7 }} className={`journey-map-stage ${isActive ? "journey-map-stage-active" : ""}`}>
+                <motion.div key={stage.label} initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * STAGE_STEP, duration: 0.5 }} whileHover={{ y: -7 }} className={`journey-map-stage ${isActive ? "journey-map-stage-active" : ""}`}>
                   <div className="journey-stage-photo"><img src={stage.image} alt={`${stage.label} checkpoint`} onError={(event) => { event.currentTarget.src = journeyStageImages[index]; }} /><span className="journey-stage-index">0{index + 1}</span></div>
-                  <div className="journey-stage-marker"><Icon className="h-5 w-5" /></div>
+                  <motion.div className="journey-stage-marker" initial={{ scale: 0.3 }} whileInView={{ scale: [0.3, 1.25, 1] }} viewport={{ once: true }} transition={{ delay: index * STAGE_STEP + 0.15, duration: 0.5 }}><Icon className="h-5 w-5" /></motion.div>
                   <div className="journey-stage-copy">
                     <div className="flex items-start justify-between gap-2"><div><h3>{stage.label}</h3><p>{stage.role}</p></div><span className={`journey-status ${isActive ? "journey-status-live" : ""}`}>{stage.update ? "Recorded" : "No update"}</span></div>
                     <div className="journey-stage-detail"><MapPin className="h-3.5 w-3.5 shrink-0" /> <span>{stage.location}</span></div>
@@ -408,6 +430,11 @@ const ProductTraceability = () => {
                 </div>
                 <div>
                   <div className="text-base font-bold text-primary">{traceData.farmer.name}</div>
+                  {(product.farmer?._id || typeof product.farmer === "string") && (
+                    <Link to={`/farmer/${product.farmer?._id || product.farmer}`} className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-[#2d6a4f] hover:underline">
+                      View farmer profile <ArrowUpRight className="h-3.5 w-3.5" />
+                    </Link>
+                  )}
                   <div className="mt-1 inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
                     <ShieldCheck className="h-3 w-3" />
                     Farmer account
@@ -415,8 +442,6 @@ const ProductTraceability = () => {
                 </div>
               </div>
               <div className="grid gap-2">
-                <DetailRow label="Phone Number" value={traceData.farmer.phone} />
-                <DetailRow label="Email" value={traceData.farmer.email} />
                 <DetailRow label="Address" value={traceData.farmer.address} />
                 <DetailRow label="Farm Location" value={product.location || "N/A"} />
               </div>
@@ -473,6 +498,18 @@ const ProductTraceability = () => {
                     </div>
                   )}
                   {product.qrCode && <div className="qr-scan-line" />}
+                  {product.qrCode && (
+                    // Says "record found", not "verified": the QR only links to this record.
+                    <motion.div
+                      className="qr-found-stamp"
+                      initial={{ opacity: 0, scale: 1.8, rotate: -18 }}
+                      whileInView={{ opacity: 1, scale: 1, rotate: -8 }}
+                      viewport={{ once: true }}
+                      transition={{ delay: 1.5, type: "spring", stiffness: 320, damping: 16 }}
+                    >
+                      <BadgeCheck className="h-4 w-4" /> Record found
+                    </motion.div>
+                  )}
                 </div>
                 <div className="qr-data-panel">
                   <div className="qr-data-label">Traceability ID</div>

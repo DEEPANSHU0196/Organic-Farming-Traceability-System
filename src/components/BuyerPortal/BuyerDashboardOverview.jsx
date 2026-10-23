@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { AnimatedNumber } from '../../shared/ui';
 import { ShoppingBag, Package, Star, CreditCard, TrendingUp, ArrowRight } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBuyer } from '../../contexts/BuyerContext';
@@ -107,7 +108,7 @@ export default function BuyerDashboardOverview({ onNavigate }) {
                 </div>
                 <TrendingUp size={14} className="text-slate-400" />
               </div>
-              <div className="text-2xl font-bold text-slate-800">{s.value}</div>
+              <div className="text-2xl font-bold text-slate-800"><AnimatedNumber value={s.value} /></div>
               <div className="text-xs text-slate-500 mt-0.5">{s.label}</div>
               {s.change && <div className="text-xs font-medium mt-2" style={{ color: s.color }}>{s.change}</div>}
             </motion.div>

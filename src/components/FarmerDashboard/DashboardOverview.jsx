@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import { AnimatedNumber } from '../../shared/ui';
 import { TrendingUp, Package, CheckCircle, DollarSign, ArrowUpRight, ArrowDownLeft, Plus, ShoppingCart, Sprout, CloudSun, Droplets, ArrowRight, Activity, Users, Recycle, Wind, Star, CircleDollarSign, Scale, CalendarRange } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Line, Bar } from 'react-chartjs-2';
@@ -16,8 +17,18 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import WeatherWidget from './WeatherWidget';
+import MandiWidget from './MandiWidget';
+import { currentSeason } from '../../utils/farmAdvice';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend);
+
+// Charts draw in left to right, one data point after another, on first render.
+ChartJS.defaults.animation = {
+  duration: 1100,
+  easing: 'easeOutQuart',
+  delay: (ctx) => (ctx.type === 'data' && ctx.mode === 'default' ? ctx.dataIndex * 70 + ctx.datasetIndex * 140 : 0),
+};
 
 export default function DashboardOverview() {
   const navigate = useNavigate();
@@ -179,6 +190,8 @@ export default function DashboardOverview() {
     });
   }
 
+  const season = currentSeason();
+
   return (
     <div className="farmer-overview space-y-6">
       <motion.section
@@ -194,10 +207,10 @@ export default function DashboardOverview() {
           <div className="max-w-xl">
             <div className="mb-5 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#f4d58b]"><Sprout size={15} /> Live farm pulse</div>
             <h1 className="font-display text-4xl leading-none md:text-5xl">Welcome back,<br /><span className="text-[#f4d58b]">{displayName}.</span></h1>
-            <p className="mt-4 max-w-md text-sm leading-6 text-white/75">Your harvest is moving beautifully. Here is the latest pulse from your farm-to-market journey.</p>
+            <p className="mt-4 max-w-md text-sm leading-6 text-white/75">Here’s what’s moving across your batches, orders and the weather on your fields.</p>
             <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-semibold text-white/70">
-              <span className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2"><CloudSun size={15} className="text-[#f4d58b]" /> Kharif season · On track</span>
-              <span className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2"><Droplets size={15} className="text-[#8dd6ce]" /> Soil moisture 68%</span>
+              <span className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2" title={season.detail}><CloudSun size={15} className="text-[#f4d58b]" /> {season.name} season</span>
+              <span className="flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2"><ShoppingCart size={15} className="text-[#8dd6ce]" /> {activeOrdersCount} active order{activeOrdersCount === 1 ? '' : 's'}</span>
             </div>
           </div>
           <div className="flex w-full flex-wrap gap-3 md:w-auto md:flex-col">
@@ -207,12 +220,9 @@ export default function DashboardOverview() {
         </div>
       </motion.section>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {[['Field health', 'Excellent', 'All crops thriving', '#52b788'], ['Orders moving', `${activeOrdersCount} active`, 'Across your network', '#8dd6ce'], ['Next payout', 'Friday', 'Estimated settlement', '#f4d58b']].map(([label, value, detail, color], index) => (
-          <motion.div key={label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 + index * 0.08 }} className="season-strip flex items-center justify-between rounded-2xl border border-[#dbe7dc] bg-white/75 px-4 py-3 backdrop-blur-sm">
-            <div><p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#718278]">{label}</p><p className="mt-1 text-sm font-bold text-[#173e2b]">{value}</p><p className="text-xs text-[#8a978e]">{detail}</p></div><span className="h-3 w-3 rounded-full" style={{ backgroundColor: color, boxShadow: `0 0 0 5px ${color}22` }} />
-          </motion.div>
-        ))}
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.3fr_1fr]">
+        <WeatherWidget />
+        <MandiWidget />
       </div>
 
       {/* Analytics Cards */}
@@ -242,7 +252,7 @@ export default function DashboardOverview() {
                 )}
               </div>
               <p className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-[#718278]">{card.title}</p>
-              <p className="font-display text-3xl font-bold text-[#173e2b]">{card.value}</p>
+              <p className="font-display text-3xl font-bold text-[#173e2b]"><AnimatedNumber value={card.value} /></p>
               <div className="mt-4 h-1 overflow-hidden rounded-full bg-[#edf2ea]"><div className="metric-progress h-full rounded-full" style={{ width: `${[76, 42, 64, 88][idx]}%` }} /></div>
             </motion.div>
           );
@@ -272,7 +282,7 @@ export default function DashboardOverview() {
               <motion.div key={card.label} initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.46 + index * 0.07 }} whileHover={{ y: -5 }} className="farmer-impact-card group rounded-2xl border border-[#dbe9dc] bg-white p-4 shadow-sm">
                 <div className="mb-4 flex items-start justify-between"><div className={`flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br ${card.tone} text-white shadow-md transition-transform duration-300 group-hover:rotate-6 group-hover:scale-110`}><Icon size={19} /></div><span className="farmer-impact-spark" /></div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.08em] text-[#718278]">{card.label}</p>
-                <p className="mt-2 font-display text-2xl font-bold text-[#173e2b]">{card.value}</p>
+                <p className="mt-2 font-display text-2xl font-bold text-[#173e2b]"><AnimatedNumber value={card.value} /></p>
                 <p className="mt-1 min-h-8 text-[11px] leading-4 text-[#8a978e]">{card.helper}</p>
                 <div className="mt-3 h-1 overflow-hidden rounded-full bg-[#edf2ea]"><motion.div initial={{ width: 0 }} animate={{ width: `${card.progress}%` }} transition={{ duration: 1.1, delay: 0.55 + index * 0.07 }} className={`h-full rounded-full bg-gradient-to-r ${card.tone}`} /></div>
               </motion.div>

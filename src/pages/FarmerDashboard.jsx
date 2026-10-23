@@ -2,8 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, Package, PlusCircle, ShoppingBag,
-  CreditCard, Star, Settings, Truck
-} from 'lucide-react';
+  CreditCard, Star, Settings, Truck, UserRound } from 'lucide-react';
 import DashboardLayout from '../shared/DashboardLayout';
 import DashboardOverview from '../components/FarmerDashboard/DashboardOverview';
 import AddProductForm from '../components/FarmerDashboard/AddProductForm';
@@ -13,6 +12,7 @@ import PaymentsSection from '../components/FarmerDashboard/PaymentsSection';
 import ReviewsRatings from '../components/FarmerDashboard/ReviewsRatings';
 import FarmerSettings from '../components/FarmerDashboard/FarmerSettings';
 import ShipmentTracking from '../components/FarmerDashboard/ShipmentTracking';
+import FarmerProfile from '../components/FarmerDashboard/FarmerProfile';
 
 const NAV_ITEMS = [
   { id: 'overview',     label: 'Dashboard',    icon: LayoutDashboard },
@@ -22,6 +22,7 @@ const NAV_ITEMS = [
   { id: 'shipments',    label: 'Shipments',    icon: Truck },
   { id: 'payments',     label: 'Payments',     icon: CreditCard },
   { id: 'reviews',      label: 'Reviews',      icon: Star },
+  { id: 'profile',  label: 'My Profile',  icon: UserRound },
   { id: 'settings',     label: 'Settings',     icon: Settings },
 ];
 
@@ -48,6 +49,7 @@ export default function FarmerDashboard() {
       case 'shipments':   return <ShipmentTracking />;
       case 'payments':    return <PaymentsSection />;
       case 'reviews':     return <ReviewsRatings />;
+      case 'profile':    return <FarmerProfile />;
       case 'settings':    return <FarmerSettings />;
       default:            return <DashboardOverview />;
     }

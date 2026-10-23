@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SkeletonRows } from '../../shared/ui';
 import { CheckCircle, XCircle, Clock, Users, Package } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -80,7 +81,7 @@ const PendingApprovals = () => {
       <h3 className="text-lg font-bold text-slate-900">Pending Approvals</h3>
 
       {loading ? (
-        <div className="text-center py-8 text-slate-400">Loading approvals...</div>
+        <SkeletonRows rows={3} label="Loading approvals" />
       ) : groups.length === 0 ? (
         <div className="text-center py-8 text-slate-400 bg-slate-50 rounded-xl">
           <CheckCircle className="w-10 h-10 mx-auto mb-2 text-green-400" />

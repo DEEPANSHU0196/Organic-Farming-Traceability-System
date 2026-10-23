@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Eye, EyeOff, LogIn, ArrowLeft, ArrowRight, Leaf, CheckCircle, UserPlus, Sprout, ShoppingCart, Truck, ShieldCheck, Package, Users } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
@@ -99,6 +99,9 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { login, register, loading } = useAuth();
 
+  const [searchParams] = useSearchParams();
+  // `?mode=signup` opens straight into account creation; `?role=farmer` preselects a portal.
+  const [intent, setIntent] = useState(searchParams.get('mode') === 'signup' ? 'signup' : 'signin');
   const [step, setStep] = useState(1); // 1 = role select, 2 = login form
   const [selectedRole, setSelectedRole] = useState(null);
   const [email, setEmail] = useState('');
@@ -146,13 +149,28 @@ export default function LoginPage() {
     }
   };
 
-  const handleSelectRole = (id) => {
+  const handleSelectRole = (id, nextIntent = intent) => {
     setSelectedRole(id);
     clearLoginFields();
     clearRegistrationFields();
     setRegisterRole(getRegistrationRole(id));
+    // Admin accounts are created by existing admins, never self-registered.
+    setIsRegistering(nextIntent === 'signup' && id !== 'admin');
     setStep(2);
   };
+
+  useEffect(() => {
+    const preset = searchParams.get('role');
+    if (ROLES.some((r) => r.id === preset)) {
+      const presetIntent = preset === 'admin' ? 'signin' : intent;
+      setIntent(presetIntent);
+      handleSelectRole(preset, presetIntent);
+    }
+    // Only honour the URL once, on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const visibleRoles = intent === 'signup' ? ROLES.filter((r) => r.id !== 'admin') : ROLES;
 
   const validate = () => {
     const errs = {};
@@ -216,6 +234,7 @@ export default function LoginPage() {
         password: registerPassword,
       }, portalRole);
       setRegisterMessage('Account created successfully. You can sign in now.');
+      setEmail(registerEmail);
       setRegisterName('');
       setRegisterEmail('');
       setRegisterPassword('');
@@ -260,7 +279,6 @@ export default function LoginPage() {
             <BrandMark size={42} dark />
             <div>
               <div className="text-white font-bold text-xl tracking-tight">AgroVerse</div>
-              <div className="text-emerald-400/80 text-xs font-medium">by AgriTrust Platform</div>
             </div>
           </div>
         </div>
@@ -354,12 +372,34 @@ export default function LoginPage() {
               className="w-full max-w-[480px]"
             >
               <div className="mb-8">
-                <h2 className="text-2xl font-bold text-slate-900 mb-1.5">Welcome to AgroVerse</h2>
-                <p className="text-slate-500 text-sm">Select your role to continue to your portal</p>
+                <h2 className="text-2xl font-bold text-slate-900 mb-1.5">
+                  {intent === 'signup' ? 'Create your AgroVerse account' : 'Welcome back'}
+                </h2>
+                <p className="text-slate-500 text-sm">
+                  {intent === 'signup' ? 'Who are you joining as?' : 'Choose your portal to sign in'}
+                </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                {ROLES.map((r, idx) => (
+              <div role="tablist" aria-label="Sign in or create account" className="relative mb-6 grid grid-cols-2 rounded-full bg-slate-100 p-1">
+                {[['signin', 'Sign in'], ['signup', 'Create account']].map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    role="tab"
+                    aria-selected={intent === id}
+                    onClick={() => setIntent(id)}
+                    className={`relative rounded-full py-2.5 text-sm font-semibold transition-colors ${intent === id ? 'text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                  >
+                    {intent === id && (
+                      <motion.span layoutId="auth-intent" className="absolute inset-0 rounded-full bg-[#13261B]" transition={{ type: 'spring', stiffness: 420, damping: 34 }} />
+                    )}
+                    <span className="relative">{label}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className={`grid gap-3 ${visibleRoles.length === 3 ? 'grid-cols-1 sm:grid-cols-3' : 'grid-cols-2'}`}>
+                {visibleRoles.map((r, idx) => (
                   <motion.button
                     key={r.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -368,6 +408,7 @@ export default function LoginPage() {
                     whileHover={{ y: -3, scale: 1.01 }}
                     whileTap={{ scale: 0.97 }}
                     onClick={() => handleSelectRole(r.id)}
+                    aria-label={`${intent === 'signup' ? 'Join as' : 'Sign in as'} ${r.label}`}
                     className="role-card relative flex flex-col items-start p-5 rounded-2xl border-2 text-left transition-all duration-200 bg-white hover:shadow-lg group overflow-hidden"
                     style={{
                       borderColor: r.accentBorder,
@@ -390,7 +431,7 @@ export default function LoginPage() {
                         className="text-xs font-semibold"
                         style={{ color: r.accent }}
                       >
-                        Enter portal
+                        {intent === 'signup' ? `Join as ${r.label.toLowerCase()}` : r.id === 'admin' ? 'Staff sign-in' : 'Sign in'}
                       </span>
                       <ArrowRight className="transition-transform duration-200 group-hover:translate-x-1" size={13} style={{ color: r.accent }} />
                     </div>
@@ -399,7 +440,9 @@ export default function LoginPage() {
               </div>
 
               <p className="text-center text-slate-400 text-xs mt-6">
-                🔒 Use your registered email and password to continue.
+                {intent === 'signup'
+                  ? 'Admin accounts are created by the AgroVerse team, so they can’t be signed up for here.'
+                  : '🔒 Use your registered email and password to continue.'}
               </p>
             </motion.div>
           )}
@@ -422,7 +465,7 @@ export default function LoginPage() {
                   <role.icon size={24} strokeWidth={1.8} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">Sign in as {role.label}</h2>
+                  <h2 className="text-xl font-bold text-slate-900">{isRegistering ? `Create a ${role.label.toLowerCase()} account` : `Sign in as ${role.label}`}</h2>
                   <p className="text-slate-500 text-sm">{role.desc}</p>
                 </div>
               </div>

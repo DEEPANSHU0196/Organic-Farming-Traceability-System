@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SkeletonCards } from '../../shared/ui';
 import { CheckCircle, XCircle, Eye, AlertCircle } from 'lucide-react';
 import api from '../../api/axios';
 
@@ -94,7 +95,7 @@ const ProductModeration = () => {
 
       {/* Product Grid */}
       {loading ? (
-        <div className="p-8 text-center text-slate-400">Loading products...</div>
+        <div className="p-6"><SkeletonCards count={4} label="Loading products" /></div>
       ) : products.length === 0 ? (
         <div className="p-8 text-center text-slate-400">No products found in the database.</div>
       ) : (

@@ -3,8 +3,11 @@ import { Package, Truck, Check, Clock, MapPin, Calendar } from 'lucide-react';
 import { useBuyer } from '../../contexts/BuyerContext';
 import { updateShipment } from '../../api/shipment';
 import backgroundPhoto from '../../assets/background.png';
+import EmptyState from '../../shared/EmptyState';
+import { useNavigate } from 'react-router-dom';
 
 export default function OrderTracking() {
+  const navigate = useNavigate();
   const { orders = [], shipments = [], refreshData } = useBuyer();
 
   const getShipment = (orderId) => shipments.find((shipment) => shipment.order?._id === orderId || shipment.order === orderId);
@@ -84,11 +87,13 @@ export default function OrderTracking() {
           <h1 className="text-3xl font-bold text-primary mb-2">My Orders</h1>
           <p className="text-accent-muted">Track your orders in real-time</p>
         </div>
-        <div className="text-center py-16">
-          <Package size={64} className="text-gray-300 mx-auto mb-4" />
-          <p className="text-accent-muted text-lg">No orders yet</p>
-          <p className="text-accent-muted text-sm">Start shopping to place your first order</p>
-        </div>
+        <EmptyState
+          icon={Package}
+          title="No orders yet"
+          body="When you order, you can follow it here stop by stop, all the way from the farm."
+          actionLabel="Start shopping"
+          onAction={() => navigate('/buyer-dashboard/browse')}
+        />
       </div>
     );
   }
@@ -157,13 +162,30 @@ export default function OrderTracking() {
                       <p className="text-xs font-medium text-accent-muted">Expected {new Date(order.deliveryDate).toLocaleDateString()}</p>
                     </div>
                   </div>
-                  <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/80 shadow-inner ring-1 ring-emerald-100">
+                  {/* Truck drives along the route to the current stage */}
+                  <div className="relative mt-9">
                     <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${getProgressPercentage(getCurrentStatus(order))}%` }}
-                      transition={{ delay: 0.2, duration: 0.8, ease: 'easeOut' }}
-                      className="delivery-progress-shimmer relative h-full rounded-full bg-gradient-to-r from-emerald-600 via-green-500 to-lime-400"
-                    />
+                      className="absolute -top-8 z-10 -translate-x-1/2"
+                      initial={{ left: '0%' }}
+                      animate={{ left: `${Math.min(97, Math.max(3, getProgressPercentage(getCurrentStatus(order))))}%` }}
+                      transition={{ delay: 0.2, duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+                    >
+                      <motion.span
+                        className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-700 text-white shadow-md"
+                        animate={getCurrentStatus(order) === 'Delivered' ? {} : { y: [0, -2, 0], rotate: [0, -2, 0] }}
+                        transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 0.3 }}
+                      >
+                        {getCurrentStatus(order) === 'Delivered' ? <Check size={15} strokeWidth={3} /> : <Truck size={15} />}
+                      </motion.span>
+                    </motion.div>
+                    <div className="h-3 overflow-hidden rounded-full bg-white/80 shadow-inner ring-1 ring-emerald-100">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${getProgressPercentage(getCurrentStatus(order))}%` }}
+                        transition={{ delay: 0.2, duration: 1.6, ease: [0.22, 1, 0.36, 1] }}
+                        className="delivery-progress-shimmer relative h-full rounded-full bg-gradient-to-r from-emerald-600 via-green-500 to-lime-400"
+                      />
+                    </div>
                   </div>
                   <div className="mt-3 flex items-center justify-between text-xs font-medium text-accent-muted">
                     <span>Order placed</span>

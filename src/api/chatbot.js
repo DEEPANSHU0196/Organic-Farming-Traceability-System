@@ -1,8 +1,19 @@
 import api from './axios';
 
 // Client-side fallback rule engine for offline / standalone reliability
+// Hindi / Hinglish words mapped onto the English intents below.
+const KEYWORD_ALIASES = [
+  [/(bhav|daam|dam|kimat|keemat|mandi|भाव|दाम|कीमत|मंडी)/i, ' price '],
+  [/(keet|keeda|kida|rog|bimari|कीट|कीड़ा|रोग|बीमारी)/i, ' pest '],
+  [/(khad|khaad|mitti|urvarak|खाद|मिट्टी|उर्वरक)/i, ' fertilizer soil '],
+  [/(pramaan|praman|jaivik|प्रमाण|जैविक)/i, ' certification jaivik '],
+];
+
 const fallbackBotEngine = (message, role, user) => {
-  const clean = message.trim().toLowerCase();
+  let clean = message.trim().toLowerCase();
+  for (const [pattern, alias] of KEYWORD_ALIASES) {
+    if (pattern.test(clean)) clean += alias;
+  }
   
   // 1. Batch Traceability Lookup
   const batchMatch = clean.match(/(?:batch|agro|trace|id)?[-:\s#]*([a-z0-9]{5,24})/i);
@@ -149,15 +160,50 @@ const fallbackBotEngine = (message, role, user) => {
   };
 };
 
-export const sendChatbotQuery = async (message, role = 'guest', user = null) => {
+export const sendChatbotQuery = async (message, role = 'guest', user = null, options = {}) => {
+  const { language = 'English', history = [], image = null } = options;
   try {
-    const response = await api.post('/chatbot/query', { message, role, user });
+    const response = await api.post('/chatbot/query', {
+      message,
+      role,
+      user: user ? { name: user.name, role: user.role } : null,
+      language,
+      history: history.map(({ sender, text }) => ({ sender, text })),
+      image,
+    });
     if (response.data && response.data.success) {
       return response.data;
     }
     return fallbackBotEngine(message, role, user);
   } catch (error) {
+    if (image) {
+      return {
+        reply: '📷 I couldn\'t reach the server to look at your photo. Please check your connection, or describe the symptoms (spots, colour, insects, wilting) and I\'ll suggest organic remedies.',
+        actionType: 'text',
+        suggestions: ['Yellow spots on tomato leaves', 'White insects under leaves', 'Leaves curling and drying'],
+      };
+    }
     console.warn('[AgroBot] Backend API un-reachable, using client-side AI engine:', error?.message);
     return fallbackBotEngine(message, role, user);
   }
 };
+
+// Shrinks a photo in the browser (max 1280px, JPEG) so it uploads quickly on slow networks.
+export function compressImage(file, maxSide = 1280, quality = 0.8) {
+  return new Promise((resolve, reject) => {
+    if (!file?.type?.startsWith('image/')) { reject(new Error('not-an-image')); return; }
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/jpeg', quality);
+      URL.revokeObjectURL(img.src);
+      resolve({ preview: dataUrl, mediaType: 'image/jpeg', data: dataUrl.split(',')[1] });
+    };
+    img.onerror = () => reject(new Error('unreadable-image'));
+    img.src = URL.createObjectURL(file);
+  });
+}

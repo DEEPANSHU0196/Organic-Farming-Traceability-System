@@ -1,9 +1,14 @@
 import { motion } from 'motion/react';
-import { Edit2, Trash2, Eye, MoreVertical, Plus, Search, X, Save, ExternalLink, QrCode, Loader } from 'lucide-react';
+import { SkeletonCards } from '../../shared/ui';
+import { Edit2, Trash2, Eye, MoreVertical, Plus, Search, X, Save, ExternalLink, QrCode, Loader, Sprout, Printer } from 'lucide-react';
+import { printQrLabels } from '../../utils/printLabels';
+import { useAuth } from '../../contexts/AuthContext';
+import { useToast } from '../../contexts/ToastContext';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../contexts/ProductContext';
 import { generateQRCode } from '../../api/product';
+import EmptyState from '../../shared/EmptyState';
 
 export default function MyProducts() {
   const navigate = useNavigate();
@@ -12,21 +17,14 @@ export default function MyProducts() {
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterStatus, setFilterStatus] = useState('All');
   const [editFormData, setEditFormData] = useState(null);
   const [qrGenerating, setQrGenerating] = useState(false);
-  const [newProductData, setNewProductData] = useState({
-    name: '',
-    category: 'Wheat',
-    quantity: '',
-    unit: 'kg',
-    price: '',
-    description: '',
-    certification: 'Organic',
-  });
+  const [labelCopies, setLabelCopies] = useState(8);
+  const { user } = useAuth();
+  const toast = useToast();
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -213,9 +211,7 @@ export default function MyProducts() {
       </div>
 
       {loading && (
-        <div className="rounded-lg border border-surface-alt bg-white p-8 text-center text-accent-muted">
-          Loading your products...
-        </div>
+        <SkeletonCards label="Loading your products" />
       )}
 
       {!loading && error && (
@@ -482,6 +478,31 @@ export default function MyProducts() {
                     </>
                   )}
                 </motion.button>
+                {selectedProduct.qrCode && (
+                  <div className="flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border border-surface-alt p-1">
+                    <label className="flex items-center gap-1.5 pl-2 text-sm text-accent-muted">
+                      Copies
+                      <select
+                        value={labelCopies}
+                        onChange={(e) => setLabelCopies(Number(e.target.value))}
+                        className="rounded-md border border-surface-alt bg-transparent px-1.5 py-1 text-sm text-primary"
+                      >
+                        {[1, 2, 4, 8, 16, 24].map((n) => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    </label>
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        const ok = printQrLabels([selectedProduct], { copies: labelCopies, farmerName: user?.fullName });
+                        if (!ok) toast('Allow pop-ups for this site to print labels.', { tone: 'error' });
+                      }}
+                      className="flex flex-1 items-center justify-center gap-2 rounded-md bg-ink px-3 py-2 text-sm font-medium text-paper hover:bg-leaf"
+                    >
+                      <Printer size={16} /> Print labels
+                    </motion.button>
+                  </div>
+                )}
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   onClick={() => {
@@ -656,143 +677,19 @@ export default function MyProducts() {
         </div>
       )}
 
-      {/* Add Product Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
-          >
-            <div className="sticky top-0 bg-gradient-to-r from-emerald-500 to-green-600 p-6 text-white flex items-center justify-between">
-              <h2 className="text-2xl font-bold">Add New Product</h2>
-              <button
-                onClick={() => setShowAddModal(false)}
-                className="p-1 hover:bg-white/20 rounded-lg"
-              >
-                <X size={24} />
-              </button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="text-sm text-accent-muted mb-2 block">Product Name *</label>
-                <input
-                  type="text"
-                  value={newProductData.name}
-                  onChange={(e) => setNewProductData({ ...newProductData, name: e.target.value })}
-                  className="w-full p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500"
-                  placeholder="Enter product name"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-accent-muted mb-2 block">Category</label>
-                  <select
-                    value={newProductData.category}
-                    onChange={(e) => setNewProductData({ ...newProductData, category: e.target.value })}
-                    className="w-full p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500"
-                  >
-                    {categories.slice(1).map(cat => (
-                      <option key={cat} value={cat}>{cat}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm text-accent-muted mb-2 block">Certification</label>
-                  <select
-                    value={newProductData.certification}
-                    onChange={(e) => setNewProductData({ ...newProductData, certification: e.target.value })}
-                    className="w-full p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500"
-                  >
-                    <option value="Organic">Organic</option>
-                    <option value="ISO 9001">ISO 9001</option>
-                    <option value="NPOP">NPOP</option>
-                    <option value="GlobalGAP">GlobalGAP</option>
-                  </select>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm text-accent-muted mb-2 block">Quantity *</label>
-                  <input
-                    type="number"
-                    value={newProductData.quantity}
-                    onChange={(e) => setNewProductData({ ...newProductData, quantity: e.target.value })}
-                    className="w-full p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500"
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm text-accent-muted mb-2 block">Unit</label>
-                  <select
-                    value={newProductData.unit}
-                    onChange={(e) => setNewProductData({ ...newProductData, unit: e.target.value })}
-                    className="w-full p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500"
-                  >
-                    <option value="kg">kg</option>
-                    <option value="ton">ton</option>
-                    <option value="quintal">quintal</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="text-sm text-accent-muted mb-2 block">Price per Unit (₹) *</label>
-                <input
-                  type="number"
-                  value={newProductData.price}
-                  onChange={(e) => setNewProductData({ ...newProductData, price: e.target.value })}
-                  className="w-full p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500"
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <label className="text-sm text-accent-muted mb-2 block">Description</label>
-                <textarea
-                  value={newProductData.description}
-                  onChange={(e) => setNewProductData({ ...newProductData, description: e.target.value })}
-                  className="w-full p-2 border border-surface-alt rounded-lg text-primary outline-none focus:border-emerald-500 resize-none"
-                  rows="3"
-                  placeholder="Enter product description"
-                />
-              </div>
-              <div className="flex gap-3 pt-6">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  onClick={handleAddProduct}
-                  className="flex-1 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium flex items-center justify-center gap-2"
-                >
-                  <Plus size={18} />
-                  Add Product
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1 px-4 py-2 border border-surface-alt rounded-lg hover:bg-surface-alt transition-colors font-medium"
-                >
-                  Cancel
-                </motion.button>
-              </div>
-            </div>
-          </motion.div>
-        </div>
-      )}
-
       {!loading && !error && filteredProducts.length === 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center py-12 bg-white rounded-lg border border-surface-alt"
+          className="rounded-2xl border border-surface-alt bg-white"
         >
-          <p className="text-4xl mb-4">📦</p>
-          <p className="text-primary font-semibold mb-2">No products found</p>
-          <p className="text-accent-muted mb-4">Try adjusting your filters or add a new product</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium"
-          >
-            Add Your First Product
-          </motion.button>
+          <EmptyState
+            icon={Sprout}
+            title={products.length ? 'No batches match your filters' : 'Add your first batch'}
+            body={products.length ? 'Try a different category or clear the search.' : 'List a harvest with its soil and harvest details. Once approved, it gets a QR code buyers can scan.'}
+            actionLabel={products.length ? undefined : 'Add a batch'}
+            onAction={products.length ? undefined : () => navigate('/farmer-dashboard/add-product')}
+          />
         </motion.div>
       )}
     </div>

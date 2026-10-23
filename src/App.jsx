@@ -1,4 +1,11 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { ToastProvider } from './contexts/ToastContext';
+import GlobalEffects from './components/GlobalEffects';
+import SiteFooter from './components/SiteFooter';
+import IntroSequence, { shouldPlayIntro } from './components/IntroSequence';
+import { useState } from 'react';
 import { ProductProvider } from './contexts/ProductContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import { BuyerProvider } from './contexts/BuyerContext';
@@ -18,62 +25,25 @@ import TransporterDashboard from './pages/TransporterDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import LoginPage from './pages/LoginPage';
 import ProductTraceability from './pages/ProductTraceability';
+import ScanPage from './pages/ScanPage';
+import FarmerProfilePage from './pages/FarmerProfilePage';
 import AgroChatbot from './components/Chatbot/AgroChatbot';
 
 
 // Home Page
 function HomePage() {
+  const [playIntro] = useState(shouldPlayIntro);
+  const [introDone, setIntroDone] = useState(!playIntro);
   return (
-    <div className="home-page relative text-primary font-sans selection:bg-surface-warm selection:text-primary antialiased overflow-x-hidden">
-
-      <HeroSection />
-
-      <div className="relative z-10">
-        <FeaturesSection />
-      </div>
-
-      <div className="relative z-10">
-        <WorkflowSection />
-      </div>
-
-      <div className="relative z-10">
-        <AboutSection />
-      </div>
-
-      <div className="relative z-10">
-        <ContactSection />
-      </div>
-
-      <footer className="relative z-10 border-t border-surface-alt">
-        <div className="max-w-7xl mx-auto px-6 sm:px-8 py-8 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-accent-muted/60">
-
-          <div className="flex items-center gap-2">
-            <span className="text-base">🌿</span>
-            <p>
-              &copy; 2026 AgroVerse.
-              All rights reserved.
-            </p>
-          </div>
-
-          <p className="hidden sm:block">
-            Empowering Indian Agriculture · Built with ❤️
-          </p>
-
-          <div className="flex items-center gap-4">
-            <a
-              href="mailto:support@agroverse.com"
-              className="hover:text-primary transition-colors"
-            >
-              Contact
-            </a>
-
-            <span>·</span>
-
-            <span>India</span>
-          </div>
-
-        </div>
-      </footer>
+    <div className="home-page font-sans antialiased overflow-x-clip">
+      {playIntro && <IntroSequence onDone={() => setIntroDone(true)} />}
+      {/* Remount the hero once the intro lifts so its entrance animation is actually seen. */}
+      <HeroSection key={introDone ? 'ready' : 'behind-intro'} />
+      <WorkflowSection />
+      <FeaturesSection />
+      <AboutSection />
+      <ContactSection />
+      <SiteFooter />
 
     </div>
   );
@@ -81,9 +51,98 @@ function HomePage() {
 
 
 
+const pageVariants = {
+  // Opacity only: transforms/filters on this wrapper would break the
+  // position:fixed navbars and sidebars rendered inside each page.
+  initial: { opacity: 0 },
+  animate: { opacity: 1, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } },
+  exit: { opacity: 0, transition: { duration: 0.2 } },
+};
+
+function AnimatedRoutes() {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div key={location.pathname.split('/')[1] || 'home'} variants={pageVariants} initial="initial" animate="animate" exit="exit">
+        <Routes location={location} key={location.pathname.split('/')[1] || 'home'}>
+
+          {/* Home */}
+          <Route
+            path="/"
+            element={<HomePage />}
+          />
+
+          {/* Login */}
+          <Route
+            path="/login"
+            element={<LoginPage />}
+          />
+
+          {/* Farmer */}
+          <Route
+            path="/farmer-dashboard/*"
+            element={
+              <ProtectedRoute requiredRole={["farmer", "admin"]}>
+                <FarmerDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Buyer */}
+          <Route
+            path="/buyer-dashboard/*"
+            element={
+              <ProtectedRoute requiredRole={["buyer", "admin"]}>
+                <BuyerDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Transporter */}
+          <Route
+            path="/transporter-dashboard/*"
+            element={
+              <ProtectedRoute requiredRole={["transporter", "admin"]}>
+                <TransporterDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Admin */}
+          <Route
+            path="/admin-dashboard/*"
+            element={
+              <ProtectedRoute requiredRole="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Camera QR scanner */}
+          <Route path="/scan" element={<ScanPage />} />
+
+          {/* Public farmer profile */}
+          <Route path="/farmer/:id" element={<FarmerProfilePage />} />
+
+          {/* QR Traceability */}
+          <Route
+            path="/trace/:id"
+            element={
+              <ProductTraceability />
+            }
+          />
+
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
+}
+
 function App() {
   return (
     <ThemeProvider>
+    <LanguageProvider>
+    <ToastProvider>
       <AuthProvider>
         <DashboardProvider>
           <ProductProvider>
@@ -91,70 +150,9 @@ function App() {
 
               <Router>
 
-                <Routes>
+                <AnimatedRoutes />
 
-                  {/* Home */}
-                  <Route
-                    path="/"
-                    element={<HomePage />}
-                  />
-
-                  {/* Login */}
-                  <Route
-                    path="/login"
-                    element={<LoginPage />}
-                  />
-
-                  {/* Farmer */}
-                  <Route
-                    path="/farmer-dashboard/*"
-                    element={
-                      <ProtectedRoute requiredRole={["farmer", "admin"]}>
-                        <FarmerDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-
-                  {/* Buyer */}
-                  <Route
-                    path="/buyer-dashboard/*"
-                    element={
-                      <ProtectedRoute requiredRole={["buyer", "admin"]}>
-                        <BuyerDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-
-                  {/* Transporter */}
-                  <Route
-                    path="/transporter-dashboard/*"
-                    element={
-                      <ProtectedRoute requiredRole={["transporter", "admin"]}>
-                        <TransporterDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-
-                  {/* Admin */}
-                  <Route
-                    path="/admin-dashboard/*"
-                    element={
-                      <ProtectedRoute requiredRole="admin">
-                        <AdminDashboard />
-                      </ProtectedRoute>
-                    }
-                  />
-
-                  {/* QR Traceability */}
-                  <Route
-                    path="/trace/:id"
-                    element={
-                      <ProductTraceability />
-                    }
-                  />
-
-                </Routes>
-
+                <GlobalEffects />
                 <AgroChatbot />
 
               </Router>
@@ -163,6 +161,8 @@ function App() {
           </ProductProvider>
         </DashboardProvider>
       </AuthProvider>
+    </ToastProvider>
+    </LanguageProvider>
     </ThemeProvider>
   );
 }

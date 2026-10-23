@@ -2,9 +2,12 @@ import { motion } from 'motion/react';
 import { CheckCircle2, Truck, Package, MapPin, Eye, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getMyShipments, updateShipment } from '../../api/shipment';
-import { LeafLoader, StatusBadge } from '../../shared/ui';
+import { StatusBadge, SkeletonRows } from '../../shared/ui';
+import EmptyState from '../../shared/EmptyState';
+import { useNavigate } from 'react-router-dom';
 
 export default function ShipmentTracking() {
+  const navigate = useNavigate();
   const [shipments, setShipments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedShipment, setSelectedShipment] = useState(null);
@@ -72,13 +75,16 @@ export default function ShipmentTracking() {
 
       {/* Shipments */}
       {loading ? (
-        <div className="flex justify-center py-12">
-          <LeafLoader label="Loading shipment journey..." />
-        </div>
+        <SkeletonRows rows={4} label="Loading shipment journey" />
       ) : shipments.length === 0 ? (
-        <div className="text-center py-16 bg-white rounded-lg border border-surface-alt">
-          <Truck size={48} className="mx-auto text-gray-300 mb-4" />
-          <p className="text-accent-muted text-lg">No active shipments</p>
+        <div className="rounded-2xl border border-surface-alt bg-white">
+          <EmptyState
+            icon={Truck}
+            title="No active shipments"
+            body="Shipments appear here once you accept a buyer's order and a transporter picks it up."
+            actionLabel="View orders"
+            onAction={() => navigate('/farmer-dashboard/orders')}
+          />
         </div>
       ) : (
       <div className="space-y-6">

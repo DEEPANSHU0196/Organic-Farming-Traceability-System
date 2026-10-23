@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Heart, ShoppingCart, ArrowRight, Star } from 'lucide-react';
 import { useBuyer } from '../../contexts/BuyerContext';
+import EmptyState from '../../shared/EmptyState';
+import { useNavigate } from 'react-router-dom';
 
 export default function BuyerWishlist({ onBrowse }) {
+  const navigate = useNavigate();
   const { wishlist, toggleWishlist, addToCart } = useBuyer();
   const [addedToCart, setAddedToCart] = useState(null);
 
@@ -33,16 +36,14 @@ export default function BuyerWishlist({ onBrowse }) {
       </div>
 
       {wishlist.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-slate-200 p-16 text-center">
-          <div className="text-6xl mb-4">💝</div>
-          <h3 className="text-lg font-bold text-slate-800 mb-2">Your wishlist is empty</h3>
-          <p className="text-slate-500 text-sm mb-6">Save products you love to buy them later</p>
-          <button
-            onClick={onBrowse}
-            className="px-6 py-3 bg-sky-600 text-white rounded-xl text-sm font-semibold hover:bg-sky-700 transition-colors"
-          >
-            Discover Products
-          </button>
+        <div className="rounded-2xl border border-slate-200 bg-white">
+          <EmptyState
+            icon={Heart}
+            title="Nothing saved yet"
+            body="Tap the heart on any product to keep it here for later."
+            actionLabel="Discover produce"
+            onAction={onBrowse || (() => navigate('/buyer-dashboard/browse'))}
+          />
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

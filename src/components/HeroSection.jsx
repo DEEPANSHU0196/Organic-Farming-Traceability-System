@@ -1,299 +1,245 @@
-import { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useScroll, useTransform } from "motion/react";
-import Navbar from "./Navbar";
-import PortalButtons from "./PortalButtons";
+import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { motion, useInView, animate, useScroll, useTransform } from 'motion/react';
+import { ArrowRight, Camera, Check, QrCode, ScanLine } from 'lucide-react';
+import Navbar from './Navbar';
+import { getPlatformStats } from '../api/public';
+import { usePrefersReducedMotion } from '../hooks/usePrefersReducedMotion';
 
-const VIDEO_SRC = "/videos/tractor-hero.mp4";
+const VIDEO_SRC = '/videos/tractor-hero.mp4';
+const EASE = [0.22, 1, 0.36, 1];
 
-const stats = [
-  { value: "10K+", label: "Active Farmers" },
-  { value: "500+", label: "Buyers Connected" },
-  { value: "98%",  label: "Satisfaction Rate" },
+// Live counts from /api/public/stats; anything that is still zero is left out
+// rather than shown as "0 farmers".
+function buildStats(live) {
+  const items = [];
+  if (live?.farmers) items.push({ value: live.farmers, suffix: '', label: 'Farmers on AgroVerse' });
+  if (live?.buyers) items.push({ value: live.buyers, suffix: '', label: 'Registered buyers' });
+  if (live?.approvedProducts) items.push({ value: live.approvedProducts, suffix: '', label: 'Approved batches' });
+  if (live?.deliveries) items.push({ value: live.deliveries, suffix: '', label: 'Deliveries completed' });
+  items.push({ value: 24, suffix: '', label: 'Indian languages' });
+  return items.slice(-4);
+}
+
+const JOURNEY = [
+  { label: 'Harvested', meta: 'Gurdaspur, Punjab · 10 Aug' },
+  { label: 'Certified organic', meta: 'NPOP / APEDA verified' },
+  { label: 'In cold-chain transit', meta: '4.2 °C · 2 checkpoints' },
+  { label: 'Delivered', meta: 'Signed by buyer' },
 ];
 
-export default function HeroSection() {
-  const [phase, setPhase] = useState("landing");
-  const videoRef     = useRef(null);
-  const containerRef = useRef(null);
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end start"],
-  });
-  const contentOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
-  const videoScale     = useTransform(scrollYProgress, [0, 1], [1, 1.12]);
-
-  /* Transition to landing phase after ~6.5 s of video */
+function Counter({ value, suffix, delay }) {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true });
+  const [display, setDisplay] = useState(0);
   useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const fallbackTimer = window.setTimeout(() => setPhase("landing"), 4500);
-    const onTime = () => {
-      if (v.currentTime >= 6.5 && phase === "intro") setPhase("landing");
-    };
-    v.addEventListener("timeupdate", onTime);
-    return () => {
-      window.clearTimeout(fallbackTimer);
-      v.removeEventListener("timeupdate", onTime);
-    };
-  }, [phase]);
+    if (!inView) return undefined;
+    const controls = animate(0, value, { duration: 1.6, delay, ease: EASE, onUpdate: (v) => setDisplay(Math.round(v)) });
+    return () => controls.stop();
+  }, [inView, value, delay]);
+  return <span ref={ref}>{display}{suffix}</span>;
+}
+
+/* A sample batch card that steps through its journey: it shows what the product does. */
+function TraceCard() {
+  const reducedMotion = usePrefersReducedMotion();
+  const [step, setStep] = useState(reducedMotion ? JOURNEY.length - 1 : 0);
+
+  useEffect(() => {
+    if (reducedMotion) return undefined;
+    const t = window.setInterval(() => setStep((s) => (s + 1) % (JOURNEY.length + 1)), 1600);
+    return () => window.clearInterval(t);
+  }, [reducedMotion]);
+
+  const done = Math.min(step, JOURNEY.length - 1);
 
   return (
-    <section
-      ref={containerRef}
-      className="relative w-full min-h-screen overflow-x-hidden bg-black"
-      style={{ fontFamily: "'DM Sans', 'Inter', sans-serif" }}
+    <motion.div
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, delay: 0.7, ease: EASE }}
+      className="absolute -bottom-8 left-4 right-4 rounded-3xl border border-white/60 bg-paper/95 p-5 shadow-[0_24px_60px_rgba(19,38,27,0.25)] backdrop-blur-xl sm:left-auto sm:right-6 sm:w-[330px] lg:-left-16 lg:right-auto"
     >
-      {/* Tractor video is the primary hero visual. */}
-      <motion.video
-        ref={videoRef}
-        src={VIDEO_SRC}
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="absolute inset-0 h-full w-full object-cover"
-        style={{ scale: videoScale, minHeight: "100vh" }}
-        initial={{ filter: "brightness(0.75) saturate(0.9)" }}
-        animate={
-          phase === "landing"
-            ? { filter: "brightness(0.42) saturate(0.8)" }
-            : { filter: "brightness(0.85) saturate(1.05)" }
-        }
-        transition={{ duration: 1.4 }}
-      />
-
-      {/* Vignette */}
-      <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ boxShadow: "inset 0 0 200px 60px rgba(0,0,0,0.55)", minHeight: "100vh" }}
-      />
-
-      {/* Gradient overlays */}
-      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/20 to-transparent pointer-events-none" style={{ minHeight: "100vh" }} />
-      <div className="absolute bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
-
-      {/* Live traceability signal */}
-      <motion.div
-        initial={{ opacity: 0, x: 24 }}
-        animate={{ opacity: phase === "landing" ? 1 : 0, x: phase === "landing" ? 0 : 24 }}
-        transition={{ duration: 0.8, delay: 0.5 }}
-        className="absolute right-8 top-28 z-20 hidden w-56 rounded-2xl border border-white/20 bg-black/20 p-4 text-white backdrop-blur-md lg:block"
-      >
-        <div className="mb-3 flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-white/60">
-          <span>Traceability pulse</span>
-          <span className="flex items-center gap-1.5 text-green-300"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-300" />Live</span>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-soft">Batch</p>
+          <p className="font-mono text-sm font-semibold text-ink">BATCH-1001</p>
         </div>
-        <div className="flex items-end gap-1.5" aria-label="Live platform activity chart">
-          {[32, 48, 38, 66, 54, 78, 62, 92, 74, 100].map((height, index) => (
-            <motion.span
-              key={index}
-              initial={{ height: 0 }}
-              animate={{ height: `${height}%` }}
-              transition={{ duration: 0.6, delay: 0.7 + index * 0.05 }}
-              className="h-10 flex-1 rounded-t bg-gradient-to-t from-green-400/40 to-lime-200"
-            />
-          ))}
-        </div>
-        <div className="mt-3 flex justify-between text-xs text-white/55"><span>Farm to fork</span><strong className="text-white">99.9% verified</strong></div>
-      </motion.div>
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-ink text-paper"><QrCode size={18} /></span>
+      </div>
+      <p className="mt-3 font-display text-xl text-ink">Organic Sarbati Wheat</p>
+      <ol className="mt-4 space-y-3">
+        {JOURNEY.map((item, i) => {
+          const reached = i <= done && step < JOURNEY.length + 1;
+          return (
+            <li key={item.label} className="flex items-start gap-3">
+              <motion.span
+                animate={{ backgroundColor: reached ? '#2F6B45' : 'rgba(19,38,27,0)', borderColor: reached ? '#2F6B45' : '#D9D0BD' }}
+                transition={{ duration: 0.35 }}
+                className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
+              >
+                {reached && <Check size={12} className="text-white" strokeWidth={3} />}
+              </motion.span>
+              <div className={`transition-opacity duration-300 ${reached ? 'opacity-100' : 'opacity-40'}`}>
+                <p className="text-sm font-semibold leading-tight text-ink">{item.label}</p>
+                <p className="text-xs text-ink-soft">{item.meta}</p>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </motion.div>
+  );
+}
 
-      {/* ── IN-FLOW CONTENT WRAPPER — pushes section height ── */}
-      {/*
-        The Navbar is already `fixed` in its own component, so it floats above.
-        We use pt-20 here (≥ navbar height) so content starts below the navbar.
-        pb-16 gives breathing room above the scroll hint at the bottom.
-        min-h-screen ensures the section fills the full viewport even on large screens.
-      */}
-      <div className="relative z-20 flex flex-col min-h-screen pt-24 pb-16 px-8 md:px-16 lg:px-24">
-        {/* Spacer to vertically center the block: flex-1 pushes content to middle */}
-        <div className="flex-1 flex flex-col justify-center">
-          <AnimatePresence>
-            {phase === "landing" && (
-              <LandingContent key="landing" contentOpacity={contentOpacity} />
-            )}
-          </AnimatePresence>
-        </div>
+export default function HeroSection() {
+  const navigate = useNavigate();
+  const [batchId, setBatchId] = useState('');
+  const [liveStats, setLiveStats] = useState(null);
+  useEffect(() => { getPlatformStats().then(setLiveStats).catch(() => {}); }, []);
+  const stats = buildStats(liveStats);
+  const mediaRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: mediaRef, offset: ['start end', 'end start'] });
+  const videoY = useTransform(scrollYProgress, [0, 1], ['-6%', '6%']);
 
-        {/* Scroll hint — pinned to bottom of the in-flow area */}
-        {phase === "landing" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 1.5 }}
-            className="flex flex-col items-center gap-2 mt-6"
+  const traceBatch = (e) => {
+    e.preventDefault();
+    const id = batchId.trim();
+    navigate(`/trace/${encodeURIComponent(id || 'BATCH-1001')}`);
+  };
+
+  return (
+    <section className="relative overflow-hidden px-5 pb-20 pt-32 sm:px-8 lg:pb-28 lg:pt-40">
+      <Navbar />
+
+      <div className="mx-auto grid max-w-[1240px] items-center gap-16 lg:grid-cols-[1.05fr_1fr] lg:gap-12">
+        {/* Copy */}
+        <div>
+          <motion.p
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: EASE }}
+            className="inline-flex items-center gap-2 rounded-full border border-line bg-white/50 py-1.5 pl-1.5 pr-4 text-[13px] font-medium text-ink-soft"
           >
-            <span className="text-[10px] tracking-[0.3em] uppercase text-white/50">
-              Scroll
-            </span>
-            <motion.div
-              animate={{ y: [0, 8, 0] }}
-              transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
-              className="w-px h-8 bg-gradient-to-b from-white/50 to-transparent"
-            />
+            <span className="rounded-full bg-leaf px-2.5 py-0.5 text-[11px] font-semibold text-white">New</span>
+            Farm-to-fork traceability for Indian organic produce
+          </motion.p>
+
+          <h1 className="mt-7 font-display text-[clamp(2.7rem,6.2vw,5.4rem)] font-medium leading-[0.98] tracking-[-0.025em] text-ink">
+            {['Every harvest,', 'with its whole', 'story attached.'].map((line, i) => (
+              <span key={line} className="block overflow-hidden pb-[0.08em]">
+                <motion.span
+                  className={`block ${i === 2 ? 'italic text-leaf' : ''}`}
+                  initial={{ y: '105%' }}
+                  animate={{ y: 0 }}
+                  transition={{ duration: 0.9, delay: 0.1 + i * 0.1, ease: EASE }}
+                >
+                  {line}
+                </motion.span>
+              </span>
+            ))}
+          </h1>
+
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.45, ease: EASE }}
+            className="mt-7 max-w-[34rem] text-[17px] leading-relaxed text-ink-soft"
+          >
+            AgroVerse gives every batch a QR identity — from seed and soil to certification, cold-chain transit and
+            delivery — so farmers earn the organic premium and buyers can trust what they pay for.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.55, ease: EASE }}
+            className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center"
+          >
+            <button
+              type="button"
+              onClick={() => navigate('/login?mode=signup')}
+              className="group inline-flex items-center justify-center gap-2 rounded-full bg-ink px-7 py-4 text-[15px] font-semibold text-paper transition-colors hover:bg-leaf"
+            >
+              Create free account
+              <ArrowRight size={18} className="transition-transform duration-300 group-hover:translate-x-1" />
+            </button>
+
+            <form onSubmit={traceBatch} className="flex items-center rounded-full border border-line bg-white/70 p-1.5 pl-4 focus-within:border-leaf focus-within:ring-4 focus-within:ring-leaf/10">
+              <ScanLine size={17} className="shrink-0 text-ink-soft" />
+              <input
+                value={batchId}
+                onChange={(e) => setBatchId(e.target.value)}
+                placeholder="Trace a batch ID"
+                aria-label="Batch ID to trace"
+                className="w-full min-w-0 bg-transparent px-2.5 text-[15px] text-ink outline-none placeholder:text-ink-soft/60 sm:w-40"
+              />
+              <button type="submit" className="shrink-0 rounded-full bg-leaf-light px-4 py-2.5 text-sm font-semibold text-leaf transition-colors hover:bg-leaf hover:text-white">
+                Trace
+              </button>
+            </form>
+            <button
+              type="button"
+              onClick={() => navigate('/scan')}
+              title="Scan a QR with your camera"
+              aria-label="Scan a QR with your camera"
+              className="hidden h-[54px] w-[54px] shrink-0 items-center justify-center rounded-full border border-line bg-white/70 text-ink transition-colors hover:border-ink sm:flex"
+            >
+              <Camera size={20} />
+            </button>
           </motion.div>
-        )}
+        </div>
+
+        {/* Media */}
+        <motion.div
+          ref={mediaRef}
+          initial={{ opacity: 0, scale: 0.96 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 1.1, delay: 0.2, ease: EASE }}
+          className="relative mx-auto w-full max-w-[560px] lg:max-w-none"
+        >
+          <div className="relative aspect-[4/5] overflow-hidden rounded-[2.25rem] bg-ink sm:aspect-[5/5] lg:aspect-[4/5]">
+            <motion.video
+              src={VIDEO_SRC}
+              autoPlay
+              muted
+              loop
+              playsInline
+              style={{ y: videoY, scale: 1.15 }}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" />
+            <div className="absolute left-5 top-5 flex items-center gap-2 rounded-full bg-black/30 px-3 py-1.5 text-xs font-medium text-white backdrop-blur-md">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-300" /> Live from the field
+            </div>
+          </div>
+          <TraceCard />
+        </motion.div>
       </div>
 
-    </section>
-  );
-}
-
-/* ─────────────────────────── INTRO OVERLAY ─────────────────────────── */
-
-function IntroOverlay() {
-  return (
-    <motion.div
-      className="absolute inset-0 z-20 pointer-events-none"
-      exit={{ opacity: 0, transition: { duration: 0.9 } }}
-    >
-      {/* Letterbox top bar */}
-      <motion.div
-        className="absolute top-0 left-0 w-full bg-black origin-top"
-        initial={{ height: 0 }}
-        animate={{ height: [0, 52, 52, 0] }}
-        transition={{ duration: 6.5, times: [0, 0.07, 0.85, 1], ease: "easeInOut" }}
-      />
-      {/* Letterbox bottom bar */}
-      <motion.div
-        className="absolute bottom-0 left-0 w-full bg-black origin-bottom"
-        initial={{ height: 0 }}
-        animate={{ height: [0, 52, 52, 0] }}
-        transition={{ duration: 6.5, times: [0, 0.07, 0.85, 1], ease: "easeInOut" }}
-      />
-
-      {/* Green leaf accent line */}
-      <motion.div
-        className="absolute left-10 md:left-16 bottom-24 md:bottom-28"
-        initial={{ opacity: 0, scaleX: 0 }}
-        animate={{ opacity: [0, 0, 1, 1], scaleX: [0, 0, 1, 1] }}
-        transition={{ duration: 6.5, times: [0, 0.28, 0.52, 1] }}
-        style={{ originX: 0 }}
-      >
-        <div className="w-10 h-[2px] bg-green-400 mb-3" />
-      </motion.div>
-
-      {/* Wordmark */}
-      <motion.div
-        className="absolute left-10 md:left-16 bottom-12 md:bottom-16 text-white"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: [0, 0, 1, 1], y: [20, 20, 0, 0] }}
-        transition={{ duration: 6.5, times: [0, 0.28, 0.52, 1] }}
-      >
-        <p className="text-[11px] tracking-[0.35em] uppercase text-white/60 mb-1 font-light">
-          From the ground up
-        </p>
-        <h2
-          className="text-4xl md:text-5xl font-bold text-white"
-          style={{ fontFamily: "'Playfair Display', 'Georgia', serif", letterSpacing: "-0.01em" }}
-        >
-          AgroVerse
-        </h2>
-      </motion.div>
-
-
-    </motion.div>
-  );
-}
-
-/* ─────────────────────────── LANDING CONTENT ─────────────────────────── */
-
-function LandingContent({ contentOpacity }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.7 }}
-      style={{ opacity: contentOpacity }}
-      className="flex flex-col"
-    >
-      {/* Green accent line */}
-      <motion.div
-        initial={{ scaleX: 0, opacity: 0 }}
-        animate={{ scaleX: 1, opacity: 1 }}
-        transition={{ duration: 0.6, delay: 0.1 }}
-        style={{ originX: 0 }}
-        className="w-12 h-[2px] bg-green-400 mb-4"
-      />
-
-      {/* Eyebrow tag */}
-      <motion.p
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.15 }}
-        className="text-[11px] tracking-[0.35em] uppercase text-green-400/90 font-medium mb-3"
-      >
-        Organic Farming Traceability Platform
-      </motion.p>
-
-      {/* Headline */}
-      <motion.h1
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8, delay: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-        className="text-white font-bold leading-[1.05] max-w-3xl"
-        style={{
-          fontFamily: "'Playfair Display', 'Georgia', serif",
-          fontSize: "clamp(2.2rem, 5vw, 4.2rem)",
-          textShadow: "0 2px 40px rgba(0,0,0,0.4)",
-        }}
-      >
-        Empowering Agriculture,
-        <br />
-        <span className="text-green-300">Connecting Futures</span>
-      </motion.h1>
-
-      {/* Subtitle */}
-      <motion.p
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.45 }}
-        className="mt-4 max-w-xl text-white/75 text-base leading-relaxed"
-      >
-        Your gateway to modern farming — connecting{" "}
-        <strong className="text-white font-semibold">farmers</strong>,{" "}
-        <strong className="text-white font-semibold">buyers</strong>, and{" "}
-        <strong className="text-white font-semibold">transporters</strong> on one unified platform.
-      </motion.p>
-
-      {/* CTA Buttons (Portal Buttons) */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.6 }}
-        className="mt-6"
-      >
-        <PortalButtons heroMode />
-      </motion.div>
-
-      {/* Stats row */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, delay: 0.9 }}
-        className="mt-8 flex gap-8 flex-wrap"
-      >
-        {stats.map(({ value, label }) => (
-          <StatItem key={label} value={value} label={label} />
+      {/* Stats */}
+      <div className={`mx-auto mt-28 grid max-w-[1240px] grid-cols-2 border-t border-line lg:mt-32 ${['lg:grid-cols-1', 'lg:grid-cols-2', 'lg:grid-cols-3', 'lg:grid-cols-4'][stats.length - 1]}`}>
+        {stats.map((stat, i) => (
+          <motion.div
+            key={stat.label}
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: i * 0.08, ease: EASE }}
+            className={[
+              'border-line pt-7',
+              i % 2 === 1 ? 'border-l pl-6' : '', // 2-col on mobile: divider between pairs
+              i > 0 ? 'lg:border-l lg:pl-8' : '', // 4-col on desktop: divider before each
+              i > 1 ? 'mt-8 lg:mt-0' : '',
+            ].join(' ')}
+          >
+            <p className="font-display text-5xl font-medium tracking-tight text-ink sm:text-6xl">
+              <Counter value={stat.value} suffix={stat.suffix} delay={i * 0.1} />
+            </p>
+            <p className="mt-2 text-sm text-ink-soft">{stat.label}</p>
+          </motion.div>
         ))}
-      </motion.div>
-    </motion.div>
-  );
-}
-
-function StatItem({ value, label }) {
-  return (
-    <div className="flex flex-col">
-      <span
-        className="text-2xl font-bold text-white"
-        style={{ fontFamily: "'Playfair Display', 'Georgia', serif" }}
-      >
-        {value}
-      </span>
-      <span className="text-[11px] uppercase tracking-[0.2em] text-white/55 mt-0.5">
-        {label}
-      </span>
-    </div>
+      </div>
+    </section>
   );
 }

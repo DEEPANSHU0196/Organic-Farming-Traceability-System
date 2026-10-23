@@ -16,7 +16,7 @@ const WelcomeHeader = () => {
         <div className="flex-1">
           <h1 className="text-4xl font-bold mb-2">Welcome Back, Admin</h1>
           <p className="text-green-100 text-lg mb-6">
-            Here's what happening across your AgriTrust platform today
+            Here's what happening across your AgroVerse platform today
           </p>
 
           {/* Quick Info */}

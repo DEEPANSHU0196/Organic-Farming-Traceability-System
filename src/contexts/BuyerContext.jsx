@@ -112,6 +112,13 @@ export const BuyerProvider = ({ children }) => {
     if (!authLoading) loadData();
   }, [authLoading]);
 
+  // Pull-to-refresh in the dashboard broadcasts this event.
+  useEffect(() => {
+    const onRefresh = () => loadData();
+    window.addEventListener('agroverse:refresh', onRefresh);
+    return () => window.removeEventListener('agroverse:refresh', onRefresh);
+  });
+
   useEffect(() => { localStorage.setItem('buyerCart', JSON.stringify(cart)); }, [cart]);
   useEffect(() => { localStorage.setItem('buyerOrders', JSON.stringify(orders)); }, [orders]);
   useEffect(() => { localStorage.setItem('buyerProfile', JSON.stringify(buyerProfile)); }, [buyerProfile]);

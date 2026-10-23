@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { AnimatedNumber } from '../../shared/ui';
 import { motion } from 'motion/react';
 import { TrendingUp, Package, CheckCircle, AlertCircle } from 'lucide-react';
 import { getShipments } from '../../api/shipment';
@@ -87,7 +88,7 @@ export default function DashboardOverview() {
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-gray-600 text-sm font-medium">{stat.title}</p>
-                  <p className="text-3xl font-bold text-gray-800 mt-2">{stat.value}</p>
+                  <p className="text-3xl font-bold text-gray-800 mt-2"><AnimatedNumber value={stat.value} /></p>
                 </div>
                 <div className={`${stat.bgColor} p-3 rounded-lg`}>
                   <Icon size={24} className={stat.textColor} />

@@ -1,4 +1,5 @@
 import React from 'react';
+import { AnimatedNumber } from '../../shared/ui';
 import { Users, ShoppingCart, Package, TrendingUp, DollarSign, Clock } from 'lucide-react';
 
 const PlatformStats = () => {
@@ -106,7 +107,7 @@ const PlatformStats = () => {
               <h3 className="text-slate-600 text-sm font-medium mb-1">
                 {stat.label}
               </h3>
-              <p className="text-2xl font-bold text-slate-900">{stat.value}</p>
+              <p className="text-2xl font-bold text-slate-900"><AnimatedNumber value={stat.value} /></p>
             </div>
           );
         })}

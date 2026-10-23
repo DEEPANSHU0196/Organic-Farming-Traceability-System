@@ -1,7 +1,9 @@
 import { motion } from 'motion/react';
+import { SkeletonCards } from '../../shared/ui';
 import { Search, Filter, Star, MapPin, Leaf, Heart } from 'lucide-react';
 import { useState } from 'react';
 import { useBuyer } from '../../contexts/BuyerContext';
+import EmptyState from '../../shared/EmptyState';
 
 export default function BrowseProducts({ onProductSelect }) {
   const { availableProducts, filterProducts, searchProducts, loading, error, toggleWishlist, isInWishlist } = useBuyer();
@@ -127,9 +129,7 @@ export default function BrowseProducts({ onProductSelect }) {
       </div>
 
       {loading && (
-        <div className="rounded-lg border border-surface-alt bg-white p-8 text-center text-accent-muted">
-          Loading fresh products from the marketplace...
-        </div>
+        <SkeletonCards label="Loading fresh products from the marketplace" />
       )}
 
       {!loading && error && (
@@ -221,9 +221,11 @@ export default function BrowseProducts({ onProductSelect }) {
         </div>
       ) : (
         !loading && !error && (
-        <div className="text-center py-12">
-          <p className="text-accent-muted text-lg">No products found matching your criteria</p>
-        </div>
+        <EmptyState
+          icon={Search}
+          title="Nothing matches yet"
+          body="Try another category or a shorter search. New harvests are added every day."
+        />
         )
       )}
     </div>

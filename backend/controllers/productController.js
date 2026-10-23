@@ -78,7 +78,8 @@ const uploadFromBodyImage = async (image) => {
 };
 
 const getFrontendBaseUrl = () =>
-  process.env.FRONTEND_URL || "http://localhost:5175";
+  // FRONTEND_URL may list several origins (for CORS); QR codes use the first one.
+  (process.env.FRONTEND_URL || "http://localhost:5173").split(",")[0].trim();
 
 const buildTraceabilityUrl = (productId) =>
   new URL(`/trace/${productId}`, getFrontendBaseUrl()).toString();

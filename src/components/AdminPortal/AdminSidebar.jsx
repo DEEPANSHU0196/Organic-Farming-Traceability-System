@@ -56,7 +56,7 @@ const AdminSidebar = ({ isOpen, setIsOpen }) => {
             <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">AT</span>
             </div>
-            <span className="font-bold text-lg text-slate-900">AgriTrust</span>
+            <span className="font-bold text-lg text-slate-900">AgroVerse</span>
           </div>
           <button
             onClick={() => setIsOpen(false)}

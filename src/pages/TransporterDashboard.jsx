@@ -2,8 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, Truck, Package, Users,
-  Map, BarChart2, Settings
-} from 'lucide-react';
+  Map, BarChart2, Settings, UserRound } from 'lucide-react';
 import DashboardLayout from '../shared/DashboardLayout';
 import ModernLogisticsDashboard from '../components/TransporterDashboard/ModernLogisticsDashboard';
 import AssignedDeliveries from '../components/TransporterDashboard/AssignedDeliveries';
@@ -13,6 +12,7 @@ import RouteTracking from '../components/TransporterDashboard/RouteTracking';
 import ReportsSection from '../components/TransporterDashboard/ReportsSection';
 import TransporterSettings from '../components/TransporterDashboard/TransporterSettings';
 import NotificationCenter from '../components/TransporterDashboard/NotificationCenter';
+import TransporterProfile from '../components/TransporterDashboard/TransporterProfile';
 
 const NAV_ITEMS = [
   { id: 'overview',   label: 'Dashboard',  icon: LayoutDashboard },
@@ -21,6 +21,7 @@ const NAV_ITEMS = [
   { id: 'drivers',    label: 'Drivers',    icon: Users },
   { id: 'routes',     label: 'Routes',     icon: Map },
   { id: 'reports',    label: 'Reports',    icon: BarChart2 },
+  { id: 'profile',  label: 'My Profile',  icon: UserRound },
   { id: 'settings',   label: 'Settings',   icon: Settings },
 ];
 
@@ -46,6 +47,7 @@ export default function TransporterDashboard() {
       case 'drivers':    return <DriverManagement />;
       case 'routes':     return <RouteTracking />;
       case 'reports':    return <ReportsSection />;
+      case 'profile':    return <TransporterProfile />;
       case 'settings':   return <TransporterSettings />;
       default:           return <ModernLogisticsDashboard />;
     }

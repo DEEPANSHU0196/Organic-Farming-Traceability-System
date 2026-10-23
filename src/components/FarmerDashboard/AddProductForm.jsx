@@ -3,6 +3,7 @@ import { Upload, X, Plus, Check } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../contexts/ProductContext';
+import Celebration from '../../shared/Celebration';
 
 export default function AddProductForm() {
   const navigate = useNavigate();
@@ -101,7 +102,7 @@ export default function AddProductForm() {
 
       setTimeout(() => {
         navigate('/farmer-dashboard/my-products');
-      }, 2000);
+      }, 2200);
     } catch (error) {
       setSubmitError(error?.response?.data?.message || 'Unable to add product right now.');
     } finally {
@@ -116,6 +117,8 @@ export default function AddProductForm() {
         <p className="text-accent-muted">List your agricultural products for buyers to discover</p>
       </div>
 
+      <Celebration show={showSuccess} title="Batch submitted" subtitle="It goes live once an admin approves it" />
+
       {/* Success Message */}
       {showSuccess && (
         <motion.div
@@ -125,8 +128,8 @@ export default function AddProductForm() {
         >
           <Check size={20} className="text-green-600" />
           <div>
-            <p className="font-medium">Product added successfully!</p>
-            <p className="text-sm">Redirecting to My Products...</p>
+            <p className="font-medium">Batch submitted for approval.</p>
+            <p className="text-sm">Taking you to My Products…</p>
           </div>
         </motion.div>
       )}

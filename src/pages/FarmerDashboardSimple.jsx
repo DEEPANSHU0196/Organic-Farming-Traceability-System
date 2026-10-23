@@ -66,7 +66,7 @@ export default function FarmerDashboard() {
               A
             </div>
             <div>
-              <h1 className="text-lg font-bold">AgriTrust</h1>
+              <h1 className="text-lg font-bold">AgroVerse</h1>
               <p className="text-xs text-slate-400">Farmer Dashboard</p>
             </div>
           </div>
@@ -204,7 +204,7 @@ export default function FarmerDashboard() {
                 >
                   <div className="p-4 border-b border-slate-200">
                     <p className="text-sm font-semibold text-slate-900">Farmer Mehta</p>
-                    <p className="text-xs text-slate-500">farmer@agritrust.com</p>
+                    <p className="text-xs text-slate-500">farmer@agroverse.com</p>
                   </div>
                   <div className="p-2 space-y-1">
                     <button className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 rounded transition-colors">

@@ -120,6 +120,12 @@ export const ProductProvider = ({ children }) => {
     }
   }, []);
 
+  // Pull-to-refresh in the dashboard broadcasts this event.
+  useEffect(() => {
+    window.addEventListener('agroverse:refresh', refreshProducts);
+    return () => window.removeEventListener('agroverse:refresh', refreshProducts);
+  }, [refreshProducts]);
+
   useEffect(() => {
     // Don't fetch until AuthContext has finished its initialization effect.
     // authLoading is true on the very first render and turns false once

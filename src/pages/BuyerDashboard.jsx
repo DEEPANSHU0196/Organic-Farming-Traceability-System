@@ -2,8 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   LayoutDashboard, Search, ShoppingBag, Heart,
-  CreditCard, Star, Settings
-} from 'lucide-react';
+  CreditCard, Star, Settings, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useBuyer } from '../contexts/BuyerContext';
 import DashboardLayout from '../shared/DashboardLayout';
@@ -16,6 +15,9 @@ import BuyerWishlist from '../components/BuyerPortal/BuyerWishlist';
 import BuyerPayments from '../components/BuyerPortal/BuyerPayments';
 import BuyerSettings from '../components/BuyerPortal/BuyerSettings';
 import ProductDetails from '../components/BuyerPortal/ProductDetails';
+import BuyerProfile from '../components/BuyerPortal/BuyerProfile';
+import Celebration from '../shared/Celebration';
+import { useToast } from '../contexts/ToastContext';
 
 const NAV_ITEMS = [
   { id: 'overview',  label: 'Dashboard',       icon: LayoutDashboard },
@@ -25,6 +27,7 @@ const NAV_ITEMS = [
   { id: 'wishlist',  label: 'Wishlist',         icon: Heart },
   { id: 'payments',  label: 'Payments',         icon: CreditCard },
   { id: 'reviews',   label: 'Reviews',          icon: Star },
+  { id: 'profile',  label: 'My Profile',  icon: UserRound },
   { id: 'settings',  label: 'Settings',         icon: Settings },
 ];
 
@@ -33,6 +36,8 @@ export default function BuyerDashboard() {
   const location = useLocation();
   const { logout } = useAuth();
   const { cart, placeOrder } = useBuyer();
+  const toast = useToast();
+  const [celebrate, setCelebrate] = useState(false);
 
   const pathSegment = location.pathname.split('/').pop() || 'overview';
   const activeSection = NAV_ITEMS.find(s => s.id === pathSegment)?.id || 'overview';
@@ -49,10 +54,11 @@ export default function BuyerDashboard() {
     if (cart.length > 0) {
       try {
         await placeOrder({ notes: 'Please deliver safely' });
-        alert('Order placed successfully! The farmer has been notified.');
-        handleSectionChange('orders');
+        setCelebrate(true);
+        toast('The farmer has been notified. You can follow it in Orders.', { title: 'Order placed' });
+        window.setTimeout(() => { setCelebrate(false); handleSectionChange('orders'); }, 1800);
       } catch (error) {
-        alert('Failed to place order. Please try again.');
+        toast(error?.response?.data?.message || 'Please try again in a moment.', { tone: 'error', title: 'Order not placed' });
       }
     }
   };
@@ -66,6 +72,7 @@ export default function BuyerDashboard() {
       case 'wishlist':  return <BuyerWishlist onBrowse={() => handleSectionChange('browse')} />;
       case 'payments':  return <BuyerPayments />;
       case 'reviews':   return <ReviewsRatings />;
+      case 'profile':    return <BuyerProfile />;
       case 'settings':  return <BuyerSettings />;
       default:          return <BuyerDashboardOverview onNavigate={handleSectionChange} />;
     }
@@ -82,6 +89,8 @@ export default function BuyerDashboard() {
       >
         {renderSection()}
       </DashboardLayout>
+
+      <Celebration show={celebrate} title="Order placed" subtitle="Straight from the farm to you" />
 
       {selectedProduct && (
         <ProductDetails

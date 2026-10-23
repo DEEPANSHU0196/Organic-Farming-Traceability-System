@@ -1,34 +1,170 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
 import {
-  Bot,
   Sparkles,
   X,
   Send,
   Mic,
-  MicOff,
+  Square,
   Volume2,
   VolumeX,
-  Trash2,
+  RotateCcw,
   Copy,
   Check,
   ExternalLink,
-  ChevronDown,
+  Minus,
   QrCode,
   Sprout,
   ShieldCheck,
   TrendingUp,
+  Bug,
+  Leaf,
   Truck,
-  User,
-  RefreshCw,
-  MessageSquare,
+  Globe2,
+  ImagePlus,
+  Camera,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { sendChatbotQuery } from '../../api/chatbot';
+import { useLanguage } from '../../contexts/LanguageContext';
+import { sendChatbotQuery, compressImage } from '../../api/chatbot';
+
+const ROLE_LABELS = {
+  farmer: '🌾 Farmer mode',
+  buyer: '🛒 Buyer mode',
+  transporter: '🚚 Transporter mode',
+  admin: '🛡️ Admin mode',
+  guest: '🌿 Visitor assistant',
+};
+
+const SUGGESTIONS = {
+  farmer: [
+    'How to add a new crop batch with QR code?',
+    'Best natural pest control for tomatoes',
+    'What are current organic mandi prices?',
+    'How do I upload NPOP certificate?',
+  ],
+  buyer: [
+    'How to verify organic QR traceability?',
+    'Check sample batch BATCH-1001',
+    'How to find certified basmati rice sellers?',
+    'What does Jaivik Bharat mark mean?',
+  ],
+  transporter: [
+    'How to log transit temperature & humidity?',
+    'What is safe transport temperature for fruits?',
+    'How to update shipment status?',
+  ],
+  admin: [
+    'How to audit farmer organic certificates?',
+    'How QR code generation works?',
+    'Platform analytics and user activity',
+  ],
+  guest: [
+    'What is AgroVerse?',
+    'Try batch lookup BATCH-1001',
+    'Show current organic market prices',
+    'How to register as an organic farmer?',
+  ],
+};
+
+const QUICK_TOPICS = [
+  { icon: QrCode, label: 'Trace', prompt: 'Check sample batch BATCH-1001' },
+  { icon: TrendingUp, label: 'Mandi', prompt: 'What are today’s organic mandi prices?' },
+  { icon: Bug, label: 'Pests', prompt: 'How to prepare neem oil pest spray?' },
+  { icon: Leaf, label: 'Soil', prompt: 'How to make Jeevamrutha for soil health?' },
+  { icon: Camera, label: 'Photo check', prompt: '__photo' },
+  { icon: Truck, label: 'Delivery', prompt: 'How does cold-chain transport tracking work?' },
+];
+
+const now = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+function greetingFor(role, user) {
+  const name = user?.name ? `, ${user.name.split(' ')[0]}` : '';
+  switch (role) {
+    case 'farmer':
+      return `Namaste${name}! 🌾 I'm **AgroBot**, your farming assistant. Ask me about organic fertilizers, natural pest remedies, mandi prices, or QR codes for your harvest.`;
+    case 'buyer':
+      return `Welcome${name}! 🛒 I'm **AgroBot**. I can verify organic QR codes, track your farm-to-table shipments, or help you find certified producers.`;
+    case 'transporter':
+      return `Hello${name}! 🚚 **AgroBot** here. Need help with cold-chain temperature logs, route tracking, or delivery confirmations?`;
+    case 'admin':
+      return `Greetings${name}! 🛡️ **AgroBot** ready. Ask about certification audits, QR generation, or platform activity.`;
+    default:
+      return `Namaste! 🌿 I'm **AgroBot**, the AgroVerse assistant for organic farming and farm-to-fork QR traceability. Ask me anything, in any Indian language.`;
+  }
+}
+
+const plainText = (raw) => (raw || '').replace(/[*_#`~]/g, '').replace(/\n+/g, ' ').replace(/•/g, '').trim();
+
+function renderInline(line) {
+  return line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={i} className="font-semibold text-emerald-950">{part.slice(2, -2)}</strong>;
+    }
+    if (part.startsWith('`') && part.endsWith('`')) {
+      return <code key={i} className="rounded border border-emerald-300/40 bg-emerald-100 px-1.5 py-0.5 font-mono text-[11px] text-emerald-900">{part.slice(1, -1)}</code>;
+    }
+    return part;
+  });
+}
+
+function FormattedText({ text }) {
+  if (!text) return null;
+  return text.split('\n').map((line, idx) => {
+    const trimmed = line.trim();
+    if (!trimmed) return <div key={idx} className="h-2" />;
+    const bullet = trimmed.match(/^(?:[•\-*]|\d+\.)\s+(.*)$/);
+    if (bullet) {
+      const marker = /^\d+\./.test(trimmed) ? trimmed.split('.')[0] : null;
+      return (
+        <div key={idx} className="my-1 flex gap-2 leading-relaxed">
+          <span className={`mt-[3px] flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full ${marker ? 'bg-emerald-600 px-1 text-[9px] font-bold text-white' : ''}`}>
+            {marker || <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+          </span>
+          <span>{renderInline(bullet[1])}</span>
+        </div>
+      );
+    }
+    return <p key={idx} className="my-1 leading-relaxed">{renderInline(line)}</p>;
+  });
+}
+
+/* Reveals a bot reply word by word so it feels like it's being written. */
+function TypewriterText({ text, animate, onTick }) {
+  const [shown, setShown] = useState(animate ? '' : text);
+  useEffect(() => {
+    if (!animate) { setShown(text); return undefined; }
+    const tokens = text.split(/(\s+)/);
+    let i = 0;
+    const step = Math.max(1, Math.ceil(tokens.length / 90));
+    const timer = window.setInterval(() => {
+      i = Math.min(tokens.length, i + step);
+      setShown(tokens.slice(0, i).join(''));
+      onTick?.();
+      if (i >= tokens.length) window.clearInterval(timer);
+    }, 18);
+    return () => window.clearInterval(timer);
+    // onTick is a stable scroll callback; re-running would restart the animation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [text, animate]);
+  return <FormattedText text={shown} />;
+}
+
+function BotAvatar({ size = 'h-8 w-8' }) {
+  return (
+    <div className={`${size} flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-green-700 shadow-md ring-2 ring-white`}>
+      <Sprout className="h-4 w-4 text-white" />
+    </div>
+  );
+}
 
 export default function AgroChatbot() {
   const { user } = useAuth();
+  const { language } = useLanguage();
   const navigate = useNavigate();
+  const role = user?.role === 'consumer' ? 'buyer' : user?.role || 'guest';
+  const defaultPrompts = SUGGESTIONS[role] || SUGGESTIONS.guest;
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -37,571 +173,457 @@ export default function AgroChatbot() {
   const [isLoading, setIsLoading] = useState(false);
   const [speechEnabled, setSpeechEnabled] = useState(false);
   const [isListening, setIsListening] = useState(false);
-  const [copiedIndex, setCopiedIndex] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [showTeaser, setShowTeaser] = useState(false);
+  const [photo, setPhoto] = useState(null); // { preview, mediaType, data }
+  const fileRef = useRef(null);
 
-  const messagesEndRef = useRef(null);
+  const scrollRef = useRef(null);
+  const inputRef = useRef(null);
   const recognitionRef = useRef(null);
 
-  // User role details
-  const role = user?.role;
-
-  const roleLabelMap = {
-    farmer: '🌾 Farmer Mode',
-    buyer: '🛒 Buyer Mode',
-    transporter: '🚚 Transporter Mode',
-    admin: '🛡️ Admin Mode',
-    guest: '🌿 Visitor Assistant',
-  };
-
-  const initialSuggestions = {
-    farmer: [
-      'How to add a new crop batch with QR code?',
-      'Best natural pest control for tomatoes',
-      'What are current organic mandi prices?',
-      'How do I upload NPOP certificate?',
-    ],
-    buyer: [
-      'How to verify organic QR traceability?',
-      'Check sample batch BATCH-1001',
-      'How to find certified basmati rice sellers?',
-      'What does Jaivik Bharat mark mean?',
-    ],
-    transporter: [
-      'How to log transit temperature & humidity?',
-      'What is safe transport temperature for fruits?',
-      'How to update shipment status?',
-    ],
-    admin: [
-      'How to audit farmer organic certificates?',
-      'Platform analytics and user activity',
-      'How QR code generation works?',
-    ],
-    guest: [
-      'What is AgroVerse Organic Traceability?',
-      'Try batch lookup BATCH-1001',
-      'Show current organic market prices',
-      'How to register as an organic farmer?',
-    ],
-  };
-
-  const defaultPrompts = initialSuggestions[role] || initialSuggestions.guest;
-
-  // Initialize Web Speech Recognition if supported
-  useEffect(() => {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = 'en-IN';
-
-      recognition.onresult = (event) => {
-        const transcript = event.results[0][0].transcript;
-        setInputValue(transcript);
-        setIsListening(false);
-      };
-
-      recognition.onerror = (event) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      recognitionRef.current = recognition;
-    }
+  const scrollToBottom = useCallback(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
-  // Initialize initial greeting message
-  useEffect(() => {
-    const greetingText = getInitialGreeting(role, user);
-    setMessages([
-      {
-        id: 'msg-welcome',
-        sender: 'bot',
-        text: greetingText,
-        actionType: 'text',
-        suggestions: defaultPrompts,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
-  }, [role, user]);
+  const resetConversation = useCallback(() => {
+    setMessages([{ id: `welcome-${Date.now()}`, sender: 'bot', text: greetingFor(role, user), suggestions: defaultPrompts, timestamp: now() }]);
+  }, [role, user, defaultPrompts]);
 
-  // Auto scroll to bottom of chat
+  useEffect(() => { resetConversation(); }, [resetConversation]);
+
+  // Friendly nudge bubble a few seconds after first load.
+  useEffect(() => {
+    const show = window.setTimeout(() => setShowTeaser(true), 4000);
+    const hide = window.setTimeout(() => setShowTeaser(false), 12000);
+    return () => { window.clearTimeout(show); window.clearTimeout(hide); };
+  }, []);
+
   useEffect(() => {
     if (isOpen && !isMinimized) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      scrollToBottom();
+      inputRef.current?.focus();
     }
-  }, [messages, isOpen, isMinimized, isLoading]);
+  }, [messages, isOpen, isMinimized, isLoading, scrollToBottom]);
 
-  function getInitialGreeting(currentRole, currentUser) {
-    const name = currentUser?.name ? `, ${currentUser.name.split(' ')[0]}` : '';
-    switch (currentRole) {
-      case 'farmer':
-        return `Namaste${name}! 🌾 I am **AgroBot**, your AI farming assistant. Ask me about organic fertilizers, natural pest remedies, mandi prices, or how to generate QR codes for your harvest!`;
-      case 'buyer':
-        return `Welcome${name}! 🛒 I am **AgroBot**. Need help verifying organic QR codes, tracking your farm-to-table shipments, or finding certified organic producers?`;
-      case 'transporter':
-        return `Hello${name}! 🚚 **AgroBot** here. Need assistance with cold-chain temperature logs, route tracking, or delivery confirmations?`;
-      case 'admin':
-        return `Greetings Admin${name}! 🛡️ **AgroBot** ready. Ask me about system status, organic certification auditing, or user metrics.`;
-      default:
-        return `Welcome to **AgroVerse**! 🌿 I am **AgroBot**, your AI assistant for organic farming & 100% transparent QR traceability. How can I assist you today?`;
-    }
-  }
-
-  const handleSendMessage = async (textToSend = null) => {
-    const queryText = typeof textToSend === 'string' ? textToSend : inputValue;
-    if (!queryText || !queryText.trim()) return;
-
-    const userMsgId = `user-${Date.now()}`;
-    const userMessage = {
-      id: userMsgId,
-      sender: 'user',
-      text: queryText.trim(),
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+  // Voice input follows the selected site language.
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return undefined;
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = language.speech;
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results).map((r) => r[0].transcript).join('');
+      setInputValue(transcript);
     };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognitionRef.current = recognition;
+    return () => recognition.abort();
+  }, [language.speech]);
 
-    setMessages((prev) => [...prev, userMessage]);
+  const speak = useCallback((text) => {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(plainText(text));
+    utterance.lang = language.speech;
+    const voice = window.speechSynthesis.getVoices().find((v) => v.lang === language.speech);
+    if (voice) utterance.voice = voice;
+    window.speechSynthesis.speak(utterance);
+  }, [language.speech]);
+
+  const handleSendMessage = async (textToSend) => {
+    const typed = (typeof textToSend === 'string' ? textToSend : inputValue).trim();
+    const attached = typeof textToSend === 'string' ? null : photo;
+    if ((!typed && !attached) || isLoading) return;
+    const queryText = typed || 'What is wrong with this plant, and how do I treat it organically?';
+
+    const history = messages.filter((m) => !m.isError);
+    setMessages((prev) => [...prev, { id: `user-${Date.now()}`, sender: 'user', text: queryText, image: attached?.preview, timestamp: now() }]);
     setInputValue('');
+    setPhoto(null);
     setIsLoading(true);
 
-    if (!isOpen) {
-      setUnreadCount((prev) => prev + 1);
-    }
-
     try {
-      const response = await sendChatbotQuery(queryText.trim(), role, user);
-
-      const botMessage = {
-        id: `bot-${Date.now()}`,
-        sender: 'bot',
-        text: response.reply || 'Here is what I found for your request.',
-        actionType: response.actionType || 'text',
-        actionData: response.actionData || null,
-        suggestions: response.suggestions && response.suggestions.length > 0 ? response.suggestions : defaultPrompts,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
-
-      // Speak answer if speech synthesis is toggled on
-      if (speechEnabled && 'speechSynthesis' in window) {
-        speakText(cleanTextForSpeech(response.reply));
-      }
-    } catch (error) {
-      console.error('Error fetching chatbot reply:', error);
+      const response = await sendChatbotQuery(queryText, role, user, {
+        language: language.english,
+        history,
+        image: attached ? { mediaType: attached.mediaType, data: attached.data } : null,
+      });
+      const reply = response.reply || 'Here is what I found for your request.';
       setMessages((prev) => [
         ...prev,
         {
-          id: `bot-err-${Date.now()}`,
+          id: `bot-${Date.now()}`,
           sender: 'bot',
-          text: '🌿 I had a slight connection hiccup, but I am still here! Please try asking again.',
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          text: reply,
+          animate: true,
+          actionType: response.actionType || 'text',
+          actionData: response.actionData || null,
+          suggestions: response.suggestions?.length ? response.suggestions : defaultPrompts,
+          timestamp: now(),
         },
+      ]);
+      if (!isOpen) setUnreadCount((n) => n + 1);
+      if (speechEnabled) speak(reply);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { id: `bot-err-${Date.now()}`, sender: 'bot', isError: true, text: '🌿 I had a small connection hiccup. Please try again.', timestamp: now() },
       ]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  };
-
   const toggleVoiceInput = () => {
-    if (!recognitionRef.current) {
-      alert('Speech recognition is not supported in this browser. Please try Chrome or Edge.');
+    const recognition = recognitionRef.current;
+    if (!recognition) {
+      setMessages((prev) => [...prev, { id: `bot-mic-${Date.now()}`, sender: 'bot', isError: true, text: '🎙️ Voice input needs Chrome or Edge. You can still type your question.', timestamp: now() }]);
       return;
     }
     if (isListening) {
-      recognitionRef.current.stop();
+      recognition.stop();
       setIsListening(false);
     } else {
+      setInputValue('');
       setIsListening(true);
-      recognitionRef.current.start();
+      recognition.start();
     }
   };
 
-  const speakText = (text) => {
-    if (!('speechSynthesis' in window)) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 1.0;
-    utterance.pitch = 1.0;
-    utterance.lang = 'en-IN';
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const cleanTextForSpeech = (rawText) => {
-    if (!rawText) return '';
-    return rawText
-      .replace(/[*_#`~]/g, '')
-      .replace(/\n+/g, ' ')
-      .replace(/•/g, '')
-      .trim();
-  };
-
-  const copyToClipboard = (text, index) => {
-    navigator.clipboard.writeText(cleanTextForSpeech(text));
-    setCopiedIndex(index);
-    setTimeout(() => setCopiedIndex(null), 2000);
-  };
-
-  const clearChat = () => {
-    const greetingText = getInitialGreeting(role, user);
-    setMessages([
-      {
-        id: 'msg-reset',
-        sender: 'bot',
-        text: greetingText,
-        suggestions: defaultPrompts,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ]);
+  const copyMessage = (msg) => {
+    navigator.clipboard?.writeText(plainText(msg.text));
+    setCopiedId(msg.id);
+    window.setTimeout(() => setCopiedId(null), 2000);
   };
 
   const toggleOpen = () => {
     setIsOpen((prev) => !prev);
     setIsMinimized(false);
     setUnreadCount(0);
+    setShowTeaser(false);
   };
 
-  const renderFormattedText = (text) => {
-    if (!text) return null;
-    const lines = text.split('\n');
-    return lines.map((line, idx) => {
-      // Bold regex formatting
-      const parts = line.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
-      return (
-        <p key={idx} className={`${line.trim() === '' ? 'h-2' : 'my-1'} leading-relaxed`}>
-          {parts.map((part, pIdx) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-              return <strong key={pIdx} className="font-semibold text-emerald-950 dark:text-emerald-200">{part.slice(2, -2)}</strong>;
-            }
-            if (part.startsWith('`') && part.endsWith('`')) {
-              return <code key={pIdx} className="bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-300 font-mono text-xs px-1.5 py-0.5 rounded border border-emerald-300/40">{part.slice(1, -1)}</code>;
-            }
-            return part;
-          })}
-        </p>
-      );
-    });
-  };
-
-  // The chatbot is ONLY visible to farmers and buyers when they successfully log in
-  if (!user || (role !== 'farmer' && role !== 'buyer')) {
-    return null;
-  }
+  const lastIndex = messages.length - 1;
+  const showQuickTopics = messages.length <= 1;
 
   return (
-    <div className="fixed bottom-5 right-5 z-50 font-sans selection:bg-emerald-100 selection:text-emerald-900">
-      {/* Floating Chat Trigger Badge/Button when closed */}
-      {!isOpen && (
-        <button
-          onClick={toggleOpen}
-          aria-label="Open AgroVerse AI Assistant Chatbot"
-          className="group relative flex items-center gap-3 bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 text-white px-4 py-3.5 rounded-full shadow-2xl hover:shadow-emerald-900/30 hover:scale-105 transition-all duration-300 border border-emerald-500/30 active:scale-95"
-        >
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-emerald-900/60 flex items-center justify-center border border-emerald-400/40 group-hover:rotate-12 transition-transform">
-              <Bot className="w-5 h-5 text-emerald-300" />
-            </div>
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-emerald-950"></span>
-            </span>
-          </div>
-
-          <div className="hidden sm:flex flex-col text-left">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-200 flex items-center gap-1">
-              AgroBot AI <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
-            </span>
-            <span className="text-xs font-medium text-emerald-100/90">
-              {role === 'farmer' ? 'Ask Crop & Market Tips' : role === 'buyer' ? 'Verify QR & Traceability' : 'Organic Farming Guide'}
-            </span>
-          </div>
-
-          {unreadCount > 0 && (
-            <span className="bg-amber-400 text-emerald-950 text-xs font-extrabold px-2 py-0.5 rounded-full shadow">
-              {unreadCount}
-            </span>
-          )}
-        </button>
-      )}
-
-      {/* Main Chatbot Window */}
-      {isOpen && (
-        <div
-          className={`w-[92vw] sm:w-[420px] bg-white dark:bg-[#18221A] rounded-2xl shadow-2xl border border-emerald-900/20 dark:border-emerald-500/20 flex flex-col overflow-hidden transition-all duration-300 ${
-            isMinimized ? 'h-16' : 'h-[620px] max-h-[85vh]'
-          }`}
-        >
-          {/* Header Bar */}
-          <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white px-4 py-3.5 flex items-center justify-between shadow-md border-b border-emerald-700/40">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-9 h-9 rounded-full bg-emerald-950/80 flex items-center justify-center border border-emerald-400/30">
-                  <Sprout className="w-5 h-5 text-emerald-300" />
-                </div>
-                <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-emerald-950"></div>
-              </div>
-
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="font-bold text-sm text-emerald-50 font-display">AgroBot AI</h3>
-                  <span className="bg-emerald-950/70 text-emerald-300 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-emerald-400/20">
-                    Online
-                  </span>
-                </div>
-                <p className="text-[11px] text-emerald-200/80 font-medium">{roleLabelMap[role] || roleLabelMap.guest}</p>
-              </div>
-            </div>
-
-            {/* Header Action Buttons */}
-            <div className="flex items-center gap-1 text-emerald-200/90">
-              <button
-                onClick={() => setSpeechEnabled(!speechEnabled)}
-                title={speechEnabled ? 'Mute AI Audio' : 'Enable AI Read Aloud'}
-                className={`p-1.5 rounded-lg transition-colors ${
-                  speechEnabled ? 'bg-emerald-700 text-amber-300' : 'hover:bg-emerald-800/60 text-emerald-200'
-                }`}
-              >
-                {speechEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-              </button>
-
-              <button
-                onClick={clearChat}
-                title="Clear Conversation"
-                className="p-1.5 hover:bg-emerald-800/60 rounded-lg transition-colors text-emerald-200 hover:text-white"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-
-              <button
-                onClick={() => setIsMinimized(!isMinimized)}
-                title={isMinimized ? 'Expand Window' : 'Minimize Window'}
-                className="p-1.5 hover:bg-emerald-800/60 rounded-lg transition-colors text-emerald-200 hover:text-white"
-              >
-                <ChevronDown className={`w-4 h-4 transition-transform ${isMinimized ? 'rotate-180' : ''}`} />
-              </button>
-
-              <button
-                onClick={toggleOpen}
-                title="Close Chat"
-                className="p-1.5 hover:bg-red-500/20 rounded-lg transition-colors text-emerald-200 hover:text-red-200"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-
-          {/* Chat Body & Messages */}
-          {!isMinimized && (
-            <>
-              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-emerald-50/30 dark:bg-[#141B15] scrollbar-thin scrollbar-thumb-emerald-700/20">
-                {/* Notice Banner */}
-                <div className="bg-gradient-to-r from-emerald-100/80 to-teal-100/80 dark:from-emerald-950/40 dark:to-teal-950/40 border border-emerald-200 dark:border-emerald-800/50 rounded-xl p-3 text-xs text-emerald-900 dark:text-emerald-200 flex items-start gap-2.5 shadow-sm">
-                  <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="font-semibold text-emerald-950 dark:text-emerald-100">100% Certified Organic Intelligence</span>
-                    <p className="text-[11px] text-emerald-800/90 dark:text-emerald-300/80 mt-0.5">
-                      Ask about batch QR verification, soil health, bio-pesticides, APEDA standards, or mandi rates.
-                    </p>
-                  </div>
-                </div>
-
-                {/* Messages List */}
-                {messages.map((msg, index) => (
-                  <div
-                    key={msg.id || index}
-                    className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} space-y-1.5 animate-fadeIn`}
-                  >
-                    <div className="flex items-center gap-1.5 px-1 text-[10px] text-emerald-800/70 dark:text-emerald-400/70 font-medium">
-                      {msg.sender === 'bot' ? (
-                        <>
-                          <Sparkles className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                          <span>AgroBot AI</span>
-                        </>
-                      ) : (
-                        <>
-                          <User className="w-3 h-3 text-teal-600 dark:text-teal-400" />
-                          <span>You</span>
-                        </>
-                      )}
-                      <span>•</span>
-                      <span>{msg.timestamp}</span>
-                    </div>
-
-                    <div
-                      className={`max-w-[88%] rounded-2xl p-3.5 text-xs sm:text-sm shadow-sm relative group ${
-                        msg.sender === 'user'
-                          ? 'bg-gradient-to-r from-emerald-800 to-teal-800 text-white rounded-br-none border border-emerald-700/50'
-                          : 'bg-white dark:bg-[#1E2920] text-emerald-950 dark:text-emerald-100 rounded-bl-none border border-emerald-200/80 dark:border-emerald-800/40 shadow-emerald-950/5'
-                      }`}
-                    >
-                      {/* Copy Action Button */}
-                      {msg.sender === 'bot' && (
-                        <button
-                          onClick={() => copyToClipboard(msg.text, index)}
-                          title="Copy message"
-                          className="absolute top-2 right-2 p-1 rounded bg-emerald-50 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-emerald-100 dark:hover:bg-emerald-800/60"
-                        >
-                          {copiedIndex === index ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                        </button>
-                      )}
-
-                      {/* Main Message Text */}
-                      <div className="pr-4">{renderFormattedText(msg.text)}</div>
-
-                      {/* Interactive Action Card: Traceability Batch Record */}
-                      {msg.actionType === 'traceability_card' && msg.actionData && (
-                        <div className="mt-3 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700/60 rounded-xl p-3 space-y-2 text-xs">
-                          <div className="flex items-center justify-between border-b border-emerald-200 dark:border-emerald-800 pb-2">
-                            <span className="font-bold text-emerald-950 dark:text-emerald-100 flex items-center gap-1.5">
-                              <QrCode className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                              {msg.actionData.name}
-                            </span>
-                            <span className="bg-emerald-200 dark:bg-emerald-900 text-emerald-900 dark:text-emerald-200 font-mono text-[10px] px-2 py-0.5 rounded font-bold">
-                              {msg.actionData.traceabilityId}
-                            </span>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-2 text-[11px] text-emerald-800 dark:text-emerald-300">
-                            <div>
-                              <span className="text-emerald-600 dark:text-emerald-400 block font-medium">Farmer</span>
-                              {msg.actionData.farmerName}
-                            </div>
-                            <div>
-                              <span className="text-emerald-600 dark:text-emerald-400 block font-medium">Location</span>
-                              {msg.actionData.farmLocation}
-                            </div>
-                            <div>
-                              <span className="text-emerald-600 dark:text-emerald-400 block font-medium">Soil pH</span>
-                              {msg.actionData.soilPh}
-                            </div>
-                            <div>
-                              <span className="text-emerald-600 dark:text-emerald-400 block font-medium">Certification</span>
-                              {msg.actionData.certificateNumber}
-                            </div>
-                          </div>
-
-                          <button
-                            onClick={() => {
-                              navigate(`/trace/${msg.actionData.traceabilityId}`);
-                              setIsOpen(false);
-                            }}
-                            className="w-full mt-1 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-1.5 rounded-lg flex items-center justify-center gap-1.5 text-xs transition-colors shadow-sm"
-                          >
-                            <span>Inspect Full Farm-to-Fork Trace</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Interactive Action Card: Live Mandi Rates */}
-                      {msg.actionType === 'market_rates' && (
-                        <div className="mt-2.5 bg-gradient-to-br from-amber-50 to-emerald-50 dark:from-amber-950/30 dark:to-emerald-950/30 border border-amber-300/60 dark:border-amber-700/40 rounded-xl p-2.5 text-xs flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-amber-900 dark:text-amber-200 font-semibold">
-                            <TrendingUp className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                            <span>Verified Premium: +25% for Organic Produce</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Suggestion Chips */}
-                    {msg.suggestions && msg.suggestions.length > 0 && index === messages.length - 1 && (
-                      <div className="flex flex-wrap gap-1.5 mt-2 pt-1 max-w-[90%]">
-                        {msg.suggestions.map((suggestion, sIdx) => (
-                          <button
-                            key={sIdx}
-                            onClick={() => handleSendMessage(suggestion)}
-                            className="bg-white dark:bg-emerald-950/60 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-900 dark:text-emerald-200 border border-emerald-300/80 dark:border-emerald-700/60 rounded-full px-3 py-1 text-[11px] font-medium transition-all shadow-xs hover:scale-102 active:scale-98 text-left"
-                          >
-                            💡 {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-
-                {/* Loading Indicator */}
-                {isLoading && (
-                  <div className="flex items-center gap-2 text-xs text-emerald-700 dark:text-emerald-400 bg-white dark:bg-[#1E2920] border border-emerald-200 dark:border-emerald-800/40 rounded-2xl px-3.5 py-2.5 w-fit shadow-xs animate-pulse">
-                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                    <span>AgroBot AI is analyzing your request...</span>
-                  </div>
-                )}
-
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input Control Area */}
-              <div className="p-3 bg-white dark:bg-[#18221A] border-t border-emerald-200/80 dark:border-emerald-800/40">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }}
-                  className="flex items-center gap-2"
+    <div className="fixed bottom-5 right-5 z-50 font-sans">
+      {/* ── Launcher ── */}
+      <AnimatePresence>
+        {!isOpen && (
+          <motion.div
+            key="launcher"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+            className="flex flex-col items-end gap-3"
+          >
+            <AnimatePresence>
+              {showTeaser && (
+                <motion.button
+                  type="button"
+                  onClick={toggleOpen}
+                  initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.9 }}
+                  className="max-w-[230px] rounded-2xl rounded-br-sm border border-emerald-100 bg-white px-4 py-3 text-left text-sm text-emerald-950 shadow-xl"
                 >
-                  {/* Voice Microphone Toggle */}
-                  <button
-                    type="button"
-                    onClick={toggleVoiceInput}
-                    title={isListening ? 'Stop Listening' : 'Voice Input (Speech-to-Text)'}
-                    className={`p-2.5 rounded-xl border transition-all ${
-                      isListening
-                        ? 'bg-red-500 text-white border-red-600 animate-bounce'
-                        : 'bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800'
-                    }`}
-                  >
-                    {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                  </button>
+                  👋 Namaste! Ask me about crops, prices or QR tracing — in your own language.
+                </motion.button>
+              )}
+            </AnimatePresence>
+            <motion.button
+              type="button"
+              onClick={toggleOpen}
+              whileHover={{ scale: 1.08, rotate: -4 }}
+              whileTap={{ scale: 0.92 }}
+              aria-label="Open AgroBot assistant"
+              className="relative flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 via-green-600 to-teal-700 text-white shadow-[0_12px_40px_rgba(16,120,80,0.45)]"
+            >
+              <span className="absolute inset-0 rounded-full border-2 border-emerald-300/70 animate-ping-slow" />
+              <motion.span animate={{ y: [0, -3, 0] }} transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut' }}>
+                <Sprout className="h-7 w-7" />
+              </motion.span>
+              <Sparkles className="absolute right-2.5 top-2.5 h-3.5 w-3.5 text-amber-200" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-400 px-1.5 text-xs font-extrabold text-emerald-950 ring-2 ring-white">
+                  {unreadCount}
+                </span>
+              )}
+            </motion.button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-                  {/* Input Box */}
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder={
-                      isListening
-                        ? 'Listening... Speak now...'
-                        : role === 'farmer'
-                        ? 'Ask crop tips, mandi rates, or QR help...'
-                        : 'Ask about organic trace, products, or mandi rates...'
-                    }
-                    className="flex-1 bg-emerald-50/50 dark:bg-[#131A14] text-emerald-950 dark:text-emerald-100 border border-emerald-300/80 dark:border-emerald-800/60 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 dark:focus:ring-emerald-500 placeholder:text-emerald-700/40 dark:placeholder:text-emerald-400/40"
-                  />
-
-                  {/* Send Button */}
-                  <button
-                    type="submit"
-                    disabled={!inputValue.trim() || isLoading}
-                    className="bg-gradient-to-r from-emerald-800 to-teal-800 hover:from-emerald-900 hover:to-teal-900 disabled:opacity-50 text-white p-2.5 rounded-xl shadow-md transition-all active:scale-95 flex items-center justify-center"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </form>
-
-                <div className="flex items-center justify-between text-[10px] text-emerald-800/60 dark:text-emerald-400/60 mt-2 px-1">
-                  <span>Press Enter to send</span>
-                  <span>AgroVerse AI Assistant v2.6</span>
+      {/* ── Chat window ── */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            key="window"
+            initial={{ opacity: 0, y: 40, scale: 0.9, originX: 1, originY: 1 }}
+            animate={{ opacity: 1, y: 0, scale: 1, height: isMinimized ? 72 : 'min(640px, 85vh)' }}
+            exit={{ opacity: 0, y: 40, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 260, damping: 26 }}
+            className="flex w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-3xl border border-emerald-900/10 bg-white shadow-[0_30px_80px_rgba(13,38,25,0.35)] sm:w-[410px]"
+          >
+            {/* Header */}
+            <div className="animated-gradient relative flex items-center justify-between bg-gradient-to-r from-emerald-900 via-green-700 to-teal-800 px-4 py-3.5 text-white">
+              <div className="pointer-events-none absolute -right-6 -top-10 h-28 w-28 rounded-full bg-lime-300/20 blur-2xl" />
+              <div className="relative flex items-center gap-3">
+                <div className="relative">
+                  <BotAvatar size="h-10 w-10" />
+                  <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-emerald-900 bg-lime-400" />
+                </div>
+                <div>
+                  <h3 className="font-display text-[15px] font-bold leading-tight">AgroBot</h3>
+                  <p className="flex items-center gap-1.5 text-[11px] text-emerald-100/80">
+                    <span>{isLoading ? 'typing…' : ROLE_LABELS[role] || ROLE_LABELS.guest}</span>
+                    <span className="opacity-50">·</span>
+                    <Globe2 className="h-3 w-3" />
+                    <span className="notranslate" translate="no">{language.native}</span>
+                  </p>
                 </div>
               </div>
-            </>
-          )}
-        </div>
-      )}
+              <div className="relative flex items-center gap-0.5">
+                {[
+                  { onClick: () => setSpeechEnabled((v) => !v), title: speechEnabled ? 'Turn off read-aloud' : 'Read replies aloud', icon: speechEnabled ? Volume2 : VolumeX, active: speechEnabled },
+                  { onClick: resetConversation, title: 'New conversation', icon: RotateCcw },
+                  { onClick: () => setIsMinimized((v) => !v), title: isMinimized ? 'Expand' : 'Minimise', icon: Minus },
+                  { onClick: toggleOpen, title: 'Close', icon: X },
+                ].map(({ onClick, title, icon: Icon, active }) => (
+                  <motion.button
+                    key={title}
+                    type="button"
+                    whileHover={{ scale: 1.12 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={onClick}
+                    title={title}
+                    aria-label={title}
+                    className={`rounded-lg p-1.5 transition-colors ${active ? 'bg-white/20 text-amber-200' : 'text-emerald-50/85 hover:bg-white/15'}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </motion.button>
+                ))}
+              </div>
+            </div>
+
+            {!isMinimized && (
+              <>
+                {/* Messages */}
+                <div ref={scrollRef} className="chat-scroll flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-emerald-50/70 to-white px-4 py-4">
+                  {showQuickTopics && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-3 gap-2">
+                      {QUICK_TOPICS.map(({ icon: Icon, label, prompt }, i) => (
+                        <motion.button
+                          key={label}
+                          type="button"
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 0.05 * i }}
+                          whileHover={{ y: -3 }}
+                          onClick={() => (prompt === '__photo' ? fileRef.current?.click() : handleSendMessage(prompt))}
+                          className="flex flex-col items-center gap-1.5 rounded-2xl border border-emerald-100 bg-white px-2 py-3 text-[11px] font-semibold text-emerald-900 shadow-sm transition-colors hover:border-emerald-300 hover:bg-emerald-50"
+                        >
+                          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-emerald-100 text-emerald-700"><Icon className="h-4 w-4" /></span>
+                          {label}
+                        </motion.button>
+                      ))}
+                    </motion.div>
+                  )}
+
+                  {messages.map((msg, index) => {
+                    const isBot = msg.sender === 'bot';
+                    return (
+                      <motion.div
+                        key={msg.id}
+                        initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        className={`flex gap-2 ${isBot ? 'items-start' : 'flex-row-reverse items-end'}`}
+                      >
+                        {isBot && <BotAvatar />}
+                        <div className={`flex max-w-[85%] flex-col ${isBot ? 'items-start' : 'items-end'}`}>
+                          <div
+                            className={`group relative rounded-2xl px-3.5 py-2.5 text-[13px] shadow-sm ${
+                              isBot
+                                ? `rounded-tl-sm border bg-white text-emerald-950 ${msg.isError ? 'border-amber-200 bg-amber-50' : 'border-emerald-100'}`
+                                : 'rounded-br-sm bg-gradient-to-br from-emerald-600 to-teal-700 text-white'
+                            }`}
+                          >
+                            {isBot ? (
+                              <TypewriterText text={msg.text} animate={msg.animate && index === lastIndex} onTick={scrollToBottom} />
+                            ) : (
+                              <>
+                                {msg.image && <img src={msg.image} alt="Your crop photo" className="mb-2 max-h-48 w-full rounded-xl object-cover" />}
+                                <p className="leading-relaxed">{msg.text}</p>
+                              </>
+                            )}
+
+                            {isBot && msg.actionType === 'traceability_card' && msg.actionData && (
+                              <motion.div initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-3 overflow-hidden rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-lime-50">
+                                <div className="flex items-center justify-between border-b border-emerald-200/70 px-3 py-2">
+                                  <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-950"><QrCode className="h-4 w-4 text-emerald-600" />{msg.actionData.name}</span>
+                                  <span className="rounded bg-emerald-600 px-2 py-0.5 font-mono text-[10px] font-bold text-white">{msg.actionData.traceabilityId}</span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-2 px-3 py-2.5 text-[11px] text-emerald-800">
+                                  {[['Farmer', msg.actionData.farmerName], ['Location', msg.actionData.farmLocation], ['Soil pH', msg.actionData.soilPh], ['Certificate', msg.actionData.certificateNumber]].map(([k, v]) => (
+                                    <div key={k}><span className="block font-medium text-emerald-600">{k}</span>{v}</div>
+                                  ))}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => { navigate(`/trace/${msg.actionData.traceabilityId}`); setIsOpen(false); }}
+                                  className="flex w-full items-center justify-center gap-1.5 bg-emerald-700 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-800"
+                                >
+                                  Open full farm-to-fork trace <ExternalLink className="h-3.5 w-3.5" />
+                                </button>
+                              </motion.div>
+                            )}
+
+                            {isBot && msg.actionType === 'market_rates' && (
+                              <div className="mt-2.5 flex items-center gap-2 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-emerald-50 px-3 py-2 text-[11px] font-semibold text-amber-900">
+                                <TrendingUp className="h-4 w-4 text-amber-600" /> Indicative rates · verify on eNAM / Agmarknet
+                              </div>
+                            )}
+
+                            {isBot && (
+                              <button
+                                type="button"
+                                onClick={() => copyMessage(msg)}
+                                title="Copy"
+                                aria-label="Copy message"
+                                className="absolute -right-2 -top-2 rounded-full border border-emerald-100 bg-white p-1 text-emerald-700 opacity-0 shadow-sm transition-opacity group-hover:opacity-100"
+                              >
+                                {copiedId === msg.id ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                              </button>
+                            )}
+                          </div>
+                          <span className="mt-1 px-1 text-[10px] text-emerald-800/45">{msg.timestamp}</span>
+
+                          {isBot && index === lastIndex && !isLoading && msg.suggestions?.length > 0 && (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
+                              {msg.suggestions.map((s, sIdx) => (
+                                <motion.button
+                                  key={s}
+                                  type="button"
+                                  initial={{ opacity: 0, y: 6 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ delay: 0.15 + sIdx * 0.06 }}
+                                  whileHover={{ scale: 1.04 }}
+                                  whileTap={{ scale: 0.96 }}
+                                  onClick={() => handleSendMessage(s)}
+                                  className="rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-left text-[11px] font-medium text-emerald-800 shadow-sm hover:border-emerald-400 hover:bg-emerald-50"
+                                >
+                                  {s}
+                                </motion.button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+
+                  {isLoading && (
+                    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-2">
+                      <BotAvatar />
+                      <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm border border-emerald-100 bg-white px-4 py-3 shadow-sm">
+                        <span className="chat-dot h-2 w-2 rounded-full bg-emerald-500" />
+                        <span className="chat-dot h-2 w-2 rounded-full bg-emerald-500" />
+                        <span className="chat-dot h-2 w-2 rounded-full bg-emerald-500" />
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Composer */}
+                <div className="border-t border-emerald-100 bg-white p-3">
+                  <AnimatePresence>
+                    {photo && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="mb-2 flex items-center gap-3 overflow-hidden rounded-2xl bg-emerald-50 p-2">
+                        <img src={photo.preview} alt="Selected crop" className="h-14 w-14 rounded-xl object-cover" />
+                        <p className="flex-1 text-xs text-emerald-900">Photo attached. Add a note (optional) and send.</p>
+                        <button type="button" onClick={() => setPhoto(null)} aria-label="Remove photo" className="rounded-lg p-1.5 text-emerald-800 hover:bg-emerald-100"><X className="h-4 w-4" /></button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (!file) return;
+                      try { setPhoto(await compressImage(file)); } catch { /* not an image; ignore */ }
+                    }}
+                  />
+                  <form onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/60 p-1.5 focus-within:border-emerald-500 focus-within:ring-4 focus-within:ring-emerald-500/10">
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.9 }}
+                      onClick={toggleVoiceInput}
+                      title={isListening ? 'Stop listening' : `Speak in ${language.english}`}
+                      aria-label={isListening ? 'Stop listening' : 'Voice input'}
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors ${isListening ? 'bg-red-500 text-white' : 'text-emerald-700 hover:bg-emerald-100'}`}
+                    >
+                      {isListening ? <Square className="h-3.5 w-3.5 fill-current" /> : <Mic className="h-4 w-4" />}
+                    </motion.button>
+
+                    <motion.button
+                      type="button"
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => fileRef.current?.click()}
+                      title="Send a crop photo"
+                      aria-label="Attach a crop photo"
+                      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors ${photo ? 'bg-emerald-600 text-white' : 'text-emerald-700 hover:bg-emerald-100'}`}
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                    </motion.button>
+
+                    {isListening && !inputValue ? (
+                      <div className="mic-wave flex flex-1 items-center gap-1 px-1 text-xs text-red-600">
+                        {[0, 1, 2, 3, 4].map((i) => <span key={i} className="block h-4 w-1 rounded-full bg-red-400" />)}
+                        <span className="ml-2">Listening in {language.english}…</span>
+                      </div>
+                    ) : (
+                      <input
+                        ref={inputRef}
+                        type="text"
+                        value={inputValue}
+                        onChange={(e) => setInputValue(e.target.value)}
+                        placeholder="Ask anything… (any language)"
+                        className="min-w-0 flex-1 bg-transparent px-1 text-sm text-emerald-950 outline-none placeholder:text-emerald-800/40"
+                      />
+                    )}
+
+                    <motion.button
+                      type="submit"
+                      whileHover={{ scale: inputValue.trim() ? 1.06 : 1 }}
+                      whileTap={{ scale: 0.9 }}
+                      disabled={(!inputValue.trim() && !photo) || isLoading}
+                      aria-label="Send"
+                      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-600 to-teal-700 text-white shadow-md transition-opacity disabled:opacity-40"
+                    >
+                      <Send className="h-4 w-4" />
+                    </motion.button>
+                  </form>
+                  <p className="mt-2 text-center text-[10px] text-emerald-800/45">AgroBot can make mistakes. Check important farm advice with your local KVK.</p>
+                </div>
+              </>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

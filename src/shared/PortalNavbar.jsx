@@ -1,281 +1,215 @@
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Menu, Bell, Search, User, Settings, LogOut, X, ChevronDown, Leaf, Home } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'motion/react';
+import { Menu, Search, Home, ChevronDown, LogOut, User, Settings, Moon, Sun, CornerDownLeft, ScanLine } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import NotificationCenter from '../components/TransporterDashboard/NotificationCenter';
-import { BrandMark } from './ui';
+import { useTheme } from '../contexts/ThemeContext';
+import LanguageSwitcher from '../components/LanguageSwitcher';
+import NotificationBell from './NotificationBell';
+import { ROLE_LABELS, getInitials } from './PortalSidebar';
 
-const ROLE_CONFIG = {
-  farmer: {
-    accent: '#22c55e',
-    label: 'Farmer Portal',
-    initials: 'JD',
-    name: 'Jatin Deswal',
-    email: 'jatin@agrofarm.com',
-    gradient: 'from-emerald-500 to-green-600',
-    notifications: [
-      { id: 1, title: 'Order #1234 completed', time: '2 hours ago', unread: true, icon: '✅' },
-      { id: 2, title: 'New buyer inquiry on Wheat', time: '5 hours ago', unread: true, icon: '💬' },
-      { id: 3, title: 'Shipment #567 out for delivery', time: '1 day ago', unread: false, icon: '🚚' },
-      { id: 4, title: 'Payment received ₹12,400', time: '2 days ago', unread: false, icon: '💰' },
-    ],
-  },
-  buyer: {
-    accent: '#38bdf8',
-    label: 'Buyer Portal',
-    initials: 'RA',
-    name: 'Ravi Arora',
-    email: 'ravi@example.com',
-    gradient: 'from-sky-400 to-blue-500',
-    notifications: [
-      { id: 1, title: 'Order #AB-789 shipped', time: '1 hour ago', unread: true, icon: '📦' },
-      { id: 2, title: 'New arrivals: Organic Tomatoes', time: '3 hours ago', unread: true, icon: '🍅' },
-      { id: 3, title: 'Your review was liked', time: '1 day ago', unread: false, icon: '⭐' },
-    ],
-  },
-  transporter: {
-    accent: '#fb923c',
-    label: 'Transporter Portal',
-    initials: 'MS',
-    name: 'Manish Singh',
-    email: 'manish@logistics.com',
-    gradient: 'from-orange-400 to-amber-500',
-    notifications: [
-      { id: 1, title: 'New delivery assigned — Route 12', time: '30 min ago', unread: true, icon: '🗺️' },
-      { id: 2, title: 'Delivery #D-456 confirmed', time: '2 hours ago', unread: true, icon: '✅' },
-      { id: 3, title: 'Vehicle inspection due tomorrow', time: '5 hours ago', unread: false, icon: '🚛' },
-    ],
-  },
-  admin: {
-    accent: '#a78bfa',
-    label: 'Admin Portal',
-    initials: 'AD',
-    name: 'Admin User',
-    email: 'admin@agritrust.com',
-    gradient: 'from-violet-500 to-purple-600',
-    notifications: [
-      { id: 1, title: 'New farmer registration', time: '5 min ago', unread: true, icon: '👨‍🌾' },
-      { id: 2, title: 'Suspicious activity detected', time: '15 min ago', unread: true, icon: '⚠️' },
-      { id: 3, title: 'Product pending approval', time: '1 hour ago', unread: false, icon: '📋' },
-      { id: 4, title: 'Monthly analytics ready', time: '3 hours ago', unread: false, icon: '📊' },
-    ],
-  },
-};
+/* Search box that jumps to a portal section. ⌘K / Ctrl+K focuses it. */
+function SectionSearch({ navItems, onPick }) {
+  const [query, setQuery] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [cursor, setCursor] = useState(0);
+  const inputRef = useRef(null);
 
-export default function PortalNavbar({ role = 'farmer', onToggleSidebar, onLogout, pageTitle }) {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const config = ROLE_CONFIG[role] || ROLE_CONFIG.farmer;
-  const [notifOpen, setNotifOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [searchVal, setSearchVal] = useState('');
-  const notifRef = useRef(null);
-  const profileRef = useRef(null);
-
-  // Close dropdowns on outside click
   useEffect(() => {
-    const handler = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) setNotifOpen(false);
-      if (profileRef.current && !profileRef.current.contains(e.target)) setProfileOpen(false);
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
     };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
   }, []);
 
-  const unreadCount = config.notifications.filter((n) => n.unread).length;
-  const displayName = user?.fullName || user?.name || 'User';
-  const initials = displayName
-    .split(' ')
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() || '')
-    .join('') || 'U';
-  const displayEmail = user?.email || config.email;
+  const results = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? navItems.filter((i) => i.label.toLowerCase().includes(q)) : navItems;
+  }, [query, navItems]);
 
-  const handleLogout = () => {
-    if (onLogout) onLogout();
-    navigate('/');
+  const pick = (item) => {
+    onPick(item.id);
+    setQuery('');
+    inputRef.current?.blur();
   };
 
   return (
-    <header className="portal-navbar h-16 bg-white/90 border-b border-slate-100 flex items-center px-4 md:px-6 gap-4 sticky top-0 z-30 flex-shrink-0 shadow-sm backdrop-blur-xl">
-      {/* Left */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        {/* Mobile toggle */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={onToggleSidebar}
-          className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors flex-shrink-0"
-        >
-          <Menu size={20} className="text-slate-600" />
-        </motion.button>
-
-        {/* Logo on mobile */}
-        <div className="md:hidden flex items-center gap-2">
-          <BrandMark size={24} />
-          <span className="font-bold text-slate-800 text-sm">AgroVerse</span>
-        </div>
-
-        {/* Search bar — desktop */}
-        <div className="hidden md:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 flex-1 max-w-sm group focus-within:border-slate-300 focus-within:bg-white transition-all duration-200">
-          <Search size={16} className="text-slate-400 flex-shrink-0" />
-          <input
-            type="text"
-            value={searchVal}
-            onChange={(e) => setSearchVal(e.target.value)}
-            placeholder="Search..."
-            className="bg-transparent outline-none text-sm w-full text-slate-700 placeholder:text-slate-400"
-          />
-          {searchVal && (
-            <button onClick={() => setSearchVal('')} className="text-slate-400 hover:text-slate-600">
-              <X size={14} />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Right */}
-      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
-        <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={() => navigate('/')} className="hidden rounded-xl p-2.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-[#1b4332] md:block" title="Public AgroVerse home">
-          <Home size={18} />
-        </motion.button>
-
-        {/* Notifications */}
-        {role === 'transporter' ? (
-          <NotificationCenter />
-        ) : (
-          <div className="relative" ref={notifRef}>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => { setNotifOpen(!notifOpen); setProfileOpen(false); }}
-            className="relative p-2.5 rounded-xl hover:bg-slate-100 transition-colors"
+    <div className="relative hidden max-w-sm flex-1 md:block">
+      <label className="flex items-center gap-2 rounded-xl border border-line bg-white/70 px-3.5 py-2.5 transition-colors focus-within:border-ink dark:border-white/10 dark:bg-white/5">
+        <Search size={16} className="shrink-0 text-ink-soft" />
+        <input
+          ref={inputRef}
+          value={query}
+          onChange={(e) => { setQuery(e.target.value); setCursor(0); }}
+          onFocus={() => setFocused(true)}
+          onBlur={() => window.setTimeout(() => setFocused(false), 120)}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowDown') { e.preventDefault(); setCursor((c) => Math.min(c + 1, results.length - 1)); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); setCursor((c) => Math.max(c - 1, 0)); }
+            if (e.key === 'Enter' && results[cursor]) pick(results[cursor]);
+            if (e.key === 'Escape') inputRef.current?.blur();
+          }}
+          placeholder="Jump to…"
+          aria-label="Jump to a section"
+          className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-soft/60 dark:text-paper"
+        />
+        <kbd className="hidden rounded-md border border-line px-1.5 py-0.5 font-sans text-[10px] text-ink-soft lg:block dark:border-white/10">⌘K</kbd>
+      </label>
+      <AnimatePresence>
+        {focused && results.length > 0 && (
+          <motion.ul
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.14 }}
+            className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-2xl border border-line bg-white p-1.5 shadow-2xl dark:border-white/10 dark:bg-[#1b2a20]"
           >
-            <Bell size={18} className="text-slate-600" />
-            {unreadCount > 0 && (
-              <span
-                className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full text-white text-[9px] font-bold flex items-center justify-center"
-                style={{ background: config.accent }}
-              >
-                {unreadCount}
-              </span>
-            )}
-          </motion.button>
-
-          <AnimatePresence>
-            {notifOpen && (
-              <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.95 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.95 }}
-                transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden"
-              >
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
-                  <span className="font-semibold text-slate-800 text-sm">Notifications</span>
-                  {unreadCount > 0 && (
-                    <span
-                      className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                      style={{ background: config.accent + '22', color: config.accent }}
-                    >
-                      {unreadCount} new
-                    </span>
-                  )}
-                </div>
-                <div className="max-h-72 overflow-y-auto">
-                  {config.notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className="flex items-start gap-3 px-4 py-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors"
-                    >
-                      <span className="text-lg flex-shrink-0 mt-0.5">{n.icon}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-slate-800 font-medium leading-snug">{n.title}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{n.time}</p>
-                      </div>
-                      {n.unread && (
-                        <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: config.accent }} />
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <div className="p-3 text-center">
+            {results.map((item, i) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.id}>
                   <button
-                    className="text-xs font-semibold transition-colors"
-                    style={{ color: config.accent }}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onMouseEnter={() => setCursor(i)}
+                    onClick={() => pick(item)}
+                    className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm ${i === cursor ? 'bg-paper text-ink dark:bg-white/10 dark:text-paper' : 'text-ink-soft dark:text-paper/70'}`}
                   >
-                    View all notifications
+                    {Icon && <Icon size={16} />}
+                    <span className="flex-1">{item.label}</span>
+                    {i === cursor && <CornerDownLeft size={14} className="text-ink-soft" />}
                   </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          </div>
+                </li>
+              );
+            })}
+          </motion.ul>
         )}
+      </AnimatePresence>
+    </div>
+  );
+}
 
-        {/* Divider */}
-        <div className="w-px h-6 bg-slate-200 mx-1" />
+export default function PortalNavbar({ role = 'farmer', navItems = [], onNavigate, onToggleSidebar, onLogout }) {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { theme, setTheme } = useTheme();
+  const [profileOpen, setProfileOpen] = useState(false);
+  const profileRef = useRef(null);
 
-        {/* Profile */}
-        <div className="relative" ref={profileRef}>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => { setProfileOpen(!profileOpen); setNotifOpen(false); }}
-            className="flex items-center gap-2.5 pl-1 pr-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+  useEffect(() => {
+    if (!profileOpen) return undefined;
+    const onDown = (e) => { if (!profileRef.current?.contains(e.target)) setProfileOpen(false); };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [profileOpen]);
+
+  const displayName = user?.fullName || user?.name || 'User';
+  const hasSection = (id) => navItems.some((i) => i.id === id);
+  const goTo = (id) => { setProfileOpen(false); onNavigate?.(id); };
+  const isDark = theme === 'dark';
+
+  return (
+    <header className="portal-navbar sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-line bg-paper/85 px-4 backdrop-blur-xl md:px-6 dark:border-white/10 dark:bg-[#101d15]/85">
+      <button
+        type="button"
+        onClick={onToggleSidebar}
+        aria-label="Open menu"
+        className="flex h-11 w-11 items-center justify-center rounded-xl text-ink hover:bg-ink/5 md:hidden dark:text-paper"
+      >
+        <Menu size={20} />
+      </button>
+      <span className="font-display text-lg font-semibold text-ink md:hidden dark:text-paper">AgroVerse</span>
+
+      <SectionSearch navItems={navItems} onPick={(id) => onNavigate?.(id)} />
+
+      <div className="ml-auto flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          title="Public home"
+          aria-label="Public home"
+          className="hidden h-11 w-11 items-center justify-center rounded-xl text-ink-soft hover:bg-ink/5 hover:text-ink md:flex dark:text-paper/70 dark:hover:bg-white/10"
+        >
+          <Home size={18} />
+        </button>
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.9, rotate: -20 }}
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+          title={isDark ? 'Light mode' : 'Dark mode'}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="flex h-11 w-11 items-center justify-center rounded-xl text-ink-soft hover:bg-ink/5 hover:text-ink dark:text-paper/70 dark:hover:bg-white/10"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span key={theme} initial={{ opacity: 0, rotate: -90 }} animate={{ opacity: 1, rotate: 0 }} exit={{ opacity: 0, rotate: 90 }} transition={{ duration: 0.2 }}>
+              {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            </motion.span>
+          </AnimatePresence>
+        </motion.button>
+        {role === 'buyer' && (
+          <button
+            type="button"
+            onClick={() => navigate('/scan')}
+            title="Scan a QR"
+            aria-label="Scan a QR"
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-ink-soft hover:bg-ink/5 hover:text-ink dark:text-paper/70 dark:hover:bg-white/10"
           >
-            <div
-              className={`w-8 h-8 rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}
-            >
-              {initials}
-            </div>
-            <span className="hidden md:block text-sm font-medium text-slate-700">{displayName.split(' ')[0]}</span>
-            <ChevronDown size={14} className="hidden md:block text-slate-400" />
-          </motion.button>
+            <ScanLine size={18} />
+          </button>
+        )}
+        <div className="hidden sm:block"><LanguageSwitcher compact /></div>
+        <NotificationBell />
+
+        <div className="relative ml-1" ref={profileRef}>
+          <button
+            type="button"
+            onClick={() => setProfileOpen((v) => !v)}
+            aria-haspopup="menu"
+            aria-expanded={profileOpen}
+            className="flex items-center gap-2 rounded-xl py-1.5 pl-1.5 pr-2.5 transition-colors hover:bg-ink/5 dark:hover:bg-white/10"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-leaf text-xs font-bold text-white">{getInitials(displayName)}</span>
+            <span className="hidden text-sm font-medium text-ink md:block dark:text-paper">{displayName.split(' ')[0]}</span>
+            <ChevronDown size={14} className="hidden text-ink-soft md:block" />
+          </button>
 
           <AnimatePresence>
             {profileOpen && (
               <motion.div
-                initial={{ opacity: 0, y: -8, scale: 0.95 }}
+                role="menu"
+                initial={{ opacity: 0, y: -8, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.95 }}
+                exit={{ opacity: 0, y: -8, scale: 0.97 }}
                 transition={{ duration: 0.15 }}
-                className="absolute right-0 top-full mt-2 w-52 bg-white rounded-2xl shadow-xl border border-slate-100 z-50 overflow-hidden"
+                className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-line bg-white shadow-2xl dark:border-white/10 dark:bg-[#1b2a20]"
               >
-                <div className="px-4 py-3 border-b border-slate-100">
-                  <div
-                    className={`w-10 h-10 rounded-full bg-gradient-to-br ${config.gradient} flex items-center justify-center text-white font-bold mb-2`}
-                  >
-                    {initials}
-                  </div>
-                  <p className="text-sm font-semibold text-slate-800">{displayName}</p>
-                  <p className="text-xs text-slate-500">{displayEmail}</p>
-                  <span
-                    className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full mt-1.5"
-                    style={{ background: config.accent + '22', color: config.accent }}
-                  >
-                    {config.label}
-                  </span>
+                <div className="border-b border-line px-4 py-3 dark:border-white/10">
+                  <p className="truncate text-sm font-semibold text-ink dark:text-paper">{displayName}</p>
+                  <p className="truncate text-xs text-ink-soft">{user?.email}</p>
+                  <span className="mt-2 inline-block rounded-full bg-leaf-light px-2 py-0.5 text-[10px] font-bold text-leaf">{ROLE_LABELS[role]}</span>
                 </div>
-                <div className="p-2 space-y-0.5">
-                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-xl transition-colors">
-                    <User size={15} className="text-slate-500" />
-                    My Profile
-                  </button>
-                  <button className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 rounded-xl transition-colors">
-                    <Settings size={15} className="text-slate-500" />
-                    Settings
-                  </button>
-                </div>
-                <div className="p-2 border-t border-slate-100">
+                <div className="p-1.5">
+                  {hasSection('profile') && (
+                    <button type="button" role="menuitem" onClick={() => goTo('profile')} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-ink hover:bg-paper dark:text-paper dark:hover:bg-white/5">
+                      <User size={15} /> My profile
+                    </button>
+                  )}
+                  {hasSection('settings') && (
+                    <button type="button" role="menuitem" onClick={() => goTo('settings')} className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-ink hover:bg-paper dark:text-paper dark:hover:bg-white/5">
+                      <Settings size={15} /> Settings
+                    </button>
+                  )}
                   <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-500 hover:bg-red-50 rounded-xl transition-colors font-medium"
+                    type="button"
+                    role="menuitem"
+                    onClick={() => { onLogout?.(); navigate('/'); }}
+                    className="flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10"
                   >
-                    <LogOut size={15} />
-                    Logout
+                    <LogOut size={15} /> Log out
                   </button>
                 </div>
               </motion.div>
