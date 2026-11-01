@@ -43,7 +43,7 @@ const traceBlockSchema = new mongoose.Schema(
     eventHash: String,
     blockchainStatus: {
       type: String,
-      enum: ["pending", "confirmed", "failed"],
+      enum: ["pending", "submitted", "confirmed", "failed"],
       default: "pending",
       index: true,
     },

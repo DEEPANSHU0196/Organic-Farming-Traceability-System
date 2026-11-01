@@ -1,11 +1,9 @@
 const crypto = require("crypto");
 const TraceBlock = require("../models/TraceBlock");
-const { recordTraceEvent, hashPayload, hashTraceEvent } = require("./polygonTrace");
+const { recordTraceEvent, hashPayload, hashTraceEvent, canonicalize } = require("./polygonTrace");
 
 const GENESIS_HASH = "GENESIS";
 const BLOCK_DIFFICULTY = 2;
-
-const canonicalize = (value) => JSON.stringify(value, Object.keys(value || {}).sort());
 
 const normalizeBlockData = (block = {}) => {
   const productId = block.productId ?? block.product ?? null;

@@ -153,7 +153,7 @@ const findEventLogs = async (contract, filter, blockNumber) => {
 };
 
 const getLocalEventStatus = (record) => {
-  if (record.blockchainStatus === "pending") return "pending";
+  if (["pending", "submitted"].includes(record.blockchainStatus)) return "pending";
   if (record.blockchainStatus === "failed") return "failed";
   return "failed";
 };
@@ -396,6 +396,9 @@ const createPolygonTraceService = ({
   configured = isPolygonConfigured,
   retryBaseMs = 15000,
   lockMs = 120000,
+  maxAttempts = 8,
+  confirmations = 1,
+  waitTimeoutMs = 90000,
 } = {}) => {
   const updateById = (id, update) => applyUpdate(model, id, update);
 
@@ -439,7 +442,7 @@ const createPolygonTraceService = ({
       {
         _id: inputRecord._id,
         $or: [
-          { blockchainStatus: { $in: ["pending", "failed"] } },
+          { blockchainStatus: { $in: ["pending", "submitted"] } },
           { blockchainStatus: { $exists: false } },
         ],
         $and: [
@@ -486,7 +489,7 @@ const createPolygonTraceService = ({
           : hashPayload({ productId });
         try {
           const registrationTx = await contract.registerProducts([productId], [productHash]);
-          const registrationReceipt = await registrationTx.wait();
+          const registrationReceipt = await registrationTx.wait(confirmations, waitTimeoutMs);
           if (!registrationReceipt || registrationReceipt.status !== 1) {
             throw new Error("Product registration transaction was not confirmed successfully");
           }
@@ -508,10 +511,10 @@ const createPolygonTraceService = ({
         eventHash,
       );
       await updateById(record._id, {
-        $set: { eventHash, transactionHash: transaction.hash, blockchainStatus: "pending" },
+        $set: { eventHash, transactionHash: transaction.hash, blockchainStatus: "submitted" },
       });
 
-      const receipt = await transaction.wait();
+      const receipt = await transaction.wait(confirmations, waitTimeoutMs);
       if (!receipt || receipt.status !== 1) throw new Error("Trace transaction was not confirmed successfully");
 
       const confirmed = await updateById(record._id, {
@@ -549,13 +552,14 @@ const createPolygonTraceService = ({
       }
 
       const attempts = Number(record.blockchainAttempts || 1);
+      const exhausted = attempts >= maxAttempts;
       const delayMs = Math.min(retryBaseMs * (2 ** Math.min(attempts - 1, 8)), 60 * 60 * 1000);
       const failed = await updateById(record._id, {
         $set: {
           eventHash,
-          blockchainStatus: "failed",
+          blockchainStatus: exhausted ? "failed" : "pending",
           blockchainLastError: error.message,
-          blockchainNextAttemptAt: new Date(Date.now() + delayMs),
+          blockchainNextAttemptAt: exhausted ? null : new Date(Date.now() + delayMs),
         },
         $unset: { blockchainLockId: 1, blockchainLockUntil: 1 },
       });
@@ -568,7 +572,7 @@ const createPolygonTraceService = ({
     const now = new Date();
     const records = await model.find({
       $and: [
-        { $or: [{ blockchainStatus: { $in: ["pending", "failed"] } }, { blockchainStatus: { $exists: false } }] },
+        { $or: [{ blockchainStatus: { $in: ["pending", "submitted"] } }, { blockchainStatus: { $exists: false } }] },
         { $or: [{ blockchainNextAttemptAt: { $exists: false } }, { blockchainNextAttemptAt: null }, { blockchainNextAttemptAt: { $lte: now } }] },
       ],
     }).sort({ timestamp: 1 }).limit(limit).lean();
