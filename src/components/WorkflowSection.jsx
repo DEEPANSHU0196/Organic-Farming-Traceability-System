@@ -61,7 +61,7 @@ function Step({ step, index, onActive }) {
     <div ref={ref} className="py-10 lg:flex lg:min-h-[70vh] lg:items-center lg:py-0">
       <div>
         {/* Mobile gets the image inline; desktop uses the sticky panel. */}
-        <div className="mb-7 aspect-[4/3] overflow-hidden rounded-3xl lg:hidden"><StepImage step={step} /></div>
+        <div className="mt-10 mb-7 aspect-[4/3] overflow-hidden rounded-3xl lg:hidden"><StepImage step={step} /></div>
         <div className="flex items-center gap-3">
           <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10 text-[#f0b968]"><Icon size={20} /></span>
           <span className="font-display text-sm text-white/50">0{index + 1} — {step.label}</span>
@@ -85,15 +85,15 @@ export default function WorkflowSection() {
       <div className="mx-auto max-w-[1240px]">
         <Reveal className="max-w-2xl">
           <SectionLabel index="01" tone="light">How it works</SectionLabel>
-          <h2 className="mt-6 font-display text-[clamp(2.4rem,5vw,4.2rem)] font-medium leading-[1.02] tracking-tight">
+          <h2 className="relative z-10 -top-6 mt-6 font-display text-[clamp(2.4rem,5vw,4.2rem)] font-medium leading-[1.02] tracking-tight">
             One harvest. <span className="italic text-[#a8d5ba]">Every hand-off visible.</span>
           </h2>
         </Reveal>
 
-        <div className="mt-12 grid gap-16 lg:mt-4 lg:grid-cols-2">
+        <div className="mt-16 grid gap-16 lg:mt-20 lg:grid-cols-2">
           {/* Sticky visual (desktop) */}
           <div className="hidden lg:block">
-            <div className="sticky top-0 flex h-screen items-center">
+            <div className="sticky top-24 flex h-[calc(100vh-6rem)] items-center">
               <div className="relative aspect-[4/5] w-full overflow-hidden rounded-[2rem]">
                 <AnimatePresence mode="popLayout">
                   <motion.div

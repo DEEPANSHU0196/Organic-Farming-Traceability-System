@@ -189,7 +189,7 @@ test("keeps an event pending when backend signing is not configured", async () =
   assert.match(outcome.reason, /configuration is missing/);
 });
 
-test("retains a failed Mongo outbox record and schedules a retry after RPC failure", async () => {
+test("retains a pending Mongo outbox record and schedules a retry after RPC failure", async () => {
   const record = makeRecord();
   const model = makeModel(record);
   const client = makeClient({ failBeforeBroadcast: true });
@@ -203,11 +203,11 @@ test("retains a failed Mongo outbox record and schedules a retry after RPC failu
   const outcome = await service.processTraceRecord(record);
   const persisted = model.stored.get(record._id);
   assert.equal(outcome.recorded, false);
-  assert.equal(outcome.status, "failed");
+  assert.equal(outcome.status, "pending");
   assert.match(outcome.reason, /temporarily unavailable/);
   assert.ok(persisted.eventHash);
   assert.ok(persisted.batchId);
-  assert.equal(persisted.blockchainStatus, "failed");
+  assert.equal(persisted.blockchainStatus, "pending");
   assert.ok(persisted.blockchainNextAttemptAt > new Date());
 });
 

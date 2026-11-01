@@ -35,6 +35,7 @@ const protect = async (req, res, next) => {
       role: user.role,
       fullName: user.fullName,
       email: user.email,
+      profilePhoto: user.profilePhoto,
     };
 
     next();

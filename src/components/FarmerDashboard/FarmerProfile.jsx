@@ -1,10 +1,16 @@
 import { motion } from 'motion/react';
 import { Edit2, Phone, Mail, MapPin, Award, Camera, Save, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import api from '../../api/axios';
 
 export default function FarmerProfile() {
+  const { user, updateUserProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showNotification, setShowNotification] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState(user?.profilePhoto || '');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const photoInputRef = useRef(null);
   const [farmerData, setFarmerData] = useState({
     name: 'Jatin Deswal',
     email: 'jatin@farm.com',
@@ -19,6 +25,10 @@ export default function FarmerProfile() {
 
   const [editData, setEditData] = useState(farmerData);
 
+  useEffect(() => {
+    setPhotoUrl(user?.profilePhoto || '');
+  }, [user?.profilePhoto]);
+
   const handleEditClick = () => {
     setEditData(farmerData);
     setIsEditing(true);
@@ -29,6 +39,40 @@ export default function FarmerProfile() {
     setIsEditing(false);
     setShowNotification({ type: 'success', message: 'Profile updated successfully!' });
     setTimeout(() => setShowNotification(null), 3000);
+  };
+
+  const handlePhotoChange = async (event) => {
+    const photo = event.target.files?.[0];
+    if (!photo) return;
+
+    if (!photo.type.startsWith('image/')) {
+      setShowNotification({ type: 'error', message: 'Please choose an image file.' });
+      event.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('photo', photo);
+
+    try {
+      setIsUploadingPhoto(true);
+      const response = await api.post('/users/profile/photo', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const updatedUser = response.data.user;
+      setPhotoUrl(updatedUser.profilePhoto);
+      updateUserProfile(updatedUser);
+      setShowNotification({ type: 'success', message: 'Profile photo updated successfully!' });
+    } catch (error) {
+      setShowNotification({
+        type: 'error',
+        message: error.response?.data?.message || 'Could not update profile photo. Please try again.',
+      });
+    } finally {
+      setIsUploadingPhoto(false);
+      event.target.value = '';
+      setTimeout(() => setShowNotification(null), 3500);
+    }
   };
 
   return (
@@ -69,8 +113,10 @@ export default function FarmerProfile() {
         >
           <div className="bg-gradient-to-r from-emerald-400 to-green-500 h-24" />
           <div className="p-6 -mt-12 text-center">
-            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto text-5xl mb-4 border-4 border-white shadow-lg">
-              {farmerData.image}
+            <div className="w-24 h-24 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 flex items-center justify-center mx-auto text-5xl mb-4 border-4 border-white shadow-lg overflow-hidden">
+              {photoUrl ? (
+                <img src={photoUrl} alt={`${farmerData.name}'s profile`} className="h-full w-full object-cover" />
+              ) : farmerData.image}
             </div>
             <h2 className="text-2xl font-bold text-primary mb-1">{farmerData.name}</h2>
             <p className="text-accent-muted mb-4">Verified Farmer</p>
@@ -78,12 +124,23 @@ export default function FarmerProfile() {
               <Award size={16} />
               {farmerData.yearsExperience} Years Experience
             </div>
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+              aria-label="Choose a profile photo"
+            />
             <motion.button
+              type="button"
               whileHover={{ scale: 1.05 }}
-              className="w-full flex items-center justify-center gap-2 py-2 border-2 border-accent rounded-lg hover:bg-surface-alt transition-colors"
+              onClick={() => photoInputRef.current?.click()}
+              disabled={isUploadingPhoto}
+              className="w-full flex items-center justify-center gap-2 py-2 border-2 border-accent rounded-lg hover:bg-surface-alt transition-colors disabled:cursor-wait disabled:opacity-60"
             >
               <Camera size={18} />
-              Change Photo
+              {isUploadingPhoto ? 'Uploading...' : 'Change Photo'}
             </motion.button>
           </div>
         </motion.div>

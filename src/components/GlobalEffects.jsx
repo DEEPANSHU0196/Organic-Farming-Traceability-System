@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useScroll, useSpring } from 'motion/react';
 import { ArrowUp } from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
 import LanguageSwitcher from './LanguageSwitcher';
 
 /* Thin gradient bar at the top that fills as you scroll. */
@@ -48,6 +49,7 @@ function BackToTop() {
 
 export default function GlobalEffects() {
   const { pathname } = useLocation();
+  const { isAuthenticated } = useAuth();
   const isHome = pathname === '/';
 
   // New route always starts from the top.
@@ -58,7 +60,7 @@ export default function GlobalEffects() {
       <ScrollProgress />
       {isHome && <BackToTop />}
       {/* The landing navbar has its own switcher; everywhere else gets a floating one. */}
-      {!isHome && (
+      {!isHome && !isAuthenticated && (
         <div className="fixed bottom-5 left-5 z-50">
           <LanguageSwitcher placement="up" />
         </div>

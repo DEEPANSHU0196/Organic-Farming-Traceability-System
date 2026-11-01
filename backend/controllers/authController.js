@@ -1,6 +1,8 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const cloudinary = require("../config/cloudinary");
+const { Readable } = require("stream");
 const { isPortalAllowedForRole } = require("../utils/portalAccess");
 
 const DEFAULT_ADMIN_PASSWORD = "Admin1234";
@@ -192,6 +194,7 @@ const loginUser = async (req, res) => {
         role: user.role,
         phone: user.phone,
         address: user.address,
+        profilePhoto: user.profilePhoto,
       },
     });
 
@@ -243,6 +246,57 @@ const updateProfile = async (req, res) => {
         role: user.role,
         phone: user.phone,
         address: user.address,
+        profilePhoto: user.profilePhoto,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const updateProfilePhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Please choose an image to upload" });
+    }
+    if (!req.file.mimetype.startsWith("image/")) {
+      return res.status(400).json({ success: false, message: "Only image files are allowed" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    const photoUrl = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "profile-photos", resource_type: "image" },
+        (error, result) => {
+          if (error) reject(error);
+          else if (!result?.secure_url) reject(new Error("Cloudinary did not return a profile photo URL"));
+          else resolve(result.secure_url);
+        },
+      );
+      const source = Readable.from([req.file.buffer]);
+      source.on("error", reject);
+      stream.on("error", reject);
+      source.pipe(stream);
+    });
+
+    user.profilePhoto = photoUrl;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile photo updated successfully",
+      user: {
+        _id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        phone: user.phone,
+        address: user.address,
+        profilePhoto: user.profilePhoto,
       },
     });
   } catch (error) {
@@ -387,4 +441,5 @@ module.exports = {
   createUserByAdmin,
   deleteUserByAdmin,
   updateProfile,
+  updateProfilePhoto,
 };

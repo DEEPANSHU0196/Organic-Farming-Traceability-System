@@ -116,7 +116,7 @@ export default function HeroSection() {
       {phase === "intro" && (
         <button
           onClick={() => setPhase("landing")}
-          className="absolute bottom-8 right-8 z-30 text-xs tracking-widest uppercase px-5 py-2 rounded-full bg-white/10 text-white/80 backdrop-blur-sm border border-white/20 hover:bg-white/20 hover:text-white transition-all duration-200"
+          className="absolute bottom-8 left-1/2 z-30 -translate-x-1/2 text-xs tracking-widest uppercase px-5 py-2 rounded-full bg-white/10 text-white/80 backdrop-blur-sm border border-white/20 hover:bg-white/20 hover:text-white transition-all duration-200"
         >
           Skip ›
         </button>
