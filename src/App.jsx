@@ -4,8 +4,6 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { ToastProvider } from './contexts/ToastContext';
 import GlobalEffects from './components/GlobalEffects';
 import SiteFooter from './components/SiteFooter';
-import IntroSequence, { shouldPlayIntro } from './components/IntroSequence';
-import { useState } from 'react';
 import { ProductProvider } from './contexts/ProductContext';
 import { DashboardProvider } from './contexts/DashboardContext';
 import { BuyerProvider } from './contexts/BuyerContext';
@@ -32,13 +30,9 @@ import AgroChatbot from './components/Chatbot/AgroChatbot';
 
 // Home Page
 function HomePage() {
-  const [playIntro] = useState(shouldPlayIntro);
-  const [introDone, setIntroDone] = useState(!playIntro);
   return (
     <div className="home-page font-sans antialiased overflow-x-clip">
-      {playIntro && <IntroSequence onDone={() => setIntroDone(true)} />}
-      {/* Remount the hero once the intro lifts so its entrance animation is actually seen. */}
-      <HeroSection key={introDone ? 'ready' : 'behind-intro'} />
+      <HeroSection />
       <WorkflowSection />
       <FeaturesSection />
       <AboutSection />

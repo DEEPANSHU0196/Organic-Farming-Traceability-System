@@ -112,6 +112,58 @@ describe("TraceabilityRegistry", function () {
     await expect(registry.appendTraceEvent("registered", "", "CREATED", ethers.id("data")))
       .to.be.revertedWithCustomError(registry, "EmptyEventId");
   });
+    it("rejects a duplicate request for the same product and event ID", async function () {
+    const { registry } = await deployRegistry();
+    const hash = ethers.id("payload");
+    await registry.registerProducts(["p1"], [hash]);
+    await registry.appendTraceEvent("p1", "evt-1", "CREATED", hash);
+
+    await expect(registry.appendTraceEvent("p1", "evt-1", "CREATED", hash))
+      .to.be.revertedWithCustomError(registry, "EventIdAlreadyUsed");
+    expect(await registry.getTraceCount("p1")).to.equal(1);
+  });
+
+  it("keeps events in insertion order for one product", async function () {
+    const { registry } = await deployRegistry();
+    const hash = ethers.id("payload");
+    await registry.registerProducts(["p1"], [hash]);
+    await registry.appendTraceEvent("p1", "evt-1", "CREATED", hash);
+    await registry.appendTraceEvent("p1", "evt-2", "SHIPPED", hash);
+
+    expect(await registry.getTraceCount("p1")).to.equal(2);
+    expect((await registry.getTraceEvent("p1", 0)).eventId).to.equal("evt-1");
+    expect((await registry.getTraceEvent("p1", 1)).eventId).to.equal("evt-2");
+  });
+
+  it("reverts when reading an out-of-range trace index", async function () {
+    const { registry } = await deployRegistry();
+    await registry.registerProducts(["p1"], [ethers.id("m")]);
+
+    await expect(registry.getTraceEvent("p1", 5))
+      .to.be.revertedWithCustomError(registry, "TraceEventNotFound");
+  });
+
+  it("rejects an empty event type and a zero-address writer", async function () {
+    const { registry } = await deployRegistry();
+    const hash = ethers.id("payload");
+    await registry.registerProducts(["p1"], [hash]);
+
+    await expect(registry.appendTraceEvent("p1", "evt-x", "", hash))
+      .to.be.revertedWithCustomError(registry, "EmptyEventType");
+    await expect(registry.setAuthorizedWriter(ethers.ZeroAddress, true))
+      .to.be.revertedWithCustomError(registry, "InvalidAddress");
+  });
+    it("rejects an event with an empty product ID", async function () {
+    const { registry } = await deployRegistry();
+    await expect(registry.appendTraceEvent("", "evt-1", "CREATED", ethers.id("d")))
+      .to.be.revertedWithCustomError(registry, "EmptyProductId");
+  });
+
+  it("reverts when reading an unregistered product", async function () {
+    const { registry } = await deployRegistry();
+    await expect(registry.getProduct("not-registered"))
+      .to.be.revertedWithCustomError(registry, "ProductNotRegistered");
+  });
 });
 
 function anyTimestamp() {
