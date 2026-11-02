@@ -43,8 +43,8 @@ const getUnreadNotifications = async (req, res) => {
 const markNotificationAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const notification = await Notification.findByIdAndUpdate(
-      id,
+    const notification = await Notification.findOneAndUpdate(
+      { _id: id, recipient: req.user._id },
       { read: true, readAt: new Date() },
       { new: true }
     );
@@ -87,7 +87,10 @@ const markAllNotificationsAsRead = async (req, res) => {
 const deleteNotification = async (req, res) => {
   try {
     const { id } = req.params;
-    const notification = await Notification.findByIdAndDelete(id);
+    const notification = await Notification.findOneAndDelete({
+      _id: id,
+      recipient: req.user._id,
+    });
 
     if (!notification) {
       return res.status(404).json({ success: false, message: "Notification not found" });

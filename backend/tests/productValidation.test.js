@@ -13,4 +13,6 @@ test('product creation does not require location to be provided', () => {
 
   const error = product.validateSync();
   assert.equal(error, undefined);
+  assert.equal(product.organicCertified, false);
+  assert.equal(product.certificationVerified, false);
 });

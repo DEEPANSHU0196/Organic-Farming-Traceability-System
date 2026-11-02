@@ -8,10 +8,9 @@
     "predev": "node scripts/kill-port.js",
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "node --test tests/*.test.js",
+    "test": "node --test",
     "compile": "npx hardhat compile",
-    "deploy:amoy": "npx hardhat run scripts/deploy.js --network polygonAmoy",
-    "deploy:mainnet": "npx hardhat run scripts/deploy.js --network polygonMainnet"
+    "deploy:amoy": "npx hardhat run scripts/deploy.js --network polygonAmoy"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.1.0",

@@ -73,7 +73,8 @@ export default function FarmerProfilePage() {
               <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-paper/70">
                 {farmer.location && <span className="flex items-center gap-1.5"><MapPin size={15} />{farmer.location}</span>}
                 {since && <span className="flex items-center gap-1.5"><CalendarDays size={15} />On AgroVerse since {since}</span>}
-                {farmer.certified && <span className="flex items-center gap-1.5 text-lime-200"><BadgeCheck size={15} />Holds an organic certificate</span>}
+                {farmer.certified && <span className="flex items-center gap-1.5 text-lime-200"><BadgeCheck size={15} />Organic certification independently verified</span>}
+                {!farmer.certified && farmer.certificationSubmitted && <span className="flex items-center gap-1.5 text-amber-200"><BadgeCheck size={15} />Certificate reference submitted, not verified</span>}
               </div>
             </div>
           </motion.div>

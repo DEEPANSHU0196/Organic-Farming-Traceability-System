@@ -1,6 +1,10 @@
 const { ethers } = require("hardhat");
 
 async function main() {
+  if (!process.env.POLYGON_PRIVATE_KEY) {
+    throw new Error("Refusing deployment: POLYGON_PRIVATE_KEY must be configured.");
+  }
+
   const network = await ethers.provider.getNetwork();
   if (network.chainId !== 80002n) {
     throw new Error(`Refusing deployment: expected Polygon Amoy (80002), got ${network.chainId}`);

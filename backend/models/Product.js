@@ -66,13 +66,18 @@ const productSchema = new mongoose.Schema(
 
     organicCertified: {
       type: Boolean,
-      default: true,
+      default: false,
     },
-
 
     certificationNumber: {
       type: String,
       default: "",
+      trim: true,
+    },
+
+    certificationVerified: {
+      type: Boolean,
+      default: false,
     },
 
 

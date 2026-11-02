@@ -5,6 +5,35 @@ const QRCode = require("qrcode");
 const { appendTraceBlock, verifyTraceChain } = require("../utils/traceBlockchain");
 const { verifyOnChainTrace } = require("../utils/polygonTrace");
 
+const editableProductFields = [
+  "name",
+  "category",
+  "quantity",
+  "price",
+  "location",
+  "description",
+  "harvestDate",
+];
+
+const getProductAccessFilter = (req) => {
+  const filter = { _id: req.params.id };
+  if (req.user?.role !== "admin") {
+    filter.farmer = req.user?._id || req.user?.id;
+  }
+  return filter;
+};
+
+const buildProductRegistrationPayload = (product) => ({
+  name: product.name,
+  category: product.category,
+  quantity: product.quantity,
+  harvestDate: product.harvestDate,
+  location: product.location,
+  organicCertified: product.organicCertified,
+  certificationNumber: product.certificationNumber || "",
+  certificationVerified: product.certificationVerified === true,
+});
+
 
 // ======================
 // CLOUDINARY HELPERS
@@ -171,6 +200,16 @@ const addProduct = async (req, res) => {
         harvestDate:
           req.body.harvestDate,
 
+        organicCertified:
+          req.body.organicCertified === true || req.body.organicCertified === "true",
+
+        certificationNumber:
+          typeof req.body.certificationNumber === "string"
+            ? req.body.certificationNumber.trim()
+            : "",
+
+        certificationVerified: false,
+
         image:
           imageUrl,
 
@@ -181,13 +220,7 @@ const addProduct = async (req, res) => {
     await appendTraceBlock({
       productId: product._id,
       eventType: "PRODUCT_REGISTERED",
-      payload: {
-        name: product.name,
-        category: product.category,
-        quantity: product.quantity,
-        harvestDate: product.harvestDate,
-        location: product.location,
-      },
+      payload: buildProductRegistrationPayload(product),
       actor: req.user,
       idempotencyKey: `product-registration:${product._id}`,
     });
@@ -392,17 +425,14 @@ const updateProduct =
 
     try {
 
-      const product =
-        await Product.findById(
-          req.params.id
-        );
+      const accessFilter = getProductAccessFilter(req);
+      const product = await Product.findOne(accessFilter);
 
       if (!product) {
 
         return res.status(404).json({
           success: false,
-          message:
-            "Product Not Found",
+          message: "Product Not Found",
         });
 
       }
@@ -421,28 +451,27 @@ const updateProduct =
           result.secure_url;
       }
 
-      const updated =
-        await Product.findByIdAndUpdate(
+      const updates = {};
+      for (const field of editableProductFields) {
+        if (Object.prototype.hasOwnProperty.call(req.body, field)) {
+          updates[field] = req.body[field];
+        }
+      }
+      if (!Object.prototype.hasOwnProperty.call(req.body, "name") && req.body.productName !== undefined) {
+        updates.name = req.body.productName;
+      }
+      if (req.file) {
+        updates.image = imageUrl;
+      }
 
-          req.params.id,
-
-          {
-            ...req.body,
-
-            name:
-              req.body.name ||
-              req.body.productName ||
-              product.name,
-
-            image:
-              imageUrl,
-          },
-
-          {
-            new: true,
-          }
-
-        );
+      const updated = await Product.findOneAndUpdate(
+        accessFilter,
+        updates,
+        { new: true, runValidators: true },
+      );
+      if (!updated) {
+        return res.status(404).json({ success: false, message: "Product Not Found" });
+      }
 
       res.status(200).json({
         success: true,
@@ -471,9 +500,10 @@ const deleteProduct =
 
     try {
 
-      await Product.findByIdAndDelete(
-        req.params.id
-      );
+      const deleted = await Product.findOneAndDelete(getProductAccessFilter(req));
+      if (!deleted) {
+        return res.status(404).json({ success: false, message: "Product Not Found" });
+      }
 
       res.status(200).json({
         success: true,
@@ -502,4 +532,5 @@ module.exports = {
   updateProduct,
   deleteProduct,
   generateTraceabilityAssets,
+  buildProductRegistrationPayload,
 };

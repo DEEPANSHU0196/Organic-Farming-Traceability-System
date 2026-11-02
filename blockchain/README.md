@@ -21,13 +21,13 @@ Tests use Hardhat's in-process local network; they do not need an RPC URL, walle
 
 ## Polygon Amoy
 
-Hardhat's `polygonAmoy` network is configured for chain ID `80002`. Set `POLYGON_RPC_URL` (optional, with the public Amoy endpoint as default) and `POLYGON_PRIVATE_KEY` in this directory's `.env` before a deliberate deployment. Do not commit secrets. The deploy script refuses any chain ID other than `80002`.
+Hardhat's `polygonAmoy` network is configured for chain ID `80002` only when `POLYGON_RPC_URL` is explicitly set. Set `POLYGON_RPC_URL` and `POLYGON_PRIVATE_KEY` in this directory's `.env` before a deliberate deployment. No public RPC endpoint is selected implicitly. Do not commit secrets. The deploy script refuses any chain ID other than `80002` and requires a configured private key.
 
 Deployment has **not** been run. After local verification, the intended command is `npm run deploy:amoy`.
 
 ## Local test results
 
-Executed `npm install` and `npm test` from this directory. Hardhat compiled the contract for its local in-process network, and all 6 tests passed. No Polygon RPC or deployment was used.
+The Hardhat in-process suite contains 12 tests. It does not need a Polygon RPC URL, wallet key, MongoDB connection, or network deployment.
 
 ## Backend integration
 
@@ -35,6 +35,6 @@ The Express backend stores each trace submission in `backend/models/TraceBlock.j
 
 Product creation registers the product with a hash of its canonical metadata and keeps the existing QR URL unchanged. Shipment creation, transporter acceptance, driver assignment, and authorized shipment status updates append trace events after the corresponding Mongo writes. Stable flow idempotency keys reuse an existing trace row on repeated requests; driver contact details are not placed in the chain payload.
 
-Compile this package before starting the backend so its ABI is available at `blockchain/artifacts/`. Configure `POLYGON_RPC_URL`, `POLYGON_PRIVATE_KEY`, and `POLYGON_TRACE_CONTRACT_ADDRESS` in `backend/.env`; optionally set `POLYGON_TRACE_DEPLOYMENT_BLOCK` to bound event-log reconciliation. The backend verifies chain ID `80002`. The contract owner must authorize the backend signer with `setAuthorizedWriter` after deployment. Keep the private key exclusively in the backend environment; it is never read by frontend code.
+Compile this package before starting the backend so its ABI is available at `blockchain/artifacts/`; the backend Hardhat configuration compiles this same source into the same artifact directory. Configure `POLYGON_RPC_URL`, `POLYGON_PRIVATE_KEY`, and `POLYGON_TRACE_CONTRACT_ADDRESS` in `backend/.env`; optionally set `POLYGON_TRACE_DEPLOYMENT_BLOCK` to bound event-log reconciliation. The backend verifies chain ID `80002`. The contract owner must authorize the backend signer with `setAuthorizedWriter` after deployment. Keep the private key exclusively in the backend environment; it is never read by frontend code.
 
 Run backend tests from `backend/` with `npm test`.

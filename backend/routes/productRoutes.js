@@ -14,6 +14,7 @@ const {
 
 const {
   protect,
+  authorizeRoles,
 } = require("../middleware/authMiddleware");
 
 const upload =
@@ -82,6 +83,7 @@ router.get(
 router.put(
   "/:id",
   protect,
+  authorizeRoles("farmer", "admin"),
   upload.single("image"),
   updateProduct
 );
@@ -94,6 +96,7 @@ router.put(
 router.delete(
   "/:id",
   protect,
+  authorizeRoles("farmer", "admin"),
   deleteProduct
 );
 

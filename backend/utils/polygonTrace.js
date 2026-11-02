@@ -17,6 +17,15 @@ const artifactPath = path.join(
   "TraceabilityRegistry.sol",
   "TraceabilityRegistry.json",
 );
+const requiredContractFunctions = [
+  "appendTraceEvent",
+  "eventIdUsed",
+  "getProduct",
+  "getTraceCount",
+  "getTraceEventById",
+  "isProductRegistered",
+  "registerProducts",
+];
 
 const canonicalValue = (value) => {
   if (value instanceof Date) return value.toISOString();
@@ -70,10 +79,21 @@ const isPolygonConfigured = () => Boolean(
 
 const readArtifact = () => {
   if (!fs.existsSync(artifactPath)) {
-    throw new Error("TraceabilityRegistry artifact missing. Run npm install and npm run compile in blockchain/.");
+    throw new Error("TraceabilityRegistry artifact missing. Compile the canonical contract in backend/ or blockchain/.");
   }
 
-  return JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+  const artifact = JSON.parse(fs.readFileSync(artifactPath, "utf8"));
+  const functionNames = new Set(
+    artifact.abi
+      ?.filter((entry) => entry.type === "function")
+      .map((entry) => entry.name),
+  );
+  const missingFunctions = requiredContractFunctions.filter((name) => !functionNames.has(name));
+  if (artifact.contractName !== "TraceabilityRegistry" || missingFunctions.length) {
+    throw new Error(`TraceabilityRegistry artifact is incompatible; missing functions: ${missingFunctions.join(", ") || "contract name"}`);
+  }
+
+  return artifact;
 };
 
 const createPolygonClient = async () => {

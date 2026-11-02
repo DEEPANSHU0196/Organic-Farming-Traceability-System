@@ -98,7 +98,7 @@ const getFarmerProfile = async (req, res) => {
     if (!farmer) return res.status(404).json({ success: false, message: "Farmer not found" });
 
     const products = await Product.find({ farmer: id, status: APPROVED })
-      .select("name category price quantity unit image location harvestDate traceabilityId certificationNumber createdAt")
+      .select("name category price quantity unit image location harvestDate traceabilityId certificationNumber certificationVerified organicCertified createdAt")
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
@@ -117,7 +117,8 @@ const getFarmerProfile = async (req, res) => {
         name: farmer.fullName,
         location: farmer.address || products[0]?.location || "",
         memberSince: farmer.createdAt,
-        certified: products.some((p) => p.certificationNumber),
+        certified: products.some((p) => p.certificationVerified === true),
+        certificationSubmitted: products.some((p) => Boolean(p.certificationNumber)),
       },
       products,
       reviews,

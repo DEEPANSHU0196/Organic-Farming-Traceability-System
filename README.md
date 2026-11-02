@@ -53,6 +53,9 @@ Backend, in `backend/.env`:
 | `CLOUDINARY_CLOUD_NAME` | Cloudinary account name | Only for image uploads |
 | `CLOUDINARY_API_KEY` | Cloudinary API key | Only for image uploads |
 | `CLOUDINARY_API_SECRET` | Cloudinary API secret | Only for image uploads |
+| `ADMIN_NAME` | Name for the initial admin account | Optional; all three `ADMIN_*` values are required together |
+| `ADMIN_EMAIL` | Email for the initial admin account | Optional; all three `ADMIN_*` values are required together |
+| `ADMIN_PASSWORD` | Unique initial admin password (minimum 12 characters) | Optional; used only when no account with that email exists |
 | `POLYGON_RPC_URL` | Polygon Amoy RPC URL for read verification and writes | Required for chain access |
 | `POLYGON_TRACE_CONTRACT_ADDRESS` | Deployed `TraceabilityRegistry` address | Required for chain access |
 | `POLYGON_PRIVATE_KEY` | Backend-only authorized writer key | Required for on-chain writes; not required for read-only verification |
@@ -60,22 +63,24 @@ Backend, in `backend/.env`:
 
 Never use a `VITE_` variable for a private key, API secret, or other credential. Frontend variables are included in the browser bundle.
 
+On backend startup, the initial admin is created only when all three `ADMIN_*` values are configured and the email is unused. The password is hashed; existing accounts and passwords are never changed, and an existing non-admin account is not promoted. Remove the bootstrap values after creating the account.
+
 Hardhat deployment, in `blockchain/.env`:
 
 | Variable | Purpose | Required |
 | --- | --- | --- |
-| `POLYGON_RPC_URL` | Amoy RPC endpoint | No; defaults to Polygon's public Amoy RPC |
-| `POLYGON_PRIVATE_KEY` | Owner/deployer wallet key used by the local Hardhat command | Required only when deploying or sending the owner authorization transaction |
+| `POLYGON_RPC_URL` | Explicit Amoy RPC endpoint | Required when deploying |
+| `POLYGON_PRIVATE_KEY` | Owner/deployer wallet key used by the local Hardhat command | Required when deploying |
 
-The standalone Hardhat configuration is fixed to Polygon Amoy chain ID `80002`; the deployment script refuses any other chain. The backend independently checks that its RPC is on chain `80002`.
+Both Hardhat configurations use the same `blockchain/contracts/TraceabilityRegistry.sol` source and artifact directory. Polygon Amoy is fixed to chain ID `80002`; no public RPC endpoint is selected implicitly, and both deployment scripts refuse other chains. The backend independently checks that its RPC is on chain `80002`.
 
 ## Local tests and build
 
 Run package checks from their respective directories. These commands are local and do not deploy or require a Polygon transaction:
 
 ```sh
-# Repository root: frontend tests and production build
-npm test
+# Repository root: frontend utility tests and production build
+node --test src/utils/traceLink.test.js src/utils/onChainVerification.test.js src/utils/farmAdvice.test.js
 npm run build
 
 # Backend
@@ -88,7 +93,7 @@ npm test
 npm run compile
 ```
 
-Checks run for this documentation update passed: 3 frontend tests, 21 backend tests, 6 Hardhat contract tests, and the Vite production build. Hardhat uses its in-process network; backend chain integration tests use mocked contract/RPC clients. These results do not constitute live Amoy verification.
+Validation in this workspace: 11 frontend utility tests, 30 backend tests, 12 Hardhat contract tests, and the Vite production build passed. On Windows, use the explicit frontend test paths above because the existing root `npm test` wildcard is not expanded by Node. Hardhat uses its in-process network; backend chain integration tests use mocked contract/RPC clients. These results do not constitute live Amoy verification.
 
 ## Polygon Amoy deployment (manual)
 

@@ -5,20 +5,7 @@ const cloudinary = require("../config/cloudinary");
 const { Readable } = require("stream");
 const { isPortalAllowedForRole } = require("../utils/portalAccess");
 
-const DEFAULT_ADMIN_PASSWORD = "Admin1234";
 const PASSWORD_MIN_LENGTH = 6;
-const DEFAULT_ADMIN_ACCOUNTS = [
-  {
-    fullName: "Yana Saroha",
-    email: "yana.saroha05@gmail.com",
-    role: "admin",
-  },
-  {
-    fullName: "Deepanshu Yadav",
-    email: "deepanshu.ya2004@gmail.com",
-    role: "admin",
-  },
-];
 
 const validatePassword = (password) => {
   return typeof password === "string" && password.trim().length >= PASSWORD_MIN_LENGTH;
@@ -33,30 +20,36 @@ const normalizeRole = (role) => {
 
 const allowedPublicRoles = ["farmer", "buyer", "transporter"];
 
-const seedDefaultAdminAccounts = async () => {
-  try {
-    for (const admin of DEFAULT_ADMIN_ACCOUNTS) {
-      const existingAdmin = await User.findOne({ email: admin.email });
-      const hashedPassword = await bcrypt.hash(DEFAULT_ADMIN_PASSWORD, 10);
-
-      if (existingAdmin) {
-        await User.findByIdAndUpdate(existingAdmin._id, {
-          fullName: admin.fullName,
-          role: "admin",
-          password: hashedPassword,
-        });
-      } else {
-        await User.create({
-          fullName: admin.fullName,
-          email: admin.email,
-          password: hashedPassword,
-          role: "admin",
-        });
-      }
-    }
-  } catch (error) {
-    console.error("Default admin seeding failed:", error.message);
+const seedInitialAdminAccount = async () => {
+  const { ADMIN_NAME, ADMIN_EMAIL, ADMIN_PASSWORD } = process.env;
+  if (!ADMIN_NAME && !ADMIN_EMAIL && !ADMIN_PASSWORD) {
+    console.warn("Initial admin bootstrap skipped; configure ADMIN_NAME, ADMIN_EMAIL, and ADMIN_PASSWORD to create one.");
+    return null;
   }
+  if (!ADMIN_NAME || !ADMIN_EMAIL || !ADMIN_PASSWORD) {
+    throw new Error("Initial admin bootstrap requires ADMIN_NAME, ADMIN_EMAIL, and ADMIN_PASSWORD.");
+  }
+  if (ADMIN_PASSWORD.trim().length < 12) {
+    throw new Error("ADMIN_PASSWORD must be at least 12 characters long.");
+  }
+
+  const email = ADMIN_EMAIL.trim().toLowerCase();
+  const existingAdmin = await User.findOne({ email });
+  if (existingAdmin) {
+    if (existingAdmin.role !== "admin") {
+      throw new Error("ADMIN_EMAIL belongs to a non-admin account; bootstrap will not promote an existing user.");
+    }
+    console.info("Initial admin account already exists; leaving its credentials and role unchanged.");
+    return existingAdmin;
+  }
+
+  const password = await bcrypt.hash(ADMIN_PASSWORD, 12);
+  return User.create({
+    fullName: ADMIN_NAME.trim(),
+    email,
+    password,
+    role: "admin",
+  });
 };
 
 // ==============================
@@ -409,13 +402,6 @@ const deleteUserByAdmin = async (req, res) => {
       });
     }
 
-    if (user.email === "yana.saroha05@gmail.com" || user.email === "deepanshu.ya2004@gmail.com") {
-      return res.status(400).json({
-        success: false,
-        message: "The default admin accounts cannot be removed",
-      });
-    }
-
     await User.findByIdAndDelete(req.params.id);
 
     res.status(200).json({
@@ -436,7 +422,7 @@ const deleteUserByAdmin = async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
-  seedDefaultAdminAccounts,
+  seedInitialAdminAccount,
   getUsers,
   createUserByAdmin,
   deleteUserByAdmin,

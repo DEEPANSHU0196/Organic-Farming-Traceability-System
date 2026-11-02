@@ -24,7 +24,7 @@ const reviewRoutes = require("./routes/reviewRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const publicRoutes = require("./routes/publicRoutes");
-const { seedDefaultAdminAccounts } = require("./controllers/authController");
+const { seedInitialAdminAccount } = require("./controllers/authController");
 
 
 const getAllowedOrigins = () => {
@@ -93,7 +93,7 @@ mongoose
   .connect(process.env.MONGO_URI)
   .then(async () => {
     console.log("MongoDB Connected");
-    await seedDefaultAdminAccounts();
+    await seedInitialAdminAccount();
 
     try {
       const db = mongoose.connection.db;

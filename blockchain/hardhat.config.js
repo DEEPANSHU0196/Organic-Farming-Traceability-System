@@ -2,6 +2,17 @@ require("dotenv").config();
 require("@nomicfoundation/hardhat-toolbox");
 
 const privateKey = process.env.POLYGON_PRIVATE_KEY;
+const networks = {
+  hardhat: {},
+};
+
+if (process.env.POLYGON_RPC_URL) {
+  networks.polygonAmoy = {
+    url: process.env.POLYGON_RPC_URL,
+    chainId: 80002,
+    accounts: privateKey ? [privateKey] : [],
+  };
+}
 
 module.exports = {
   solidity: {
@@ -13,12 +24,5 @@ module.exports = {
       },
     },
   },
-  networks: {
-    hardhat: {},
-    polygonAmoy: {
-      url: process.env.POLYGON_RPC_URL || "https://polygon-amoy-bor-rpc.publicnode.com",
-      chainId: 80002,
-      accounts: privateKey ? [privateKey] : [],
-    },
-  },
+  networks,
 };
