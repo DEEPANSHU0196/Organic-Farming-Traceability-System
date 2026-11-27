@@ -28,5 +28,19 @@ backend/.env
 # Secrets
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+*.tfstate
+*.tfstate.*
+backend/artifacts/build-info/
+backend/artifacts/**/*.dbg.json
+backend/cache/
+blockchain/coverage.json
 .mongo-data/
 coverage/
